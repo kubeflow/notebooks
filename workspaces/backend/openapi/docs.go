@@ -610,9 +610,6 @@ const docTemplate = `{
             },
             "delete": {
                 "description": "Deletes a specific secret identified by namespace and name.",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -739,9 +736,6 @@ const docTemplate = `{
         "/workspacekinds": {
             "get": {
                 "description": "Returns a list of all workspace kinds in the cluster. When namespaceFilter is provided, authorization checks whether the user can create workspaces in that namespace instead of requiring workspace kind list permission.",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -877,9 +871,6 @@ const docTemplate = `{
         "/workspacekinds/{name}": {
             "get": {
                 "description": "Returns details of a specific workspace kind identified by its name.",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -1034,9 +1025,6 @@ const docTemplate = `{
             },
             "delete": {
                 "description": "Deletes a specific workspace kind identified by its name.",
-                "consumes": [
-                    "application/json"
-                ],
                 "tags": [
                     "workspacekinds"
                 ],
@@ -1098,9 +1086,6 @@ const docTemplate = `{
         "/workspacekinds/{name}/assets/icon": {
             "get": {
                 "description": "Returns the icon image for a specific workspace kind. If the icon is stored in a ConfigMap, it serves the image content. If the icon is a remote URL, returns 404 (browser should fetch directly).",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json",
                     "image/svg+xml"
@@ -1169,9 +1154,6 @@ const docTemplate = `{
         "/workspacekinds/{name}/assets/logo": {
             "get": {
                 "description": "Returns the logo image for a specific workspace kind. If the logo is stored in a ConfigMap, it serves the image content. If the logo is a remote URL, returns 404 (browser should fetch directly).",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json",
                     "image/svg+xml"
@@ -1331,9 +1313,6 @@ const docTemplate = `{
         "/workspaces": {
             "get": {
                 "description": "Returns a list of all workspaces in the cluster.",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -1373,9 +1352,6 @@ const docTemplate = `{
         "/workspaces/{namespace}": {
             "get": {
                 "description": "Returns a list of workspaces in a specific namespace.",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -1520,9 +1496,6 @@ const docTemplate = `{
         "/workspaces/{namespace}/{name}": {
             "get": {
                 "description": "Returns the current state of a specific workspace identified by namespace and workspace name, including the revision for optimistic locking. This endpoint is intended for retrieving the workspace state before updating it.",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -1693,9 +1666,6 @@ const docTemplate = `{
             },
             "delete": {
                 "description": "Deletes a specific workspace identified by namespace and name.",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],

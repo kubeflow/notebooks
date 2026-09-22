@@ -43,7 +43,6 @@ const (
 //	@Description	Returns the icon image for a specific workspace kind. If the icon is stored in a ConfigMap, it serves the image content. If the icon is a remote URL, returns 404 (browser should fetch directly).
 //	@Tags			workspacekinds
 //	@ID				getWorkspaceKindIcon
-//	@Accept			json
 //	@Produce		json
 //	@Produce		image/svg+xml
 //	@Param			name		path		string			true	"Name of the workspace kind"
@@ -65,7 +64,6 @@ func (a *App) GetWorkspaceKindIconHandler(w http.ResponseWriter, r *http.Request
 //	@Description	Returns the logo image for a specific workspace kind. If the logo is stored in a ConfigMap, it serves the image content. If the logo is a remote URL, returns 404 (browser should fetch directly).
 //	@Tags			workspacekinds
 //	@ID				getWorkspaceKindLogo
-//	@Accept			json
 //	@Produce		json
 //	@Produce		image/svg+xml
 //	@Param			name		path		string			true	"Name of the workspace kind"

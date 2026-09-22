@@ -350,7 +350,6 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Description	Deletes a specific secret identified by namespace and name.
 //	@Tags			secrets
 //	@ID				deleteSecret
-//	@Accept			json
 //	@Produce		json
 //	@Param			namespace	path		string			true	"Namespace name"	extensions(x-example=my-namespace)
 //	@Param			name		path		string			true	"Secret name"		extensions(x-example=my-secret)

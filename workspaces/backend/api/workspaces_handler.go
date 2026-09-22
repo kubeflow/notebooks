@@ -45,7 +45,6 @@ type WorkspaceListEnvelope Envelope[[]models.WorkspaceListItem]
 //	@Description	Returns the current state of a specific workspace identified by namespace and workspace name, including the revision for optimistic locking. This endpoint is intended for retrieving the workspace state before updating it.
 //	@Tags			workspaces
 //	@ID				getWorkspace
-//	@Accept			json
 //	@Produce		json
 //	@Param			namespace	path		string				true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			name		path		string				true	"Name of the workspace"			extensions(x-example=my-workspace)
@@ -98,7 +97,6 @@ func (a *App) GetWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps htt
 //	@Description	Returns a list of all workspaces in the cluster.
 //	@Tags			workspaces
 //	@ID				listAllWorkspaces
-//	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	WorkspaceListEnvelope	"Successful operation. Returns a list of all workspaces."
 //	@Failure		401	{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
@@ -115,7 +113,6 @@ func (a *App) GetAllWorkspacesHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Description	Returns a list of workspaces in a specific namespace.
 //	@Tags			workspaces
 //	@ID				listWorkspacesByNamespace
-//	@Accept			json
 //	@Produce		json
 //	@Param			namespace	path		string					true	"Namespace to filter workspaces"	extensions(x-example=kubeflow-user-example-com)
 //	@Success		200			{object}	WorkspaceListEnvelope	"Successful operation. Returns a list of workspaces in the specified namespace."
@@ -393,7 +390,6 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 //	@Description	Deletes a specific workspace identified by namespace and name.
 //	@Tags			workspaces
 //	@ID				deleteWorkspace
-//	@Accept			json
 //	@Produce		json
 //	@Param			namespace	path		string			true	"Namespace of the workspace"	extensions(x-example=kubeflow-user-example-com)
 //	@Param			name		path		string			true	"Name of the workspace"			extensions(x-example=my-workspace)
