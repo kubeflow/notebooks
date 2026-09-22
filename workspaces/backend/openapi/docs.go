@@ -911,12 +911,6 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.WorkspaceKindEnvelope"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request. Invalid workspace kind name format.",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorEnvelope"
-                        }
-                    },
                     "401": {
                         "description": "Unauthorized. Authentication is required.",
                         "schema": {
@@ -931,6 +925,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found. Workspace kind does not exist.",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorEnvelope"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity. Validation error.",
                         "schema": {
                             "$ref": "#/definitions/api.ErrorEnvelope"
                         }
