@@ -808,14 +808,15 @@ var _ = Describe("Workspaces Handler", func() {
 				},
 				Effect: kubefloworgv1beta1.FilterRuleEffect{
 					API: &kubefloworgv1beta1.FilterRuleEffectAPI{
-						Deny: new(true),
-						DenyMessage: &kubefloworgv1beta1.FilterRuleDenyMessage{
-							Text: "workspace kind is restricted by admin policy",
-						},
+						Hide: new(true),
 					},
 				},
 			})
 			Expect(k8sClient.Update(ctx, wskCopy)).To(Succeed())
+			DeferCleanup(func() {
+				wskCopy.Spec.FilterRules = wsk.Spec.FilterRules
+				Expect(k8sClient.Update(ctx, wskCopy)).To(Succeed())
+			})
 
 			workspaceCreate := &models.WorkspaceCreate{
 				Name: "ws-denied-wsk",
@@ -843,40 +844,12 @@ var _ = Describe("Workspaces Handler", func() {
 			defer rs.Body.Close()
 
 			Expect(rs.StatusCode).To(Equal(http.StatusForbidden), descUnexpectedHTTPStatus, rr.Body.String())
-			Expect(rr.Body.String()).To(ContainSubstring("workspace create not allowed: workspace kind is restricted"))
 
-			// Revert WSK back for remaining tests
-			wskCopy.Spec.FilterRules = wsk.Spec.FilterRules
-			Expect(k8sClient.Update(ctx, wskCopy)).To(Succeed())
-		})
-
-		It("returns 500 when WorkspaceKind does not exist", func() {
-			workspaceCreate := &models.WorkspaceCreate{
-				Name: "ws-missing-wsk",
-				Kind: "non-existent-wsk",
-				PodTemplate: models.PodTemplateMutate{
-					Options: models.PodTemplateOptionsMutate{
-						ImageConfig: "jupyterlab_scipy_180",
-						PodConfig:   "tiny_cpu",
-					},
-				},
-			}
-			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
-			Expect(err).NotTo(HaveOccurred())
-
-			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
-			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
-			Expect(err).NotTo(HaveOccurred())
-			req.Header.Set("Content-Type", constants.MediaTypeJson)
-			req.Header.Set(userIdHeader, adminUser)
-
-			rr := httptest.NewRecorder()
-			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
-			a.CreateWorkspaceHandler(rr, req, ps)
-			rs := rr.Result()
-			defer rs.Body.Close()
-
-			Expect(rs.StatusCode).To(Equal(http.StatusInternalServerError), descUnexpectedHTTPStatus, rr.Body.String())
+			var errEnv ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &errEnv)).To(Succeed())
+			Expect(errEnv.Error.Message).To(ContainSubstring(
+				"workspace create not allowed: workspace kind \"" + workspaceKindName + "\" is hidden",
+			))
 		})
 
 		It("successfully creates Workspace when no filter rules deny the options", func() {

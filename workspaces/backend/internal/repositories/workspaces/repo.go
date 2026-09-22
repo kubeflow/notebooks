@@ -20,11 +20,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"time"
 
-	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -52,9 +52,6 @@ var (
 // because the referenced WorkspaceKind itself is hidden or denied by a WORKSPACE_KIND-scoped
 // filterRule for the target namespace (as opposed to a specific imageConfig/podConfig
 // option being restricted - see enforceOptionFilterRules for that case).
-//
-// NOTE: whether this WORKSPACE_KIND-scope check belongs in #1206 at all is an open
-// question - see the TODO on enforceWorkspaceKindFilterRules below.
 type WorkspaceKindRestrictedError struct {
 	Message string
 }
@@ -67,6 +64,13 @@ type WorkspaceRepository struct {
 	cfg    *config.EnvConfig
 	client client.Client
 }
+
+type wsMutationType string
+
+const (
+	wsMutationTypeCreate wsMutationType = "create"
+	wsMutationTypeUpdate wsMutationType = "update"
+)
 
 func NewWorkspaceRepository(cfg *config.EnvConfig, cl client.Client) *WorkspaceRepository {
 	return &WorkspaceRepository{
@@ -161,7 +165,12 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.In
 
 	// reject the request (403) if the WorkspaceKind itself is denied by
 	// a WORKSPACE_KIND-scoped filterRule for this namespace.
-	if err := r.enforceWorkspaceKindFilterRules(ctx, namespace, workspaceKind, "create"); err != nil {
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.enforceWorkspaceKindFilterRules(workspaceKind, namespaceLabels, wsMutationTypeCreate); err != nil {
 		return nil, err
 	}
 
@@ -216,8 +225,9 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 
 	// ensure caller's revision matches current workspace revision
 	// prevents updates by callers with a stale view of the workspace
-	currentRevision := modelsCommon.CalculateRevision(&workspace.ObjectMeta)
-	if workspaceUpdate.Revision != currentRevision {
+	clusterRevision := modelsCommon.CalculateRevision(&workspace.ObjectMeta)
+	callerRevision := workspaceUpdate.Revision
+	if clusterRevision != callerRevision {
 		return nil, ErrWorkspaceRevisionConflict
 	}
 
@@ -233,7 +243,12 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	// a WORKSPACE_KIND-scoped filterRule for this namespace. Evaluated on every update,
 	// not just when imageConfig/podConfig changes, since the WorkspaceKind is fixed for
 	// the lifetime of the Workspace and isn't part of what's "changing" here.
-	if err := r.enforceWorkspaceKindFilterRules(ctx, namespace, workspaceKind, "update"); err != nil {
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.enforceWorkspaceKindFilterRules(workspaceKind, namespaceLabels, wsMutationTypeUpdate); err != nil {
 		return nil, err
 	}
 
@@ -287,43 +302,35 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 }
 
 // resolveNamespaceLabels fetches the labels of the given namespace, used to evaluate
-// `matchNamespace` conditions in filterRules. Any failure here - including the
-// namespace not existing - is a hard failure (root 500): we cannot evaluate filterRules
-// without it.
-func (r *WorkspaceRepository) resolveNamespaceLabels(ctx context.Context, namespace string) (map[string]string, error) {
+// `matchNamespace` conditions in filterRules.
+func (r *WorkspaceRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string) (map[string]string, error) {
 	ns := &corev1.Namespace{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: namespace}, ns); err != nil {
+	if err := r.client.Get(ctx, client.ObjectKey{Name: namespaceName}, ns); err != nil {
 		return nil, err
 	}
-
-	labels := make(map[string]string, len(ns.Labels))
-	maps.Copy(labels, ns.Labels)
-	return labels, nil
+	return ns.Labels, nil
 }
 
 // enforceWorkspaceKindFilterRules evaluates the WorkspaceKind's WORKSPACE_KIND-scoped
-// filterRules against the target namespace's labels, and returns a
-// *WorkspaceKindRestrictedError (surfaced as an HTTP 403) if the WorkspaceKind itself
-// is denied for this namespace.
+// filterRules against the given namespace labels and returns a WorkspaceKindRestrictedError
+// if the WorkspaceKind is hidden or denied for this namespace.
 //
-// TODO(#1206): this WORKSPACE_KIND-scope check came out of discussions after WORKSPACE_KIND-scope
-// engine support merged, but #1206 as written explicitly calls out IMAGE_CONFIG/POD_CONFIG-scoped `deny`.
-// Pending @andyatmiami confirming on the PR whether WORKSPACE_KIND-scope enforcement belongs in #1206 or a follow-up issue.
+// If both Hide and Deny apply, Hide wins: a hidden WorkspaceKind should never leak the
+// admin-authored deny message to the client.
 func (r *WorkspaceRepository) enforceWorkspaceKindFilterRules(
-	ctx context.Context,
-	namespace string,
 	workspaceKind *kubefloworgv1beta1.WorkspaceKind,
-	action string,
+	namespaceLabels map[string]string,
+	mutation wsMutationType,
 ) error {
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
-	if err != nil {
-		return err
-	}
-
 	result := filterrules.EvaluateWorkspaceKindFilterScopeRule(workspaceKind, namespaceLabels)
 
+	if result.APIHide {
+		msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q is hidden", mutation, workspaceKind.Name)
+		return &WorkspaceKindRestrictedError{Message: msg}
+	}
+
 	if result.Restrictions.Deny {
-		msg := fmt.Sprintf("workspace %s not allowed: workspace kind is restricted", action)
+		msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q is restricted", mutation, workspaceKind.Name)
 		if result.Restrictions.DenyMessage != nil && result.Restrictions.DenyMessage.Text != "" {
 			msg = fmt.Sprintf("%s: %s", msg, result.Restrictions.DenyMessage.Text)
 		}
