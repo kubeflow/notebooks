@@ -17,12 +17,19 @@ limitations under the License.
 package helper
 
 import (
+	"fmt"
+
 	"google.golang.org/protobuf/proto"
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
 // copyLabelFields copies metadata.labels from desired to target, returning the updated map and whether an update is required.
@@ -237,4 +244,45 @@ func CopyVirtualServiceFields(desired *istiov1.VirtualService, target *istiov1.V
 	}
 
 	return requireUpdate
+}
+
+// ReplaceWorkspaceAsController replaces the controller reference of the given object to a given workspace.
+// Returns true if the controller reference was replaced, false if the object was already controlled by the workspace
+// with the current APIVersion. Returns error if the object is owned by another non-Workspace controller.
+func ReplaceWorkspaceAsController(obj metav1.Object, workspace *kubefloworgv1beta1.Workspace, scheme *runtime.Scheme) (bool, error) {
+	currentController := metav1.GetControllerOf(obj)
+	// do nothing if the current controller is already the given workspace with the current APIVersion
+	// We do not use metav1.IsControlledBy(obj, workspace) because the reference should still be updated if only the version is different.
+	if currentController != nil && currentController.UID == workspace.GetUID() && currentController.APIVersion == kubefloworgv1beta1.GroupVersion.String() {
+		return false, nil
+	}
+
+	// the object is not controlled by the given workspace, we need to replace the controller reference
+	if currentController != nil {
+		// fail if the current controller is not a Workspace
+		if !isWorkspaceControllerRef(currentController) {
+			return false, fmt.Errorf("object %s/%s is controlled by %s/%s, which is not a Workspace",
+				obj.GetNamespace(), obj.GetName(), currentController.Kind, currentController.Name)
+		}
+
+		// remove the current controller reference
+		// NOTE: we do not use controllerutil.RemoveControllerReference()
+		//       because it requires us to pass the current controller as a metav1.Object
+		oldOwnerRefs := obj.GetOwnerReferences()
+		newOwnerRefs := make([]metav1.OwnerReference, 0, len(oldOwnerRefs))
+		for _, ref := range oldOwnerRefs {
+			if ref.Controller != nil && *ref.Controller && ref.UID == currentController.UID {
+				// skip the current controller reference
+				continue
+			}
+			newOwnerRefs = append(newOwnerRefs, ref)
+		}
+		obj.SetOwnerReferences(newOwnerRefs)
+	}
+
+	// set the controller reference to the given workspace
+	if err := controllerutil.SetControllerReference(workspace, obj, scheme); err != nil {
+		return false, err
+	}
+	return true, nil
 }
