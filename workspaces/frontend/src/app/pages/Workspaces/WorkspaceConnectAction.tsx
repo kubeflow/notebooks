@@ -56,7 +56,7 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
     return (
       <MenuToggle
         variant="secondary"
-        className="kubeflow-connect-toggle--direct"
+        className="kubeflow-connect-toggle kubeflow-connect-toggle--direct"
         isDisabled={isDisabled}
         onClick={() => openEndpoint(connectableServices[0].httpPath)}
         aria-label="Connect to workspace"
@@ -75,6 +75,7 @@ export const WorkspaceConnectAction: React.FunctionComponent<WorkspaceConnectAct
         <MenuToggle
           ref={toggleRef}
           variant="secondary"
+          className="kubeflow-connect-toggle"
           onClick={onToggleClick}
           isExpanded={open}
           isDisabled={isDisabled}
