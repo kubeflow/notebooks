@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,19 +41,34 @@ const (
 	OwnerKindWorkspace = "Workspace"
 )
 
+// isWorkspaceControllerRef reports whether the given owner reference points to a
+// Workspace in the kubeflow.org API group. Version is intentionally ignored so
+// this predicate is stable across CRD version promotions (see issue#1198).
+func isWorkspaceControllerRef(ref *metav1.OwnerReference) bool {
+	if ref == nil {
+		return false
+	}
+	ownerGV, err := schema.ParseGroupVersion(ref.APIVersion)
+	if err != nil {
+		return false
+	}
+	return ownerGV.Group == kubefloworgv1beta1.GroupVersion.Group && ref.Kind == OwnerKindWorkspace
+}
+
+// indexWorkspaceOwner returns the name of the Workspace that is the controller owner of the object,
+// or nil if the object is not controlled by a Workspace.
+func indexWorkspaceOwner(rawObj client.Object) []string {
+	owner := metav1.GetControllerOf(rawObj)
+	if owner == nil || !isWorkspaceControllerRef(owner) {
+		return nil
+	}
+	return []string{owner.Name}
+}
+
 // indexByWorkspaceOwner indexes the given object type under `IndexWorkspaceOwnerField`,
 // by the name of the Workspace which is its controller owner
 func indexByWorkspaceOwner(mgr ctrl.Manager, obj client.Object) error {
-	return mgr.GetFieldIndexer().IndexField(context.Background(), obj, IndexWorkspaceOwnerField, func(rawObj client.Object) []string {
-		owner := metav1.GetControllerOf(rawObj)
-		if owner == nil {
-			return nil
-		}
-		if owner.APIVersion != kubefloworgv1beta1.GroupVersion.String() || owner.Kind != OwnerKindWorkspace {
-			return nil
-		}
-		return []string{owner.Name}
-	})
+	return mgr.GetFieldIndexer().IndexField(context.Background(), obj, IndexWorkspaceOwnerField, indexWorkspaceOwner)
 }
 
 // SetupManagerFieldIndexers sets up field indexes on a controller-runtime manager
