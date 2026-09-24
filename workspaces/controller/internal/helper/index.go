@@ -32,13 +32,39 @@ import (
 )
 
 const (
-	IndexEventInvolvedObjectUidField            = ".involvedObject.uid"
+	// IndexEventInvolvedObjectUidField indexes Events by `involvedObject.uid`.
+	//
+	// NOTE: unlike the other index names, this one deliberately has NO leading dot, because it must
+	//       be valid BOTH as a controller-runtime cache index name AND as a real Kubernetes field
+	//       label for `v1.Event`. When `--watch-warning-events` is disabled we do not cache Events
+	//       at all, so a List using this field selector is sent to the API server, which rejects
+	//       any field label it does not know (e.g. `.involvedObject.uid` would fail with
+	//       "field label not supported").
+	IndexEventInvolvedObjectUidField = "involvedObject.uid"
+
+	IndexWorkspaceOwnedResourceUIDField         = ".status.ownedResourceUIDs"
 	IndexWorkspaceOwnerField                    = ".metadata.controller"
 	IndexWorkspaceKindField                     = ".spec.kind"
 	IndexWorkspaceKindConfigMapImageSourceField = ".spec.configMapImageSource"
 
 	OwnerKindWorkspace = "Workspace"
 )
+
+// indexWorkspaceOwnedResourceUIDs returns the UIDs of the owned Pod and StatefulSet from Workspace status
+func indexWorkspaceOwnedResourceUIDs(rawObj client.Object) []string {
+	ws, ok := rawObj.(*kubefloworgv1beta1.Workspace)
+	if !ok {
+		return nil
+	}
+	uids := make([]string, 0, 2)
+	if uid := ws.Status.PodTemplatePod.UID; uid != "" {
+		uids = append(uids, string(uid))
+	}
+	if uid := ws.Status.PodTemplateStatefulSet.UID; uid != "" {
+		uids = append(uids, string(uid))
+	}
+	return uids
+}
 
 // indexByWorkspaceOwner indexes the given object type under `IndexWorkspaceOwnerField`,
 // by the name of the Workspace which is its controller owner
@@ -58,15 +84,24 @@ func indexByWorkspaceOwner(mgr ctrl.Manager, obj client.Object) error {
 // SetupManagerFieldIndexers sets up field indexes on a controller-runtime manager
 func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 
-	// Index Event by `involvedObject.uid`
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Event{}, IndexEventInvolvedObjectUidField, func(rawObj client.Object) []string {
-		event := rawObj.(*corev1.Event)
-		if event.InvolvedObject.UID == "" {
-			return nil
+	// Index Event by `involvedObject.uid` (only when warning event watching is enabled)
+	//
+	// WARNING: `IndexField()` calls `GetInformer()` under the hood, so merely registering this index
+	//          creates (and starts) a cluster-wide Event informer, even if nothing ever watches or
+	//          Lists Events through the cache. That informer caches every Warning Event in the
+	//          cluster, which is unbounded during an event storm, so it must stay gated behind the
+	//          `--watch-warning-events` flag. When disabled, Events are read directly from the API
+	//          server instead (see the `DisableFor` client option in `cmd/main.go`).
+	if cfg != nil && cfg.WatchWarningEvents {
+		if err := mgr.GetFieldIndexer().IndexField(context.Background(), &corev1.Event{}, IndexEventInvolvedObjectUidField, func(rawObj client.Object) []string {
+			event := rawObj.(*corev1.Event)
+			if event.InvolvedObject.UID == "" {
+				return nil
+			}
+			return []string{string(event.InvolvedObject.UID)}
+		}); err != nil {
+			return err
 		}
-		return []string{string(event.InvolvedObject.UID)}
-	}); err != nil {
-		return err
 	}
 
 	// Index StatefulSet by its owner Workspace
@@ -90,7 +125,7 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 	}
 
 	// Index VirtualService by its owner Workspace (only when Istio is enabled)
-	if cfg.UseIstio {
+	if cfg != nil && cfg.UseIstio {
 		if err := indexByWorkspaceOwner(mgr, &istiov1.VirtualService{}); err != nil {
 			return err
 		}
@@ -104,6 +139,11 @@ func SetupManagerFieldIndexers(mgr ctrl.Manager, cfg *config.EnvConfig) error {
 		}
 		return []string{ws.Spec.Kind}
 	}); err != nil {
+		return err
+	}
+
+	// Index Workspace by owned Pod and StatefulSet UIDs
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &kubefloworgv1beta1.Workspace{}, IndexWorkspaceOwnedResourceUIDField, indexWorkspaceOwnedResourceUIDs); err != nil {
 		return err
 	}
 
