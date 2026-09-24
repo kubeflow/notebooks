@@ -212,7 +212,6 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-
 		//
 		// TODO: handle UnmarshalTypeError and return 422,
 		//       decode the paths which were failed to decode (included in the error)
@@ -250,14 +249,17 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	createdWorkspace, err := a.repositories.Workspace.CreateWorkspace(r.Context(), actor, workspaceCreate, namespace)
 	if err != nil {
-		if helper.IsInternalValidationError(err) {
-			fieldErrs := helper.FieldErrorsFromInternalValidationError(err)
-			a.failedValidationResponse(w, r, errMsgInternalValidation, fieldErrs, nil)
+		if restrictedErr, ok := errors.AsType[*repository.WorkspaceKindRestrictedError](err); ok {
+			a.policyDeniedResponse(w, r, restrictedErr.Error())
 			return
 		}
 		if errors.Is(err, repository.ErrWorkspaceAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
+			return
+		}
+		if helper.IsInternalValidationError(err) {
+			a.failedValidationResponse(w, r, errMsgInternalValidation, helper.FieldErrorsFromInternalValidationError(err), nil)
 			return
 		}
 		if apierrors.IsInvalid(err) {
@@ -361,6 +363,10 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	updatedWorkspace, err := a.repositories.Workspace.UpdateWorkspace(r.Context(), actor, workspaceUpdate, namespace, workspaceName)
 	if err != nil {
+		if restrictedErr, ok := errors.AsType[*repository.WorkspaceKindRestrictedError](err); ok {
+			a.policyDeniedResponse(w, r, restrictedErr.Error())
+			return
+		}
 		if errors.Is(err, repoCommon.ErrWorkspaceNotFound) {
 			a.notFoundResponse(w, r)
 			return

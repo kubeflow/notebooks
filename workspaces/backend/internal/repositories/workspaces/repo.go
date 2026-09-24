@@ -22,14 +22,19 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/filterrules"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces"
 	modelsActions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/actions"
@@ -43,10 +48,29 @@ var (
 	ErrWorkspaceRevisionConflict = fmt.Errorf("current workspace revision does not match request")
 )
 
+// WorkspaceKindRestrictedError indicates that a Workspace create/update was rejected
+// because the referenced WorkspaceKind itself is hidden or denied by a WORKSPACE_KIND-scoped
+// filterRule for the target namespace (as opposed to a specific imageConfig/podConfig
+// option being restricted - see enforceOptionFilterRules for that case).
+type WorkspaceKindRestrictedError struct {
+	Message string
+}
+
+func (e *WorkspaceKindRestrictedError) Error() string {
+	return e.Message
+}
+
 type WorkspaceRepository struct {
 	cfg    *config.EnvConfig
 	client client.Client
 }
+
+type wsMutationType string
+
+const (
+	wsMutationTypeCreate wsMutationType = "create"
+	wsMutationTypeUpdate wsMutationType = "update"
+)
 
 func NewWorkspaceRepository(cfg *config.EnvConfig, cl client.Client) *WorkspaceRepository {
 	return &WorkspaceRepository{
@@ -130,13 +154,44 @@ func (r *WorkspaceRepository) getWorkspaceModels(ctx context.Context, listOption
 }
 
 func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.Info, workspaceCreate *models.WorkspaceCreate, namespace string) (*models.WorkspaceCreate, error) {
+	// get the WorkspaceKind referenced by this Workspace - required to evaluate its
+	// filterRules below. Any failure here (including the WorkspaceKind not existing)
+	// is a hard failure (root 500): we cannot evaluate filterRules without it, and a
+	// create request should always reference a real WorkspaceKind.
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspaceCreate.Kind}, workspaceKind); err != nil {
+		return nil, err
+	}
+
+	// reject the request (403) if the WorkspaceKind itself is denied by
+	// a WORKSPACE_KIND-scoped filterRule for this namespace.
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.enforceWorkspaceKindFilterRules(workspaceKind, namespaceLabels, wsMutationTypeCreate); err != nil {
+		return nil, err
+	}
+
+	// reject the request (422) if the selected imageConfig/podConfig is
+	// denied by a filterRule for this namespace. Both options are evaluated
+	// on create since both are being selected for the first time.
+	filterErrs, err := r.enforceOptionFilterRules(ctx, namespace, workspaceKind, workspaceCreate.PodTemplate.Options, true, true)
+	if err != nil {
+		return nil, err
+	}
+	if len(filterErrs) > 0 {
+		return nil, helper.NewInternalValidationError(filterErrs)
+	}
+
 	// create workspace object from model
 	workspace, err := models.NewWorkspaceFromWorkspaceCreateModel(ctx, r.client, workspaceCreate, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	// set audit annotations
+	// set audit annotations (UpdateObjectMetaForCreate only takes 2 arguments)
 	modelsCommon.UpdateObjectMetaForCreate(&workspace.ObjectMeta, actor)
 
 	// create workspace
@@ -176,12 +231,51 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 		return nil, ErrWorkspaceRevisionConflict
 	}
 
+	// get the WorkspaceKind referenced by this Workspace - required to evaluate its
+	// filterRules below. Any failure here (including the WorkspaceKind not existing)
+	// is a hard failure (root 500): we cannot evaluate filterRules without it.
+	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspace.Spec.Kind}, workspaceKind); err != nil {
+		return nil, err
+	}
+
+	// reject the request (403) if the WorkspaceKind itself is denied by
+	// a WORKSPACE_KIND-scoped filterRule for this namespace. Evaluated on every update,
+	// not just when imageConfig/podConfig changes, since the WorkspaceKind is fixed for
+	// the lifetime of the Workspace and isn't part of what's "changing" here.
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.enforceWorkspaceKindFilterRules(workspaceKind, namespaceLabels, wsMutationTypeUpdate); err != nil {
+		return nil, err
+	}
+
+	// only re-evaluate filterRules for an option that is actually changing - an
+	// unrelated update should not be blocked by a rule that started denying an option
+	// the workspace already has.
+	newOptions := workspaceUpdate.PodTemplate.Options
+	currentOptions := workspace.Spec.PodTemplate.Options
+	imageConfigChanged := newOptions.ImageConfig != currentOptions.ImageConfig
+	podConfigChanged := newOptions.PodConfig != currentOptions.PodConfig
+
+	if imageConfigChanged || podConfigChanged {
+		filterErrs, err := r.enforceOptionFilterRules(ctx, namespace, workspaceKind, newOptions, imageConfigChanged, podConfigChanged)
+		if err != nil {
+			return nil, err
+		}
+		if len(filterErrs) > 0 {
+			return nil, helper.NewInternalValidationError(filterErrs)
+		}
+	}
+
 	// apply update model to workspace object
 	if err := models.ApplyWorkspaceUpdateModelToWorkspace(ctx, r.client, workspaceUpdate, workspace); err != nil {
 		return nil, err
 	}
 
-	// set audit annotations
+	// set audit annotations (UpdateObjectMetaForUpdate takes 3 arguments)
 	modelsCommon.UpdateObjectMetaForUpdate(&workspace.ObjectMeta, actor, now)
 
 	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
@@ -191,6 +285,9 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	if err := r.client.Update(ctx, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, repoCommon.ErrWorkspaceNotFound
+		}
+		if apierrors.IsConflict(err) {
+			return nil, ErrWorkspaceRevisionConflict
 		}
 		if apierrors.IsInvalid(err) {
 			// NOTE: we don't wrap this error so we can unpack it in the caller
@@ -202,6 +299,123 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 
 	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
 	return workspaceUpdateModel, nil
+}
+
+// resolveNamespaceLabels fetches the labels of the given namespace, used to evaluate
+// `matchNamespace` conditions in filterRules.
+func (r *WorkspaceRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string) (map[string]string, error) {
+	ns := &corev1.Namespace{}
+	if err := r.client.Get(ctx, client.ObjectKey{Name: namespaceName}, ns); err != nil {
+		return nil, err
+	}
+	return ns.Labels, nil
+}
+
+// enforceWorkspaceKindFilterRules evaluates the WorkspaceKind's WORKSPACE_KIND-scoped
+// filterRules against the given namespace labels and returns a WorkspaceKindRestrictedError
+// if the WorkspaceKind is hidden or denied for this namespace.
+//
+// If both Hide and Deny apply, Hide wins: a hidden WorkspaceKind should never leak the
+// admin-authored deny message to the client.
+func (r *WorkspaceRepository) enforceWorkspaceKindFilterRules(
+	workspaceKind *kubefloworgv1beta1.WorkspaceKind,
+	namespaceLabels map[string]string,
+	mutation wsMutationType,
+) error {
+	result := filterrules.EvaluateWorkspaceKindFilterScopeRule(workspaceKind, namespaceLabels)
+
+	if result.APIHide {
+		msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q is hidden", mutation, workspaceKind.Name)
+		return &WorkspaceKindRestrictedError{Message: msg}
+	}
+
+	if result.Restrictions.Deny {
+		msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q is restricted", mutation, workspaceKind.Name)
+		if result.Restrictions.DenyMessage != nil && result.Restrictions.DenyMessage.Text != "" {
+			msg = fmt.Sprintf("%s: %s", msg, result.Restrictions.DenyMessage.Text)
+		}
+		return &WorkspaceKindRestrictedError{Message: msg}
+	}
+
+	return nil
+}
+
+// enforceOptionFilterRules evaluates IMAGE_CONFIG- and POD_CONFIG-scoped filterRules
+// for the selected imageConfig/podConfig, and returns a field.ErrorList describing
+// any option that a rule restricts via deny.
+func (r *WorkspaceRepository) enforceOptionFilterRules(
+	ctx context.Context,
+	namespace string,
+	workspaceKind *kubefloworgv1beta1.WorkspaceKind,
+	options models.PodTemplateOptionsMutate,
+	checkImageConfig, checkPodConfig bool,
+) (field.ErrorList, error) {
+	var errs field.ErrorList
+
+	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	evalCtx := filterrules.BuildEvalContextForImageAndPodCfg(workspaceKind, namespaceLabels, options.ImageConfig, options.PodConfig)
+
+	if checkPodConfig {
+		if value := findPodConfigValue(workspaceKind, options.PodConfig); value != nil {
+			result := filterrules.Evaluate(filterrules.EvalTarget{
+				Scope:  kubefloworgv1beta1.FilterRuleScopePodConfig,
+				Labels: value.Spawner.Labels,
+			}, evalCtx)
+
+			podPath := field.NewPath("spec", "podTemplate", "options", "podConfig")
+			if result.Restrictions.Deny {
+				msg := "not allowed: pod config option is restricted"
+				if result.Restrictions.DenyMessage != nil && result.Restrictions.DenyMessage.Text != "" {
+					msg = fmt.Sprintf("%s: %s", msg, result.Restrictions.DenyMessage.Text)
+				}
+				errs = append(errs, field.Forbidden(podPath, msg))
+			}
+		}
+	}
+
+	if checkImageConfig {
+		if value := findImageConfigValue(workspaceKind, options.ImageConfig); value != nil {
+			result := filterrules.Evaluate(filterrules.EvalTarget{
+				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
+				Labels: value.Spawner.Labels,
+			}, evalCtx)
+
+			imgPath := field.NewPath("spec", "podTemplate", "options", "imageConfig")
+			if result.Restrictions.Deny {
+				msg := "not allowed: image config option is restricted"
+				if result.Restrictions.DenyMessage != nil && result.Restrictions.DenyMessage.Text != "" {
+					msg = fmt.Sprintf("%s: %s", msg, result.Restrictions.DenyMessage.Text)
+				}
+				errs = append(errs, field.Forbidden(imgPath, msg))
+			}
+		}
+	}
+
+	return errs, nil
+}
+
+// findImageConfigValue returns the imageConfig value with the given id, or nil if not found.
+func findImageConfigValue(wsk *kubefloworgv1beta1.WorkspaceKind, id string) *kubefloworgv1beta1.ImageConfigValue {
+	for i := range wsk.Spec.PodTemplate.Options.ImageConfig.Values {
+		if wsk.Spec.PodTemplate.Options.ImageConfig.Values[i].Id == id {
+			return &wsk.Spec.PodTemplate.Options.ImageConfig.Values[i]
+		}
+	}
+	return nil
+}
+
+// findPodConfigValue returns the podConfig value with the given id, or nil if not found.
+func findPodConfigValue(wsk *kubefloworgv1beta1.WorkspaceKind, id string) *kubefloworgv1beta1.PodConfigValue {
+	for i := range wsk.Spec.PodTemplate.Options.PodConfig.Values {
+		if wsk.Spec.PodTemplate.Options.PodConfig.Values[i].Id == id {
+			return &wsk.Spec.PodTemplate.Options.PodConfig.Values[i]
+		}
+	}
+	return nil
 }
 
 func (r *WorkspaceRepository) DeleteWorkspace(ctx context.Context, namespace, workspaceName string) error {
