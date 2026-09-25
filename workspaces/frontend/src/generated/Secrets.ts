@@ -126,7 +126,6 @@ export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityData
    * @summary Delete secret
    * @request DELETE:/secrets/{namespace}/{name}
    * @response `204` `void` Secret deleted successfully
-   * @response `400` `ApiErrorEnvelope` Bad request
    * @response `401` `ApiErrorEnvelope` Unauthorized
    * @response `403` `ApiErrorEnvelope` Forbidden
    * @response `404` `ApiErrorEnvelope` Secret not found
@@ -138,7 +137,6 @@ export class Secrets<SecurityDataType = unknown> extends HttpClient<SecurityData
     this.request<void, ApiErrorEnvelope>({
       path: `/secrets/${namespace}/${name}`,
       method: 'DELETE',
-      type: ContentType.Json,
       ...params,
     });
 }
