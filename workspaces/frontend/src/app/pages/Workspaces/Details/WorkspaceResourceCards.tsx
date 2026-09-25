@@ -37,9 +37,40 @@ const asString = (value: ResourceQuantity | undefined): string | undefined => {
 
 const isKnownResourceType = (key: string): key is ResourceType => key === 'cpu' || key === 'memory';
 
+const NANOCORES_PER_MILLICORE = 1_000_000;
+const NANOCORES_PER_CORE = 1_000_000_000;
+
+const formatCpuUsage = (value: string): string => {
+  if (!value.endsWith('n')) {
+    return formatResourceValue(value, 'cpu');
+  }
+
+  const nanocores = Number(value.slice(0, -1));
+
+  if (!Number.isFinite(nanocores)) {
+    return formatResourceValue(value, 'cpu');
+  }
+
+  return nanocores >= NANOCORES_PER_CORE
+    ? `${nanocores / NANOCORES_PER_CORE} Cores`
+    : `${nanocores / NANOCORES_PER_MILLICORE} Millicores`;
+};
+
 const formatValue = (key: string, value: ResourceQuantity | undefined): string => {
   const str = asString(value);
   return formatResourceValue(str, isKnownResourceType(key) ? key : undefined);
+};
+
+const formatUsageValue = (key: string, value: string | undefined): string => {
+  if (value === undefined) {
+    return '-';
+  }
+
+  if (key === 'cpu') {
+    return formatCpuUsage(value);
+  }
+
+  return formatResourceValue(value, isKnownResourceType(key) ? key : undefined);
 };
 
 const getResourceKeys = (container: ResourcesContainerResourceUsage): string[] => {
@@ -91,7 +122,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resourceKey, container }) =
             <DescriptionListTerm>Usage</DescriptionListTerm>
             <DescriptionListDescription data-testid={`resource-usage-${resourceKey}`}>
               {metrics ? (
-                formatValue(resourceKey, usageValue as unknown as ResourceQuantity)
+                formatUsageValue(resourceKey, usageValue)
               ) : (
                 <Content component="small">
                   <i>Pending</i>
