@@ -46,7 +46,7 @@ type PodTemplateOptionsListValuesRequestEnvelope Envelope[*models.ListValuesRequ
 //	@Param			name	path		string										true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
 //	@Param			body	body		PodTemplateOptionsListValuesRequestEnvelope	true	"Request body with optional context filters"
 //	@Success		200		{object}	PodTemplateOptionsEnvelope					"Successful operation. Returns filtered options with ruleEffects."
-//	@Failure		400		{object}	ErrorEnvelope								"Bad Request. Invalid workspace kind name or request body."
+//	@Failure		400		{object}	ErrorEnvelope								"Bad Request. Malformed request body or Content-Type header."
 //	@Failure		401		{object}	ErrorEnvelope								"Unauthorized. Authentication is required."
 //	@Failure		403		{object}	ErrorEnvelope								"Forbidden. User does not have permission to access the workspace kind."
 //	@Failure		404		{object}	ErrorEnvelope								"Not Found. Workspace kind does not exist."
