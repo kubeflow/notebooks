@@ -7837,6 +7837,18 @@ const docTemplate = `{
                 "spawner"
             ],
             "properties": {
+                "activityRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.ActivityRule"
+                    }
+                },
+                "filterRules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.FilterRule"
+                    }
+                },
                 "name": {
                     "type": "string"
                 },

@@ -588,6 +588,21 @@ spec:
                 requests:
                   cpu: 100m
                   memory: 128Mi
+  activityRules:
+    - config:
+        secondsSinceActive: 3600
+      effect:
+        pauseWorkspace: false
+  filterRules:
+    - scope: IMAGE_CONFIG
+      effect:
+        ui:
+          hide: true
+      match:
+        - matchImageConfig:
+            selector:
+              matchLabels:
+                gpu: "true"
 `, newWorkspaceKindName))
 		})
 
@@ -629,6 +644,16 @@ spec:
 					commonModels.AnnotationUpdatedBy: adminUser,
 				},
 			))
+
+			By("unmarshalling the response JSON")
+			var response WorkspaceKindCreateEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &response)).To(Succeed())
+
+			By("verifying the rules from the cluster object are returned")
+			Expect(createdWsk.Spec.ActivityRules).To(HaveLen(1))
+			Expect(createdWsk.Spec.FilterRules).To(HaveLen(1))
+			Expect(response.Data.ActivityRules).To(BeComparableTo(createdWsk.Spec.ActivityRules))
+			Expect(response.Data.FilterRules).To(BeComparableTo(createdWsk.Spec.FilterRules))
 		})
 
 		It("should fail to create a WorkspaceKind with no name in the YAML", func() {
