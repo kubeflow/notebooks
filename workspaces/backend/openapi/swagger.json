@@ -3060,9 +3060,7 @@
                 "canMount",
                 "canUpdate",
                 "name",
-                "pods",
-                "pvcSpec",
-                "workspaces"
+                "pvcSpec"
             ],
             "properties": {
                 "audit": {
@@ -3105,7 +3103,6 @@
         "pvcs.PVCSpec": {
             "type": "object",
             "required": [
-                "accessModes",
                 "requests",
                 "storageClassName",
                 "volumeMode"
@@ -3132,7 +3129,6 @@
         "pvcs.PVInfo": {
             "type": "object",
             "required": [
-                "accessModes",
                 "name",
                 "persistentVolumeReclaimPolicy",
                 "volumeMode"
@@ -8052,8 +8048,7 @@
             "required": [
                 "description",
                 "displayName",
-                "id",
-                "labels"
+                "id"
             ],
             "properties": {
                 "description": {
@@ -8224,9 +8219,6 @@
         },
         "workspaces.PodVolumesMutate": {
             "type": "object",
-            "required": [
-                "data"
-            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -8373,7 +8365,6 @@
                 "paused",
                 "pausedTime",
                 "podTemplate",
-                "services",
                 "state",
                 "stateMessage",
                 "workspaceKind"
