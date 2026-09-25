@@ -49,7 +49,6 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
       path: `/workspacekinds`,
       method: 'GET',
       query: query,
-      type: ContentType.Json,
       format: 'json',
       ...params,
     });
@@ -86,17 +85,16 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
    * @summary Get workspace kind
    * @request GET:/workspacekinds/{name}
    * @response `200` `ApiWorkspaceKindEnvelope` Successful operation. Returns the requested workspace kind details with new revision.
-   * @response `400` `ApiErrorEnvelope` Bad Request. Invalid workspace kind name format.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to access the workspace kind.
    * @response `404` `ApiErrorEnvelope` Not Found. Workspace kind does not exist.
+   * @response `422` `ApiErrorEnvelope` Unprocessable Entity. Validation error.
    * @response `500` `ApiErrorEnvelope` Internal server error. An unexpected error occurred on the server.
    */
   getWorkspaceKind = (name: string, params: RequestParams = {}) =>
     this.request<ApiWorkspaceKindEnvelope, ApiErrorEnvelope>({
       path: `/workspacekinds/${name}`,
       method: 'GET',
-      type: ContentType.Json,
       format: 'json',
       ...params,
     });
@@ -150,7 +148,6 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
     this.request<void, ApiErrorEnvelope>({
       path: `/workspacekinds/${name}`,
       method: 'DELETE',
-      type: ContentType.Json,
       ...params,
     });
   /**
@@ -182,7 +179,6 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
       path: `/workspacekinds/${name}/assets/icon`,
       method: 'GET',
       query: query,
-      type: ContentType.Json,
       format: 'json',
       ...params,
     });
@@ -215,7 +211,6 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
       path: `/workspacekinds/${name}/assets/logo`,
       method: 'GET',
       query: query,
-      type: ContentType.Json,
       format: 'json',
       ...params,
     });
@@ -227,7 +222,7 @@ export class Workspacekinds<SecurityDataType = unknown> extends HttpClient<Secur
    * @summary List options values for a pod template workspace kind
    * @request POST:/workspacekinds/{name}/podtemplate/options/listvalues
    * @response `200` `ApiPodTemplateOptionsEnvelope` Successful operation. Returns filtered options with ruleEffects.
-   * @response `400` `ApiErrorEnvelope` Bad Request. Invalid workspace kind name or request body.
+   * @response `400` `ApiErrorEnvelope` Bad Request. Malformed request body or Content-Type header.
    * @response `401` `ApiErrorEnvelope` Unauthorized. Authentication is required.
    * @response `403` `ApiErrorEnvelope` Forbidden. User does not have permission to access the workspace kind.
    * @response `404` `ApiErrorEnvelope` Not Found. Workspace kind does not exist.

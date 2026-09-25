@@ -38,7 +38,6 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
     this.request<ApiWorkspaceListEnvelope, ApiErrorEnvelope>({
       path: `/workspaces`,
       method: 'GET',
-      type: ContentType.Json,
       format: 'json',
       ...params,
     });
@@ -59,7 +58,6 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
     this.request<ApiWorkspaceListEnvelope, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}`,
       method: 'GET',
-      type: ContentType.Json,
       format: 'json',
       ...params,
     });
@@ -111,7 +109,6 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
     this.request<ApiWorkspaceEnvelope, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}/${name}`,
       method: 'GET',
-      type: ContentType.Json,
       format: 'json',
       ...params,
     });
@@ -166,7 +163,6 @@ export class Workspaces<SecurityDataType = unknown> extends HttpClient<SecurityD
     this.request<void, ApiErrorEnvelope>({
       path: `/workspaces/${namespace}/${name}`,
       method: 'DELETE',
-      type: ContentType.Json,
       ...params,
     });
   /**
