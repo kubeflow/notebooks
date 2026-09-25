@@ -59,7 +59,7 @@ export const formatResourceValue = (v: string | undefined, resourceType?: Resour
   }
 
   const [value, unit] = parseResourceValue(v, resourceType);
-  return `${value || ''} ${unit?.name || ''}`.trim();
+  return `${value ?? ''} ${unit?.name || ''}`.trim();
 };
 
 export const formatResourceFromWorkspace = (
