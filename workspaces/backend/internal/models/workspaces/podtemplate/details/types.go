@@ -54,5 +54,5 @@ type PodVolumeInfo struct {
 type PodSecretInfo struct {
 	SecretName  string `json:"secretName"`
 	MountPath   string `json:"mountPath"`
-	DefaultMode int32  `json:"defaultMode,omitempty"`
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
 }
