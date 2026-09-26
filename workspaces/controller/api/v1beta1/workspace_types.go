@@ -154,7 +154,7 @@ type PodSecretMount struct {
 	// +kubebuilder:validation:Minimum:=0
 	// +kubebuilder:validation:Maximum:=511
 	// +kubebuilder:default=420
-	DefaultMode int32 `json:"defaultMode,omitempty"`
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
 }
 
 type WorkspacePodOptions struct {
