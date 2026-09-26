@@ -1,9 +1,9 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
+import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 
 type ImageConfigOption = {
   id: string;
@@ -394,7 +394,9 @@ describe('Workspace Form - Option Card Display', () => {
       createWorkspace.selectKind('jupyterlab');
       createWorkspace.clickNext();
 
-      createWorkspace.assertCardIsSelected('jupyterlab_scipy_200_hidden');
+      createWorkspace.assertCardIsSelected('jupyterlab_scipy_190');
+
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.assertCardHasHiddenIndicator('jupyterlab_scipy_200_hidden');
       createWorkspace.assertCardHasDefaultBadge('jupyterlab_scipy_200_hidden');
     });
