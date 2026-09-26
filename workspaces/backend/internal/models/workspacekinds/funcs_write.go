@@ -26,9 +26,11 @@ import (
 // Used by Create response.
 func NewWorkspaceKindCreateModelFromWorkspaceKind(wsk *kubefloworgv1beta1.WorkspaceKind) *WorkspaceKindCreate {
 	return &WorkspaceKindCreate{
-		Name:        wsk.Name,
-		Spawner:     wsk.Spec.Spawner,
-		PodTemplate: wsk.Spec.PodTemplate,
+		Name:          wsk.Name,
+		Spawner:       wsk.Spec.Spawner,
+		PodTemplate:   wsk.Spec.PodTemplate,
+		ActivityRules: wsk.Spec.ActivityRules,
+		FilterRules:   wsk.Spec.FilterRules,
 	}
 }
 

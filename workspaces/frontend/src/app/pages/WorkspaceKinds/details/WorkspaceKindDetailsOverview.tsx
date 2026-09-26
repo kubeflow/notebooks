@@ -47,7 +47,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon Source</DescriptionListTerm>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon</DescriptionListTerm>
       <DescriptionListDescription>
         <WorkspaceKindImage
           imageSrc={workspaceKind.icon.url}
@@ -65,14 +65,14 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
         </WorkspaceKindImage>
       </DescriptionListDescription>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Source Type</DescriptionListTerm>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Icon Source</DescriptionListTerm>
       <DescriptionListDescription>
         <span title={workspaceKind.icon.url}>{workspaceKind.icon.url}</span>
       </DescriptionListDescription>
     </DescriptionListGroup>
     <Divider />
     <DescriptionListGroup>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo Source</DescriptionListTerm>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo</DescriptionListTerm>
       <DescriptionListDescription>
         <WorkspaceKindImage
           imageSrc={workspaceKind.logo.url}
@@ -90,7 +90,7 @@ export const WorkspaceKindDetailsOverview: React.FunctionComponent<
           {(validSrc) => <img src={validSrc} alt={workspaceKind.name} style={{ width: '40px' }} />}
         </WorkspaceKindImage>
       </DescriptionListDescription>
-      <DescriptionListTerm style={{ alignSelf: 'center' }}>Source Type</DescriptionListTerm>
+      <DescriptionListTerm style={{ alignSelf: 'center' }}>Logo Source</DescriptionListTerm>
       <DescriptionListDescription>
         <span title={workspaceKind.logo.url}>{workspaceKind.logo.url}</span>
       </DescriptionListDescription>

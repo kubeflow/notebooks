@@ -17,6 +17,9 @@ limitations under the License.
 package repositories
 
 import (
+	"log/slog"
+
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -52,10 +55,15 @@ func NewRepositories(
 	// configMapClient is a label-filtered cached client for image-source ConfigMaps
 	configMapClient client.Client,
 	clientset kubernetes.Interface,
+	logger *slog.Logger,
 ) *Repositories {
+	var discoveryClient discovery.DiscoveryInterface
+	if clientset != nil {
+		discoveryClient = clientset.Discovery()
+	}
 	return &Repositories{
 		HealthCheck:   health_check.NewHealthCheckRepository(cfg),
-		Metrics:       metrics.NewMetricsRepository(cfg, cl),
+		Metrics:       metrics.NewMetricsRepository(cfg, cl, discoveryClient, logger),
 		Namespace:     namespaces.NewNamespaceRepository(cfg, cl),
 		PVC:           pvcs.NewPVCRepository(cfg, cl),
 		Secret:        secrets.NewSecretRepository(cfg, cl),

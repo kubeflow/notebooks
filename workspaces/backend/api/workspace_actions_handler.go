@@ -69,7 +69,7 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if success := a.ValidateContentType(w, r, "application/json"); !success {
+	if success := a.ValidateContentType(w, r, constants.MediaTypeJson); !success {
 		return
 	}
 
