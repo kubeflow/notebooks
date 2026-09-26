@@ -130,11 +130,13 @@ const WorkspaceForm: React.FC = () => {
     if (!values) {
       return undefined;
     }
+    const isUsable = (opt?: T) => !opt?.restrictions?.deny && !opt?.hidden;
     const defaultOption = values.find((v) => v.id === defaultId);
-    if (defaultOption && !defaultOption.restrictions?.deny) {
+
+    if (defaultOption && isUsable(defaultOption)) {
       return defaultId;
     }
-    const isUsable = (opt?: T) => !opt?.restrictions?.deny;
+
     const fallback = values.find((v) => isUsable(v));
 
     return fallback?.id;

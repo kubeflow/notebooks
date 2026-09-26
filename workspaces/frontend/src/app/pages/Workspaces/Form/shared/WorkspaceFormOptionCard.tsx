@@ -8,9 +8,11 @@ import {
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { css } from '@patternfly/react-styles';
+import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
+import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { HiddenIconWithPopover } from '~/app/components/HiddenIconWithPopover';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
-import { RestrictedIconWithPopover } from '~/app/components/RestrictedIconWithPopover';
 import {
   OptionValue,
   resolveRedirectChain,
@@ -49,7 +51,6 @@ export const WorkspaceFormOptionCard: React.FC<
   const popoverIdHidden = `hidden-${cardId}`;
   const popoverIdRedirect = `redirect-${cardId}`;
   const isDenied = option.restrictions.deny === true;
-  const popoverIdRestricted = `restricted-${cardId}`;
   const isRedirect = option.redirect !== undefined;
 
   const cardClasses = css(
@@ -115,10 +116,19 @@ export const WorkspaceFormOptionCard: React.FC<
         data-testid={`option-card-icons-${cardId}`}
       >
         {isDenied && (
-          <RestrictedIconWithPopover
-            id={popoverIdRestricted}
-            message={option.restrictions.denyMessage?.text ?? 'This option is restricted.'}
-          />
+          <FlexItem>
+            <Popover
+              aria-label="Restricted option information"
+              headerContent={<div>Restricted</div>}
+              bodyContent={
+                <div>{option.restrictions.denyMessage?.text ?? 'This option is restricted.'}</div>
+              }
+            >
+              <Icon status="danger" isInline>
+                <ExclamationCircleIcon />
+              </Icon>
+            </Popover>
+          </FlexItem>
         )}
 
         {isDefault && (
