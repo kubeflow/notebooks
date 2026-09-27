@@ -389,6 +389,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	default:
 		foundStatefulSet := &ownedStatefulSets.Items[0]
 		statefulSetName = foundStatefulSet.Name
+		if !equality.Semantic.DeepEqual(foundStatefulSet.Spec.Selector, statefulSet.Spec.Selector) {
+			deletePolicy := metav1.DeletePropagationForeground
+			if err := r.Delete(ctx, foundStatefulSet, &client.DeleteOptions{PropagationPolicy: &deletePolicy}); err != nil && !apierrors.IsNotFound(err) {
+				log.Error(err, "unable to delete StatefulSet with outdated selector")
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: requeueAfterStaleCache}, nil
+		}
+
 		// NOTE: Even though the owner index matches by Workspace name, the found StatefulSet may
 		//       retain the controller reference of a previously deleted Workspace instance with the same
 		//       name (different UID), or reference an older APIVersion across CRD promotions.
