@@ -46,14 +46,13 @@ type WorkspaceKindEnvelope Envelope[*models.WorkspaceKindUpdate]
 //	@Description	Returns details of a specific workspace kind identified by its name.
 //	@Tags			workspacekinds
 //	@ID				getWorkspaceKind
-//	@Accept			json
 //	@Produce		json
 //	@Param			name	path		string					true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
 //	@Success		200		{object}	WorkspaceKindEnvelope	"Successful operation. Returns the requested workspace kind details with new revision."
-//	@Failure		400		{object}	ErrorEnvelope			"Bad Request. Invalid workspace kind name format."
 //	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to access the workspace kind."
 //	@Failure		404		{object}	ErrorEnvelope			"Not Found. Workspace kind does not exist."
+//	@Failure		422		{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
 //	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds/{name} [get]
 func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -96,7 +95,6 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 //	@Description	Returns a list of all workspace kinds in the cluster. When namespaceFilter is provided, authorization checks whether the user can create workspaces in that namespace instead of requiring workspace kind list permission.
 //	@Tags			workspacekinds
 //	@ID				listWorkspaceKinds
-//	@Accept			json
 //	@Produce		json
 //	@Param			namespaceFilter	query		string						false	"Namespace to filter workspace kinds"	extensions(x-example=kubeflow-user-example-com)
 //	@Success		200				{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
@@ -159,7 +157,6 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 //	@Description	Deletes a specific workspace kind identified by its name.
 //	@Tags			workspacekinds
 //	@ID				deleteWorkspaceKind
-//	@Accept			json
 //	@Param			name	path		string			true	"Name of the workspace kind"	extensions(x-example=jupyterlab)
 //	@Success		204		{object}	nil				"Workspace kind deleted successfully"
 //	@Failure		401		{object}	ErrorEnvelope	"Unauthorized. Authentication is required."
