@@ -51,13 +51,33 @@ var (
 // WorkspaceKindRestrictedError indicates that a Workspace create/update was rejected
 // because the referenced WorkspaceKind itself is hidden or denied by a WORKSPACE_KIND-scoped
 // filterRule for the target namespace (as opposed to a specific imageConfig/podConfig
-// option being restricted - see enforceOptionFilterRules for that case).
+// option being restricted - see enforceImageConfigFilterRule / enforcePodConfigFilterRule
+// for those cases).
+//
+// Hidden and DenyMessage are independent signals:
+//   - Hidden reports that the WorkspaceKind is hidden (APIHide) for this namespace.
+//   - DenyMessage carries the operator-supplied text on a Deny effect.
+//
+// If both Hide and Deny apply, Hide wins - the constructor only emits Hidden in that
+// case to avoid leaking the DenyMessage for a workspace kind the caller is not allowed
+// to know exists. DenyMessage is therefore only ever non-empty when Hidden is false.
 type WorkspaceKindRestrictedError struct {
-	Message string
+	Kind        string
+	Mutation    wsMutationType
+	Hidden      bool
+	DenyMessage string
 }
 
 func (e *WorkspaceKindRestrictedError) Error() string {
-	return e.Message
+	suffix := "is restricted"
+	if e.Hidden {
+		suffix = "is hidden"
+	}
+	msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q %s", e.Mutation, e.Kind, suffix)
+	if !e.Hidden && e.DenyMessage != "" {
+		msg = fmt.Sprintf("%s: %s", msg, e.DenyMessage)
+	}
+	return msg
 }
 
 type WorkspaceRepository struct {
@@ -175,12 +195,13 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.In
 	}
 
 	// reject the request (422) if the selected imageConfig/podConfig is
-	// denied by a filterRule for this namespace. Both options are evaluated
-	// on create since both are being selected for the first time.
-	filterErrs, err := r.enforceOptionFilterRules(ctx, namespace, workspaceKind, workspaceCreate.PodTemplate.Options, true, true)
-	if err != nil {
-		return nil, err
-	}
+	// denied or hidden by a filterRule for this namespace. Both options are
+	// evaluated on create since both are being selected for the first time.
+	evalCtx := filterrules.BuildEvalContextForImageAndPodCfg(workspaceKind, namespaceLabels, workspaceCreate.PodTemplate.Options.ImageConfig, workspaceCreate.PodTemplate.Options.PodConfig)
+
+	var filterErrs field.ErrorList
+	filterErrs = append(filterErrs, r.enforceImageConfigFilterRule(workspaceKind, evalCtx, workspaceCreate.PodTemplate.Options.ImageConfig)...)
+	filterErrs = append(filterErrs, r.enforcePodConfigFilterRule(workspaceKind, evalCtx, workspaceCreate.PodTemplate.Options.PodConfig)...)
 	if len(filterErrs) > 0 {
 		return nil, helper.NewInternalValidationError(filterErrs)
 	}
@@ -191,7 +212,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.In
 		return nil, err
 	}
 
-	// set audit annotations (UpdateObjectMetaForCreate only takes 2 arguments)
+	// set audit annotations
 	modelsCommon.UpdateObjectMetaForCreate(&workspace.ObjectMeta, actor)
 
 	// create workspace
@@ -257,17 +278,18 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	// the workspace already has.
 	newOptions := workspaceUpdate.PodTemplate.Options
 	currentOptions := workspace.Spec.PodTemplate.Options
-	imageConfigChanged := newOptions.ImageConfig != currentOptions.ImageConfig
-	podConfigChanged := newOptions.PodConfig != currentOptions.PodConfig
 
-	if imageConfigChanged || podConfigChanged {
-		filterErrs, err := r.enforceOptionFilterRules(ctx, namespace, workspaceKind, newOptions, imageConfigChanged, podConfigChanged)
-		if err != nil {
-			return nil, err
-		}
-		if len(filterErrs) > 0 {
-			return nil, helper.NewInternalValidationError(filterErrs)
-		}
+	evalCtx := filterrules.BuildEvalContextForImageAndPodCfg(workspaceKind, namespaceLabels, newOptions.ImageConfig, newOptions.PodConfig)
+
+	var filterErrs field.ErrorList
+	if newOptions.ImageConfig != currentOptions.ImageConfig {
+		filterErrs = append(filterErrs, r.enforceImageConfigFilterRule(workspaceKind, evalCtx, newOptions.ImageConfig)...)
+	}
+	if newOptions.PodConfig != currentOptions.PodConfig {
+		filterErrs = append(filterErrs, r.enforcePodConfigFilterRule(workspaceKind, evalCtx, newOptions.PodConfig)...)
+	}
+	if len(filterErrs) > 0 {
+		return nil, helper.NewInternalValidationError(filterErrs)
 	}
 
 	// apply update model to workspace object
@@ -275,7 +297,7 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 		return nil, err
 	}
 
-	// set audit annotations (UpdateObjectMetaForUpdate takes 3 arguments)
+	// set audit annotations
 	modelsCommon.UpdateObjectMetaForUpdate(&workspace.ObjectMeta, actor, now)
 
 	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
@@ -285,9 +307,6 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	if err := r.client.Update(ctx, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, repoCommon.ErrWorkspaceNotFound
-		}
-		if apierrors.IsConflict(err) {
-			return nil, ErrWorkspaceRevisionConflict
 		}
 		if apierrors.IsInvalid(err) {
 			// NOTE: we don't wrap this error so we can unpack it in the caller
@@ -325,84 +344,112 @@ func (r *WorkspaceRepository) enforceWorkspaceKindFilterRules(
 	result := filterrules.EvaluateWorkspaceKindFilterScopeRule(workspaceKind, namespaceLabels)
 
 	if result.APIHide {
-		msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q is hidden", mutation, workspaceKind.Name)
-		return &WorkspaceKindRestrictedError{Message: msg}
+		return &WorkspaceKindRestrictedError{
+			Kind:     workspaceKind.Name,
+			Mutation: mutation,
+			Hidden:   true,
+		}
 	}
 
 	if result.Restrictions.Deny {
-		msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q is restricted", mutation, workspaceKind.Name)
-		if result.Restrictions.DenyMessage != nil && result.Restrictions.DenyMessage.Text != "" {
-			msg = fmt.Sprintf("%s: %s", msg, result.Restrictions.DenyMessage.Text)
+		var denyMsg string
+		if result.Restrictions.DenyMessage != nil {
+			denyMsg = result.Restrictions.DenyMessage.Text
 		}
-		return &WorkspaceKindRestrictedError{Message: msg}
+		return &WorkspaceKindRestrictedError{
+			Kind:        workspaceKind.Name,
+			Mutation:    mutation,
+			DenyMessage: denyMsg,
+		}
 	}
 
 	return nil
 }
 
-// enforceOptionFilterRules evaluates IMAGE_CONFIG- and POD_CONFIG-scoped filterRules
-// for the selected imageConfig/podConfig, and returns a field.ErrorList describing
-// any option that a rule restricts via deny.
-func (r *WorkspaceRepository) enforceOptionFilterRules(
-	ctx context.Context,
-	namespace string,
+// enforceImageConfigFilterRule evaluates the WorkspaceKind's IMAGE_CONFIG-scoped filterRules
+// against the selected imageConfig value and returns any field errors describing restrictions
+// (hidden and/or denied) that apply. Both Hide and Deny can accumulate on the same field path.
+//
+// Returns nil (silent no-op) if imageConfigID does not match any value in the WorkspaceKind -
+// existence validation is handled downstream by NewWorkspaceFromWorkspaceCreateModel.
+func (r *WorkspaceRepository) enforceImageConfigFilterRule(
 	workspaceKind *kubefloworgv1beta1.WorkspaceKind,
-	options models.PodTemplateOptionsMutate,
-	checkImageConfig, checkPodConfig bool,
-) (field.ErrorList, error) {
+	evalCtx filterrules.EvalContext,
+	imageConfigID string,
+) field.ErrorList {
+	value := findImageConfigValue(workspaceKind, imageConfigID)
+	if value == nil {
+		return nil
+	}
+
+	result := filterrules.Evaluate(filterrules.EvalTarget{
+		Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
+		Labels: value.Spawner.Labels,
+	}, evalCtx)
+
 	var errs field.ErrorList
+	imgPath := field.NewPath("spec", "podTemplate", "options", "imageConfig")
 
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
-	if err != nil {
-		return nil, err
+	if result.APIHide {
+		errs = append(errs, field.Forbidden(imgPath, fmt.Sprintf("not allowed: image config option %q is hidden", imageConfigID)))
 	}
 
-	evalCtx := filterrules.BuildEvalContextForImageAndPodCfg(workspaceKind, namespaceLabels, options.ImageConfig, options.PodConfig)
-
-	if checkPodConfig {
-		if value := findPodConfigValue(workspaceKind, options.PodConfig); value != nil {
-			result := filterrules.Evaluate(filterrules.EvalTarget{
-				Scope:  kubefloworgv1beta1.FilterRuleScopePodConfig,
-				Labels: value.Spawner.Labels,
-			}, evalCtx)
-
-			podPath := field.NewPath("spec", "podTemplate", "options", "podConfig")
-			if result.Restrictions.Deny {
-				msg := "not allowed: pod config option is restricted"
-				if result.Restrictions.DenyMessage != nil && result.Restrictions.DenyMessage.Text != "" {
-					msg = fmt.Sprintf("%s: %s", msg, result.Restrictions.DenyMessage.Text)
-				}
-				errs = append(errs, field.Forbidden(podPath, msg))
-			}
+	if result.Restrictions.Deny {
+		msg := fmt.Sprintf("not allowed: image config option %q is restricted", imageConfigID)
+		if result.Restrictions.DenyMessage != nil && result.Restrictions.DenyMessage.Text != "" {
+			msg = fmt.Sprintf("%s: %s", msg, result.Restrictions.DenyMessage.Text)
 		}
+		errs = append(errs, field.Forbidden(imgPath, msg))
 	}
 
-	if checkImageConfig {
-		if value := findImageConfigValue(workspaceKind, options.ImageConfig); value != nil {
-			result := filterrules.Evaluate(filterrules.EvalTarget{
-				Scope:  kubefloworgv1beta1.FilterRuleScopeImageConfig,
-				Labels: value.Spawner.Labels,
-			}, evalCtx)
+	return errs
+}
 
-			imgPath := field.NewPath("spec", "podTemplate", "options", "imageConfig")
-			if result.Restrictions.Deny {
-				msg := "not allowed: image config option is restricted"
-				if result.Restrictions.DenyMessage != nil && result.Restrictions.DenyMessage.Text != "" {
-					msg = fmt.Sprintf("%s: %s", msg, result.Restrictions.DenyMessage.Text)
-				}
-				errs = append(errs, field.Forbidden(imgPath, msg))
-			}
+// enforcePodConfigFilterRule evaluates the WorkspaceKind's POD_CONFIG-scoped filterRules
+// against the selected podConfig value and returns any field errors describing restrictions
+// (hidden and/or denied) that apply. Both Hide and Deny can accumulate on the same field path.
+//
+// Returns nil (silent no-op) if podConfigID does not match any value in the WorkspaceKind -
+// existence validation is handled downstream by NewWorkspaceFromWorkspaceCreateModel.
+func (r *WorkspaceRepository) enforcePodConfigFilterRule(
+	workspaceKind *kubefloworgv1beta1.WorkspaceKind,
+	evalCtx filterrules.EvalContext,
+	podConfigID string,
+) field.ErrorList {
+	value := findPodConfigValue(workspaceKind, podConfigID)
+	if value == nil {
+		return nil
+	}
+
+	result := filterrules.Evaluate(filterrules.EvalTarget{
+		Scope:  kubefloworgv1beta1.FilterRuleScopePodConfig,
+		Labels: value.Spawner.Labels,
+	}, evalCtx)
+
+	var errs field.ErrorList
+	podPath := field.NewPath("spec", "podTemplate", "options", "podConfig")
+
+	if result.APIHide {
+		errs = append(errs, field.Forbidden(podPath, fmt.Sprintf("not allowed: pod config option %q is hidden", podConfigID)))
+	}
+
+	if result.Restrictions.Deny {
+		msg := fmt.Sprintf("not allowed: pod config option %q is restricted", podConfigID)
+		if result.Restrictions.DenyMessage != nil && result.Restrictions.DenyMessage.Text != "" {
+			msg = fmt.Sprintf("%s: %s", msg, result.Restrictions.DenyMessage.Text)
 		}
+		errs = append(errs, field.Forbidden(podPath, msg))
 	}
 
-	return errs, nil
+	return errs
 }
 
 // findImageConfigValue returns the imageConfig value with the given id, or nil if not found.
 func findImageConfigValue(wsk *kubefloworgv1beta1.WorkspaceKind, id string) *kubefloworgv1beta1.ImageConfigValue {
-	for i := range wsk.Spec.PodTemplate.Options.ImageConfig.Values {
-		if wsk.Spec.PodTemplate.Options.ImageConfig.Values[i].Id == id {
-			return &wsk.Spec.PodTemplate.Options.ImageConfig.Values[i]
+	values := wsk.Spec.PodTemplate.Options.ImageConfig.Values
+	for i := range values {
+		if values[i].Id == id {
+			return &values[i]
 		}
 	}
 	return nil
@@ -410,9 +457,10 @@ func findImageConfigValue(wsk *kubefloworgv1beta1.WorkspaceKind, id string) *kub
 
 // findPodConfigValue returns the podConfig value with the given id, or nil if not found.
 func findPodConfigValue(wsk *kubefloworgv1beta1.WorkspaceKind, id string) *kubefloworgv1beta1.PodConfigValue {
-	for i := range wsk.Spec.PodTemplate.Options.PodConfig.Values {
-		if wsk.Spec.PodTemplate.Options.PodConfig.Values[i].Id == id {
-			return &wsk.Spec.PodTemplate.Options.PodConfig.Values[i]
+	values := wsk.Spec.PodTemplate.Options.PodConfig.Values
+	for i := range values {
+		if values[i].Id == id {
+			return &values[i]
 		}
 	}
 	return nil
