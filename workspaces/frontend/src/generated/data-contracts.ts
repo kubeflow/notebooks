@@ -4596,6 +4596,8 @@ export interface WorkspacekindsStatefulSetMetadata {
 }
 
 export interface WorkspacekindsWorkspaceKindCreate {
+  activityRules?: V1Beta1ActivityRule[];
+  filterRules?: V1Beta1FilterRule[];
   name: string;
   podTemplate: V1Beta1WorkspaceKindPodTemplate;
   spawner: V1Beta1WorkspaceKindSpawner;
