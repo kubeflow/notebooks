@@ -191,6 +191,39 @@ describe('Edit Secret Modal', () => {
     });
   });
 
+  it('should show a failed update in the modal footer and clear it once the form is edited', () => {
+    cy.interceptApi(
+      'PUT /api/:apiVersion/secrets/:namespace/:secretName',
+      {
+        path: {
+          apiVersion: NOTEBOOKS_API_VERSION,
+          namespace: mockNamespace.name,
+          secretName: 'test-secret',
+        },
+      },
+      {
+        error: {
+          code: '409',
+          message: 'Secret was modified',
+        },
+      },
+    ).as('updateSecretError');
+
+    secretsManagement.openEditModal('test-secret');
+    cy.wait('@getSecret-test-secret');
+
+    secretsModal.findSubmitButton().click();
+    cy.wait('@updateSecretError');
+
+    secretsModal.findErrorAlert().should('contain.text', 'Request failed with status code 409');
+    secretsModal.assertErrorAlertInFooter();
+
+    // Editing a key clears the failure from the last attempt; the modal stays open
+    secretsModal.findKeyInput().first().type('2');
+    secretsModal.findErrorAlert().should('not.exist');
+    secretsModal.assertModalVisible();
+  });
+
   it('should disable edit action for immutable secrets', () => {
     // Create a workspace with immutable secret attached
     const workspaceWithImmutableSecret = buildMockWorkspace({
