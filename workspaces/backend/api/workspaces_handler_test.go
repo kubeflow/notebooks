@@ -678,7 +678,7 @@ var _ = Describe("Workspaces Handler", func() {
 		}
 
 		// imageConfigRule builds an IMAGE_CONFIG-scoped rule matching option values
-		// labelled restricted=true and applying the supplied API effect.
+		// labeled restricted=true and applying the supplied API effect.
 		imageConfigRule := func(effect kubefloworgv1beta1.FilterRuleEffectAPI) kubefloworgv1beta1.FilterRule {
 			return kubefloworgv1beta1.FilterRule{
 				Scope: kubefloworgv1beta1.FilterRuleScopeImageConfig,
@@ -694,7 +694,7 @@ var _ = Describe("Workspaces Handler", func() {
 		}
 
 		// podConfigRule builds a POD_CONFIG-scoped rule matching option values
-		// labelled restricted=true and applying the supplied API effect.
+		// labeled restricted=true and applying the supplied API effect.
 		podConfigRule := func(effect kubefloworgv1beta1.FilterRuleEffectAPI) kubefloworgv1beta1.FilterRule {
 			return kubefloworgv1beta1.FilterRule{
 				Scope: kubefloworgv1beta1.FilterRuleScopePodConfig,
