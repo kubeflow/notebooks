@@ -191,7 +191,7 @@ func (p *PodVolumeMount) Validate(prefix *field.Path) []*field.Error {
 type PodSecretMount struct {
 	SecretName  string `json:"secretName"`
 	MountPath   string `json:"mountPath"`
-	DefaultMode int32  `json:"defaultMode,omitempty"`
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
 }
 
 // Validate validates the PodSecretMount struct.
@@ -208,9 +208,9 @@ func (p *PodSecretMount) Validate(prefix *field.Path) []*field.Error {
 
 	// validate the default mode
 	defaultModePath := prefix.Child("defaultMode")
-	if p.DefaultMode != 0 {
-		if p.DefaultMode < 0 || p.DefaultMode > 511 {
-			errs = append(errs, field.Invalid(defaultModePath, p.DefaultMode, "defaultMode must be between 0 and 511"))
+	if p.DefaultMode != nil {
+		if *p.DefaultMode < 0 || *p.DefaultMode > 511 {
+			errs = append(errs, field.Invalid(defaultModePath, *p.DefaultMode, "defaultMode must be between 0 and 511"))
 		}
 	}
 
