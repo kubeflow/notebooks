@@ -199,7 +199,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.In
 	// evaluated on create since both are being selected for the first time.
 	evalCtx := filterrules.BuildEvalContextForImageAndPodCfg(workspaceKind, namespaceLabels, workspaceCreate.PodTemplate.Options.ImageConfig, workspaceCreate.PodTemplate.Options.PodConfig)
 
-	var filterErrs field.ErrorList
+	filterErrs := make(field.ErrorList, 0, 2)
 	filterErrs = append(filterErrs, r.enforceImageConfigFilterRule(workspaceKind, evalCtx, workspaceCreate.PodTemplate.Options.ImageConfig)...)
 	filterErrs = append(filterErrs, r.enforcePodConfigFilterRule(workspaceKind, evalCtx, workspaceCreate.PodTemplate.Options.PodConfig)...)
 	if len(filterErrs) > 0 {
@@ -281,7 +281,7 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 
 	evalCtx := filterrules.BuildEvalContextForImageAndPodCfg(workspaceKind, namespaceLabels, newOptions.ImageConfig, newOptions.PodConfig)
 
-	var filterErrs field.ErrorList
+	filterErrs := make(field.ErrorList, 0, 2)
 	if newOptions.ImageConfig != currentOptions.ImageConfig {
 		filterErrs = append(filterErrs, r.enforceImageConfigFilterRule(workspaceKind, evalCtx, newOptions.ImageConfig)...)
 	}
