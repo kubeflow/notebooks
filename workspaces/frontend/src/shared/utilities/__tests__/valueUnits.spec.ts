@@ -10,7 +10,9 @@ import {
   MEMORY_UNITS_FOR_PARSING,
   formatMemory,
   MEMORY_UNITS_FOR_SELECTION,
-  CPU_UNITS,
+  CPU_UNITS_FOR_PARSING,
+  CPU_UNITS_FOR_SELECTION,
+  parseCpuValue,
 } from '~/shared/utilities/valueUnits';
 
 describe('splitValueUnit', () => {
@@ -38,7 +40,7 @@ describe('splitValueUnit', () => {
   });
   it('should throw an error if the unit is incorrect and strict is true', () => {
     expect(() => splitValueUnit('1', MEMORY_UNITS_FOR_SELECTION, true)).toThrow();
-    expect(() => splitValueUnit('1GiB', CPU_UNITS, true)).toThrow();
+    expect(() => splitValueUnit('1GiB', CPU_UNITS_FOR_PARSING, true)).toThrow();
   });
 });
 
@@ -72,6 +74,114 @@ describe('convertToUnit', () => {
     expect(convertToUnit('500Mi', options.slice(0, -1), 'Gi')).toEqual([
       500,
       { name: 'MiB', unit: 'Mi', weight: 1024 ** 2 },
+    ]);
+  });
+});
+
+describe('CPU units', () => {
+  it('parses nanocore CPU values', () => {
+    expect(splitValueUnit('2308487n', CPU_UNITS_FOR_PARSING)).toEqual([
+      2308487,
+      {
+        name: 'Nanocores',
+        unit: 'n',
+        weight: 1,
+      },
+    ]);
+  });
+
+  it('converts nanocores to millicores', () => {
+    expect(convertToUnit('2308487n', CPU_UNITS_FOR_PARSING, 'm')).toEqual([
+      2.308487,
+      {
+        name: 'Millicores',
+        unit: 'm',
+        weight: 1_000_000,
+      },
+    ]);
+  });
+
+  it('converts nanocores to cores', () => {
+    expect(convertToUnit('1499177218n', CPU_UNITS_FOR_PARSING, '')).toEqual([
+      1.499177218,
+      {
+        name: 'Cores',
+        unit: '',
+        weight: 1_000_000_000,
+      },
+    ]);
+  });
+
+  it('compares equivalent nanocore, millicore, and core CPU values', () => {
+    expect(isCpuResourceEqual('1000000n', '1m')).toBe(true);
+    expect(isCpuResourceEqual('1000000000n', '1')).toBe(true);
+  });
+
+  it('does not expose nanocores as a selectable CPU unit', () => {
+    expect(CPU_UNITS_FOR_SELECTION.some(({ unit }) => unit === 'n')).toBe(false);
+  });
+
+  it('normalizes sub-core nanocore values to millicores', () => {
+    expect(parseCpuValue('2308487n')).toEqual([
+      2.308487,
+      {
+        name: 'Millicores',
+        unit: 'm',
+        weight: 1_000_000,
+      },
+    ]);
+  });
+
+  it('normalizes nanocore values at or above one core to cores', () => {
+    expect(parseCpuValue('1499177218n')).toEqual([
+      1.499177218,
+      {
+        name: 'Cores',
+        unit: '',
+        weight: 1_000_000_000,
+      },
+    ]);
+  });
+
+  it('normalizes exactly one core in nanocores to cores', () => {
+    expect(parseCpuValue('1000000000n')).toEqual([
+      1,
+      {
+        name: 'Cores',
+        unit: '',
+        weight: 1_000_000_000,
+      },
+    ]);
+  });
+
+  it('keeps nanocore values below one core in millicores', () => {
+    expect(parseCpuValue('999999999n')).toEqual([
+      999.999999,
+      {
+        name: 'Millicores',
+        unit: 'm',
+        weight: 1_000_000,
+      },
+    ]);
+  });
+
+  it('preserves existing CPU representations', () => {
+    expect(parseCpuValue('100m')).toEqual([
+      100,
+      {
+        name: 'Millicores',
+        unit: 'm',
+        weight: 1_000_000,
+      },
+    ]);
+
+    expect(parseCpuValue('2')).toEqual([
+      2,
+      {
+        name: 'Cores',
+        unit: '',
+        weight: 1_000_000_000,
+      },
     ]);
   });
 });
