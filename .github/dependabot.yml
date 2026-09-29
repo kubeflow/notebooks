@@ -48,6 +48,20 @@ updates:
       interval: "daily"
     commit-message:
       prefix: "chore"
+    ignore:
+      # React major upgrades should be handled manually
+      - dependency-name: "react"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "react-dom"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "@types/react"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "@types/react-dom"
+        update-types:
+          - "version-update:semver-major"
     # Group mod-arch-* packages together for easier review
     groups:
       mod-arch-packages:
