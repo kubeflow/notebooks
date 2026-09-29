@@ -28,7 +28,7 @@ interface WorkspaceResourceCardsProps {
   isPaused: boolean;
 }
 
-const asString = (value: ResourceQuantity | undefined): string | undefined => {
+const asString = (value: ResourceQuantity | string | undefined): string | undefined => {
   if (value === undefined) {
     return undefined;
   }
@@ -37,7 +37,7 @@ const asString = (value: ResourceQuantity | undefined): string | undefined => {
 
 const isKnownResourceType = (key: string): key is ResourceType => key === 'cpu' || key === 'memory';
 
-const formatValue = (key: string, value: ResourceQuantity | undefined): string => {
+const formatValue = (key: string, value: ResourceQuantity | string | undefined): string => {
   const str = asString(value);
   return formatResourceValue(str, isKnownResourceType(key) ? key : undefined);
 };
@@ -91,7 +91,7 @@ const ResourceCard: React.FC<ResourceCardProps> = ({ resourceKey, container }) =
             <DescriptionListTerm>Usage</DescriptionListTerm>
             <DescriptionListDescription data-testid={`resource-usage-${resourceKey}`}>
               {metrics ? (
-                formatValue(resourceKey, usageValue as unknown as ResourceQuantity)
+                formatValue(resourceKey, usageValue)
               ) : (
                 <Content component="small">
                   <i>Pending</i>

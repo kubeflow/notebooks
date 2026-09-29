@@ -6,10 +6,10 @@ import {
   V1Beta1WorkspaceState,
 } from '~/generated/data-contracts';
 import {
-  CPU_UNITS,
   MEMORY_UNITS_FOR_PARSING,
   OTHER,
   STORAGE_UNITS_FOR_SELECTION,
+  parseCpuValue,
   splitValueUnit,
 } from '~/shared/utilities/valueUnits';
 
@@ -28,7 +28,6 @@ export enum YesNoValue {
 }
 
 const RESOURCE_UNIT_CONFIG = {
-  cpu: CPU_UNITS,
   memory: MEMORY_UNITS_FOR_PARSING,
   storage: STORAGE_UNITS_FOR_SELECTION,
   gpu: OTHER,
@@ -38,6 +37,10 @@ export const parseResourceValue = (
   value: string,
   resourceType: ResourceType,
 ): [number | undefined, { name: string; unit: string } | undefined] => {
+  if (resourceType === 'cpu') {
+    return parseCpuValue(value);
+  }
+
   const units = RESOURCE_UNIT_CONFIG[resourceType];
   return splitValueUnit(value, units);
 };
@@ -59,7 +62,7 @@ export const formatResourceValue = (v: string | undefined, resourceType?: Resour
   }
 
   const [value, unit] = parseResourceValue(v, resourceType);
-  return `${value || ''} ${unit?.name || ''}`.trim();
+  return `${value ?? ''} ${unit?.name || ''}`.trim();
 };
 
 export const formatResourceFromWorkspace = (
