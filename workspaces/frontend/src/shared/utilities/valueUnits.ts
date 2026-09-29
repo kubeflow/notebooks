@@ -17,10 +17,17 @@ export type UnitOption = {
   weight: number;
 };
 
-export const CPU_UNITS: UnitOption[] = [
+export const CPU_UNITS_FOR_SELECTION: UnitOption[] = [
   { name: 'Cores', unit: '', weight: 1000 },
   { name: 'Millicores', unit: 'm', weight: 1 },
 ];
+
+export const CPU_UNITS_FOR_PARSING: UnitOption[] = [
+  { name: 'Cores', unit: '', weight: 1_000_000_000 },
+  { name: 'Millicores', unit: 'm', weight: 1_000_000 },
+  { name: 'Nanocores', unit: 'n', weight: 1 },
+];
+
 export const MEMORY_UNITS_FOR_SELECTION: UnitOption[] = [
   { name: 'GiB', unit: 'Gi', weight: 1024 },
   { name: 'MiB', unit: 'Mi', weight: 1 },
@@ -100,6 +107,28 @@ export const convertToUnit = (
   return [valueInTargetUnit, targetUnit];
 };
 
+export const parseCpuValue = (
+  value: ValueUnitString,
+): [value: number | undefined, unit: UnitOption] => {
+  const [parsedValue, parsedUnit] = splitValueUnit(value, CPU_UNITS_FOR_PARSING);
+
+  if (parsedValue === undefined || parsedUnit.unit !== 'n') {
+    return [parsedValue, parsedUnit];
+  }
+
+  const coreUnit = CPU_UNITS_FOR_PARSING.find(({ unit }) => unit === '');
+  const millicoreUnit = CPU_UNITS_FOR_PARSING.find(({ unit }) => unit === 'm');
+
+  if (!coreUnit || !millicoreUnit) {
+    return [parsedValue, parsedUnit];
+  }
+
+  const targetUnit =
+    parsedValue * parsedUnit.weight >= coreUnit.weight ? coreUnit.unit : millicoreUnit.unit;
+
+  return convertToUnit(value, CPU_UNITS_FOR_PARSING, targetUnit);
+};
+
 const calculateDelta = (
   value1: ValueUnitString,
   value2: ValueUnitString,
@@ -128,7 +157,7 @@ export const isCpuResourceEqual = (cpu1?: ValueUnitCPU, cpu2?: ValueUnitCPU): bo
     return false;
   }
 
-  return isEqual(cpu1String, cpu2String, CPU_UNITS);
+  return isEqual(cpu1String, cpu2String, CPU_UNITS_FOR_PARSING);
 };
 
 export const isMemoryResourceEqual = (
@@ -165,7 +194,7 @@ export const isCpuLarger = (
   const cpu1String = typeof value1 === 'number' ? `${value1}` : value1;
   const cpu2String = typeof value2 === 'number' ? `${value2}` : value2;
 
-  return isLarger(cpu1String, cpu2String, CPU_UNITS, isEqualOkay);
+  return isLarger(cpu1String, cpu2String, CPU_UNITS_FOR_PARSING, isEqualOkay);
 };
 
 export const isCpuLimitLarger = (
@@ -180,7 +209,7 @@ export const isCpuLimitLarger = (
     return false;
   }
 
-  return isLarger(limitCpuString, requestCpuString, CPU_UNITS, isEqualOkay);
+  return isLarger(limitCpuString, requestCpuString, CPU_UNITS_FOR_PARSING, isEqualOkay);
 };
 
 export const isMemoryLarger = (
