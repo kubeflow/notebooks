@@ -1022,7 +1022,7 @@ var _ = Describe("Workspaces Handler", func() {
 							{
 								SecretName:  testSecretName,
 								MountPath:   "/secrets",
-								DefaultMode: int32(0o644),
+								DefaultMode: new(int32(0o644)),
 							},
 						},
 					},
@@ -1065,6 +1065,191 @@ var _ = Describe("Workspaces Handler", func() {
 				},
 			}
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets).To(Equal(expected))
+		})
+
+		It("should preserve an explicit secret defaultMode of 0 across create, get, and update", func() {
+			const (
+				wsName     = "workspace-secret-mode-zero"
+				secretName = "secret-mode-zero"
+			)
+			wsKey := types.NamespacedName{Name: wsName, Namespace: namespaceNameCrud}
+
+			By("creating a mountable Secret")
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: namespaceNameCrud,
+					Labels: map[string]string{
+						commonModels.LabelCanMount: "true",
+					},
+				},
+				Data: map[string][]byte{
+					"key": []byte("value"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+			By("creating a Workspace via the API with a secret defaultMode of 0")
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: wsName,
+				Kind: workspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Volumes: models.PodVolumesMutate{
+						Data: []models.PodVolumeMount{},
+						Secrets: []models.PodSecretMount{
+							{
+								SecretName:  secretName,
+								MountPath:   "/secrets/mode-zero",
+								DefaultMode: new(int32(0)),
+							},
+						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			createJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(createJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the created Workspace stored a defaultMode of 0")
+			createdWorkspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, wsKey, createdWorkspace)).To(Succeed())
+			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets[0].DefaultMode).To(Equal(new(int32(0))))
+
+			By("executing GetWorkspaceHandler")
+			path = strings.Replace(constants.WorkspacesByNamePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			path = strings.Replace(path, ":"+constants.ResourceNamePathParam, wsName, 1)
+			req, err = http.NewRequest(http.MethodGet, path, http.NoBody)
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr = httptest.NewRecorder()
+			ps = httprouter.Params{
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
+				httprouter.Param{Key: constants.ResourceNamePathParam, Value: wsName},
+			}
+			a.GetWorkspaceHandler(rr, req, ps)
+			rs = rr.Result()
+			defer rs.Body.Close()
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the GET response includes the defaultMode of 0")
+			var getResponse WorkspaceEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &getResponse)).To(Succeed())
+			Expect(getResponse.Data.PodTemplate.Volumes.Secrets[0].DefaultMode).To(Equal(new(int32(0))))
+
+			By("updating only the displayName using the GET response as the request body")
+			workspaceUpdate := getResponse.Data
+			workspaceUpdate.DisplayName = "Updated Display Name"
+			updateJSON, err := json.Marshal(WorkspaceEnvelope{Data: workspaceUpdate})
+			Expect(err).NotTo(HaveOccurred())
+
+			req, err = http.NewRequest(http.MethodPut, path, strings.NewReader(string(updateJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr = httptest.NewRecorder()
+			a.UpdateWorkspaceHandler(rr, req, ps)
+			rs = rr.Result()
+			defer rs.Body.Close()
+			Expect(rs.StatusCode).To(Equal(http.StatusOK), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the updated Workspace still has a defaultMode of 0")
+			updatedWorkspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, wsKey, updatedWorkspace)).To(Succeed())
+			Expect(updatedWorkspace.Spec.DisplayName).To(Equal(new("Updated Display Name")))
+			Expect(updatedWorkspace.Spec.PodTemplate.Volumes.Secrets[0].DefaultMode).To(Equal(new(int32(0))))
+
+			By("cleaning up the Workspace and Secret")
+			Expect(k8sClient.Delete(ctx, updatedWorkspace)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+		})
+
+		It("should default the secret defaultMode to 420 when it is omitted", func() {
+			const (
+				wsName     = "workspace-secret-mode-default"
+				secretName = "secret-mode-default"
+			)
+
+			By("creating a mountable Secret")
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: namespaceNameCrud,
+					Labels: map[string]string{
+						commonModels.LabelCanMount: "true",
+					},
+				},
+				Data: map[string][]byte{
+					"key": []byte("value"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
+			By("creating a Workspace via the API without a secret defaultMode")
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: wsName,
+				Kind: workspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Volumes: models.PodVolumesMutate{
+						Data: []models.PodVolumeMount{},
+						Secrets: []models.PodSecretMount{
+							{
+								SecretName: secretName,
+								MountPath:  "/secrets/mode-default",
+							},
+						},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			createJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(createJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+			Expect(rs.StatusCode).To(Equal(http.StatusCreated), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the API server defaulted the defaultMode to 420")
+			createdWorkspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: wsName, Namespace: namespaceNameCrud}, createdWorkspace)).To(Succeed())
+			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Secrets[0].DefaultMode).To(Equal(new(int32(420))))
+
+			By("cleaning up the Workspace and Secret")
+			Expect(k8sClient.Delete(ctx, createdWorkspace)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
 		})
 
 		It("should create a Workspace without displayName successfully", func() {

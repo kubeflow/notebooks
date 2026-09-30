@@ -863,6 +863,122 @@ var _ = Describe("Workspace Controller", func() {
 		})
 	})
 
+	Context("When mounting Secrets with a `defaultMode` in a Workspace", Serial, Ordered, func() {
+
+		// Define utility variables for object names.
+		// NOTE: to avoid conflicts between parallel tests, resource names are unique to each test
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+		)
+
+		// the Workspace mounts one Secret with `defaultMode` unset, and one with an explicit `defaultMode` of 0,
+		// which the controller mounts as the StatefulSet volumes `secret-volume-0` and `secret-volume-1`
+		const (
+			unsetModeVolumeName = "secret-volume-0"
+			zeroModeVolumeName  = "secret-volume-1"
+		)
+
+		BeforeAll(func() {
+			uniqueName := "ws-secret-defaultmode-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+
+			By("creating the WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			workspace.Spec.PodTemplate.Volumes.Secrets = []kubefloworgv1beta1.PodSecretMount{
+				{
+					SecretName: "my-secret-unset-mode",
+					MountPath:  "/secrets/unset-mode",
+				},
+				{
+					SecretName:  "my-secret-zero-mode",
+					MountPath:   "/secrets/zero-mode",
+					DefaultMode: new(int32(0)),
+				},
+			}
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			}
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+		})
+
+		It("should default an unset `defaultMode` to 420 and keep an explicit `defaultMode` of 0", func() {
+			By("getting the Workspace from the API server")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+
+			By("checking the CRD default was applied only to the Secret without a `defaultMode`")
+			Expect(workspace.Spec.PodTemplate.Volumes.Secrets).To(HaveLen(2))
+			Expect(workspace.Spec.PodTemplate.Volumes.Secrets[0].DefaultMode).To(HaveValue(Equal(int32(420))))
+			Expect(workspace.Spec.PodTemplate.Volumes.Secrets[1].DefaultMode).To(HaveValue(Equal(int32(0))))
+		})
+
+		It("should pass each `defaultMode` through to the StatefulSet Secret volumes", func() {
+			By("waiting for the StatefulSet to be created")
+			statefulSetList := &appsv1.StatefulSetList{}
+			Eventually(func() ([]appsv1.StatefulSet, error) {
+				err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				if err != nil {
+					return nil, err
+				}
+				return statefulSetList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
+
+			By("checking the Secret volumes carry the `defaultMode` of the Workspace")
+			volumes := statefulSetList.Items[0].Spec.Template.Spec.Volumes
+			Expect(volumes).To(ContainElement(And(
+				HaveField("Name", unsetModeVolumeName),
+				HaveField("VolumeSource.Secret.DefaultMode", HaveValue(Equal(int32(420)))),
+			)))
+			Expect(volumes).To(ContainElement(And(
+				HaveField("Name", zeroModeVolumeName),
+				HaveField("VolumeSource.Secret.DefaultMode", HaveValue(Equal(int32(0)))),
+			)))
+		})
+
+		It("should leave the Secret volume `defaultMode` unset when the Workspace does not set one", func() {
+			// NOTE: the API server always defaults `defaultMode`, so a nil value can only reach
+			//       generateStatefulSet from an object built in Go, which bypasses admission
+			By("generating the StatefulSet for a Workspace with a nil `defaultMode`")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			workspace.Spec.PodTemplate.Volumes.Secrets = []kubefloworgv1beta1.PodSecretMount{
+				{
+					SecretName: "my-secret-unset-mode",
+					MountPath:  "/secrets/unset-mode",
+				},
+			}
+			imageConfigSpec := workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec
+			podConfigSpec := workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the Secret volume has no `defaultMode`, so the API server applies its default")
+			Expect(statefulSet.Spec.Template.Spec.Volumes).To(ContainElement(And(
+				HaveField("Name", unsetModeVolumeName),
+				HaveField("VolumeSource.Secret.DefaultMode", BeNil()),
+			)))
+		})
+	})
+
 	Context("When re-adopting owned resources after Workspace recreation", Serial, Ordered, func() {
 		var (
 			workspaceName     string
