@@ -1,11 +1,16 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
+import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
 import { ValidatedOptions } from '@patternfly/react-core/dist/esm/helpers';
+import { getResourceNameCriteria } from '~/app/pages/Workspaces/Form/helpers';
 import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 import {
   WorkspaceFormMode,
@@ -20,8 +25,12 @@ interface WorkspaceFormPropertiesSelectionProps {
   selectedProperties: WorkspaceFormProperties;
   onSelect: (properties: WorkspaceFormProperties) => void;
   homeVolumeMountPath?: string;
-  workspaceNameError: string | null;
-  onWorkspaceNameChange: (value: string) => void;
+  displayNameError: string | null;
+  onDisplayNameChange: (value: string) => void;
+  resourceNameError: string | null;
+  isResourceNameEditing: boolean;
+  onStartResourceNameEdit: () => void;
+  onResourceNameChange: (value: string) => void;
 }
 
 const WorkspaceFormPropertiesSelection: React.FunctionComponent<
@@ -31,8 +40,12 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   selectedProperties,
   onSelect,
   homeVolumeMountPath,
-  workspaceNameError,
-  onWorkspaceNameChange,
+  displayNameError,
+  onDisplayNameChange,
+  resourceNameError,
+  isResourceNameEditing,
+  onStartResourceNameEdit,
+  onResourceNameChange,
 }) => {
   const [isDataVolumesExpanded, setIsDataVolumesExpanded] = useState(false);
   const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
@@ -82,39 +95,111 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
       <div className="pf-u-p-lg pf-u-max-width-xl">
         <Form>
           <ThemeAwareFormGroupWrapper
-            label="Workspace Name"
+            label="Display Name"
             isRequired
-            fieldId="workspace-name"
+            fieldId="workspace-display-name"
             className="pf-u-width-520"
             helperTextNode={
-              workspaceNameError ? (
+              displayNameError ? (
                 <HelperText>
-                  <HelperTextItem variant="error">{workspaceNameError}</HelperTextItem>
+                  <HelperTextItem variant="error">{displayNameError}</HelperTextItem>
                 </HelperText>
               ) : null
             }
           >
             <TextInput
-              isDisabled={mode === 'update'}
               isRequired
               type="text"
-              validated={workspaceNameError ? ValidatedOptions.error : ValidatedOptions.default}
-              value={selectedProperties.workspaceName}
-              onChange={(_, value) => onWorkspaceNameChange(value)}
-              id="workspace-name"
-              data-testid="workspace-name"
+              validated={displayNameError ? ValidatedOptions.error : ValidatedOptions.default}
+              value={selectedProperties.displayName}
+              onChange={(_, value) => onDisplayNameChange(value)}
+              onBlur={() => onDisplayNameChange(selectedProperties.displayName.trim())}
+              id="workspace-display-name"
+              data-testid="workspace-display-name"
             />
           </ThemeAwareFormGroupWrapper>
-          {mode === 'update' && (
-            <HelperText>
-              <HelperTextItem
-                variant="default"
-                data-testid="workspace-name-cannot-be-changed-helper"
-                icon={<InfoCircleIcon className="workspace-form__info-icon" />}
-              >
-                Workspace name cannot be changed after creation
-              </HelperTextItem>
-            </HelperText>
+          {selectedProperties.displayName.trim() && (
+            <>
+              {mode === 'create' && isResourceNameEditing ? (
+                <Stack hasGutter>
+                  <StackItem>
+                    <ThemeAwareFormGroupWrapper
+                      label="Resource Name"
+                      isRequired
+                      fieldId="workspace-resource-name"
+                      className="pf-u-width-520"
+                    >
+                      <TextInput
+                        id="workspace-resource-name"
+                        isRequired
+                        autoFocus
+                        type="text"
+                        value={selectedProperties.name}
+                        onChange={(_, value) => onResourceNameChange(value)}
+                        validated={
+                          resourceNameError ? ValidatedOptions.error : ValidatedOptions.success
+                        }
+                        aria-label="Resource name"
+                        data-testid="workspace-resource-name-input"
+                      />
+                    </ThemeAwareFormGroupWrapper>
+                  </StackItem>
+                  <StackItem>
+                    <HelperText
+                      data-testid="workspace-resource-name-criteria"
+                      className="workspace-form__helper-text-icon-visible"
+                    >
+                      {getResourceNameCriteria(selectedProperties.name).map((criterion) => (
+                        <HelperTextItem
+                          key={criterion.key}
+                          data-testid={`workspace-resource-name-criterion-${criterion.key}`}
+                          variant={criterion.isValid ? 'success' : 'error'}
+                        >
+                          {criterion.label}
+                        </HelperTextItem>
+                      ))}
+                    </HelperText>
+                  </StackItem>
+                </Stack>
+              ) : (
+                <Flex
+                  alignItems={{ default: 'alignItemsCenter' }}
+                  spaceItems={{ default: 'spaceItemsSm' }}
+                >
+                  <FlexItem>
+                    <span data-testid="workspace-resource-name">
+                      The Resource Name will be{' '}
+                      <strong data-testid="workspace-resource-name-value">
+                        {selectedProperties.name}
+                      </strong>
+                    </span>
+                  </FlexItem>
+                  {mode === 'create' && (
+                    <FlexItem>
+                      <Button
+                        variant="plain"
+                        aria-label="Edit resource name"
+                        onClick={onStartResourceNameEdit}
+                        data-testid="workspace-resource-name-edit"
+                      >
+                        <PencilAltIcon />
+                      </Button>
+                    </FlexItem>
+                  )}
+                </Flex>
+              )}
+              {mode === 'update' && (
+                <HelperText>
+                  <HelperTextItem
+                    variant="default"
+                    data-testid="workspace-resource-name-cannot-be-changed-helper"
+                    icon={<InfoCircleIcon className="workspace-form__info-icon" />}
+                  >
+                    Resource name cannot be changed after creation
+                  </HelperTextItem>
+                </HelperText>
+              )}
+            </>
           )}
           <ExpandableSection toggleText="Home Volume" isExpanded isIndented>
             <div className="pf-v6-u-pl-xl pf-v6-u-pt-sm pf-v6-u-pb-sm">
@@ -133,9 +218,8 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 <HelperTextItem
                   variant="error"
                   data-testid="workspace-home-volume-required-helper"
-                  className="pf-v6-u-ml-0"
+                  className="pf-v6-u-ml-0 workspace-form__helper-text-icon-visible"
                 >
-                  <InfoCircleIcon className="pf-v6-u-mr-xs" />
                   <strong>Mounting a home volume is required.</strong>
                 </HelperTextItem>
               </HelperText>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { generate as generateRandomWords } from 'random-words';
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
@@ -15,6 +16,7 @@ import {
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 
 export const MAX_WORKSPACE_NAME_LENGTH = 63;
+export const MAX_DISPLAY_NAME_LENGTH = 128;
 // 420 decimal = 0644 octal (standard file permissions)
 export const DEFAULT_MODE = 420;
 export const DEFAULT_MODE_OCTAL = DEFAULT_MODE.toString(8);
@@ -297,4 +299,113 @@ export const validateName = (name: string): string | null => {
     return 'Must end with an alphanumeric character';
   }
   return null;
+};
+
+export interface ResourceNameCriterion {
+  key: string;
+  label: string;
+  isValid: boolean;
+}
+
+/** Same rules as validateName, decomposed into individually-checkable criteria for live UI feedback. */
+export const getResourceNameCriteria = (name: string): ResourceNameCriterion[] => [
+  {
+    key: 'length',
+    label: `Must be no more than ${MAX_WORKSPACE_NAME_LENGTH} characters`,
+    isValid: name.length > 0 && name.length <= MAX_WORKSPACE_NAME_LENGTH,
+  },
+  {
+    key: 'chars',
+    label: 'Only lowercase alphanumeric characters, "-" or "." are allowed',
+    isValid: name.length > 0 && /^[a-z0-9.-]+$/.test(name),
+  },
+  {
+    key: 'start',
+    label: 'Must start with an alphanumeric character',
+    isValid: /^[a-z0-9]/.test(name),
+  },
+  {
+    key: 'end',
+    label: 'Must end with an alphanumeric character',
+    isValid: /[a-z0-9]$/.test(name),
+  },
+];
+
+// Control characters, plus "<", ">", "{", "}" which are blocked as a guardrail against
+// the display name being used unsafely if it's ever rendered/interpreted elsewhere.
+// eslint-disable-next-line no-control-regex
+const DISPLAY_NAME_FORBIDDEN_CHARS_REGEX = /[\u0000-\u001f<>{}]/;
+
+export const validateDisplayName = (displayName: string): string | null => {
+  if (!displayName.trim()) {
+    return 'Value is required';
+  }
+
+  if (displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+    return `Must be no more than ${MAX_DISPLAY_NAME_LENGTH} characters`;
+  }
+
+  if (DISPLAY_NAME_FORBIDDEN_CHARS_REGEX.test(displayName)) {
+    return 'Cannot contain control characters or the characters < > { }';
+  }
+
+  return null;
+};
+
+/**
+ * Converts a display name into a lowercase, hyphen-separated slug. Accented Latin
+ * letters are normalized to their plain ASCII form first (e.g. "café" -> "cafe")
+ * so they survive the alphanumeric check instead of being stripped to nothing.
+ */
+export const slugifyDisplayName = (displayName: string): string =>
+  displayName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+const RESOURCE_NAME_HASH_LENGTH = 4;
+const RESOURCE_NAME_HASH_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+export const generateRandomHash = (length = RESOURCE_NAME_HASH_LENGTH): string => {
+  let hash = '';
+  for (let i = 0; i < length; i += 1) {
+    hash += RESOURCE_NAME_HASH_CHARS[Math.floor(Math.random() * RESOURCE_NAME_HASH_CHARS.length)];
+  }
+  return hash;
+};
+
+const RANDOM_WORD_MIN_LENGTH = 5;
+const RANDOM_WORD_MAX_LENGTH = 7;
+
+/**
+ * Returns a domain-friendly base name derived from the display name when it converts into
+ * a valid resource name, otherwise falls back to a random "<word>-<word>" base
+ * (e.g. when the display name has no alphanumeric characters at all, like an emoji-only name).
+ */
+export const generateResourceNameBase = (displayName: string): string => {
+  const slug = slugifyDisplayName(displayName);
+  if (slug && validateName(slug) === null) {
+    return slug;
+  }
+
+  const [word1, word2] = generateRandomWords({
+    exactly: 2,
+    minLength: RANDOM_WORD_MIN_LENGTH,
+    maxLength: RANDOM_WORD_MAX_LENGTH,
+  }) as string[];
+
+  return `${word1}-${word2}`;
+};
+
+export const generateResourceName = (displayName: string): string => {
+  const base = generateResourceNameBase(displayName);
+  const hash = generateRandomHash();
+  const maxBaseLength = MAX_WORKSPACE_NAME_LENGTH - hash.length - 1;
+  const truncatedBase = base.slice(0, maxBaseLength).replace(/-+$/, '');
+  return `${truncatedBase}-${hash}`;
 };

@@ -111,24 +111,85 @@ class WorkspaceForm {
     return this.findPodConfigCard(podConfigId).should('have.class', 'pf-m-selected');
   }
 
-  findWorkspaceNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('workspace-name');
+  findDisplayNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('workspace-display-name');
   }
 
-  typeWorkspaceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findWorkspaceNameInput().clear().type(name);
+  typeDisplayName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDisplayNameInput().clear().type(name);
   }
 
-  assertWorkspaceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findWorkspaceNameInput().should('have.value', name);
+  /** Leading/trailing whitespace is trimmed on blur. */
+  blurDisplayName(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDisplayNameInput().blur();
   }
 
-  assertWorkspaceNameInputInvalid(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findWorkspaceNameInput().should('have.attr', 'aria-invalid', 'true');
+  assertDisplayName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDisplayNameInput().should('have.value', name);
   }
 
-  assertWorkspaceNameInputValid(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findWorkspaceNameInput().should('not.have.attr', 'aria-invalid', 'true');
+  assertDisplayNameInputInvalid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDisplayNameInput().should('have.attr', 'aria-invalid', 'true');
+  }
+
+  assertDisplayNameInputValid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDisplayNameInput().should('not.have.attr', 'aria-invalid', 'true');
+  }
+
+  /** The read-only "The Resource Name will be X" text, shown when not editing. */
+  findResourceNameText(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('workspace-resource-name');
+  }
+
+  /** Just the <strong> name value inside the read-only text (absent when the resource name is empty). */
+  findResourceNameValue(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('workspace-resource-name-value');
+  }
+
+  assertResourceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findResourceNameValue().should('have.text', name);
+  }
+
+  /** The whole Resource Name field is hidden entirely while the display name is empty. */
+  assertResourceNameFieldNotVisible(): void {
+    this.findResourceNameText().should('not.exist');
+  }
+
+  /** The editable text input, only present in the DOM while editing. */
+  findResourceNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('workspace-resource-name-input');
+  }
+
+  assertResourceNameInputInvalid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findResourceNameInput().should('have.attr', 'aria-invalid', 'true');
+  }
+
+  assertResourceNameInputValid(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findResourceNameInput().should('not.have.attr', 'aria-invalid', 'true');
+  }
+
+  findResourceNameEditButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('workspace-resource-name-edit');
+  }
+
+  clickResourceNameEdit(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findResourceNameEditButton().click();
+  }
+
+  typeResourceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findResourceNameInput().clear().type(name);
+  }
+
+  findResourceNameCriterion(key: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`workspace-resource-name-criterion-${key}`);
+  }
+
+  assertResourceNameCriterionValid(key: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findResourceNameCriterion(key).should('have.class', 'pf-m-success');
+  }
+
+  assertResourceNameCriterionInvalid(key: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findResourceNameCriterion(key).should('have.class', 'pf-m-error');
   }
 
   findNextButton(): Cypress.Chainable<JQuery<HTMLElement>> {

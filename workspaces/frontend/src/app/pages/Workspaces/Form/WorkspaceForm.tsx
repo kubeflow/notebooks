@@ -50,7 +50,7 @@ import { LoadError } from '~/app/components/LoadError';
 import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
 import { WorkspaceFormSummaryPanel } from '~/app/pages/Workspaces/Form/WorkspaceFormSummaryPanel';
 import { WorkspaceFormRedirectConfirmModal } from '~/app/pages/Workspaces/Form/WorkspaceFormRedirectConfirmModal';
-import { validateName } from './helpers';
+import { generateResourceName, validateDisplayName, validateName } from './helpers';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -112,7 +112,10 @@ const WorkspaceForm: React.FC = () => {
   // Store original values for edit mode diff view
   const [originalData, setOriginalData] = useState<WorkspaceFormData | undefined>(undefined);
 
-  const [workspaceNameError, setWorkspaceNameError] = useState<string | null>(null);
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
+  const [resourceNameError, setResourceNameError] = useState<string | null>(null);
+  const [isResourceNameEditing, setIsResourceNameEditing] = useState(false);
+  const [isResourceNameManuallyEdited, setIsResourceNameManuallyEdited] = useState(false);
   // Refs for filter control
   const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
   const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
@@ -153,11 +156,38 @@ const WorkspaceForm: React.FC = () => {
 
   const onDisplayNameChange = useCallback(
     (value: string) => {
-      setWorkspaceNameError(validateName(value));
-      setData('properties', { ...data.properties, workspaceName: value });
+      setDisplayNameError(validateDisplayName(value));
+      // The resource name is immutable once a workspace exists, so it must never be
+      // re-derived from display name edits in update mode.
+      if (mode === 'update' || isResourceNameManuallyEdited) {
+        setData('properties', { ...data.properties, displayName: value });
+        return;
+      }
+      if (!value.trim()) {
+        setResourceNameError(null);
+        setData('properties', { ...data.properties, displayName: value, name: '' });
+        return;
+      }
+      const generatedName = generateResourceName(value);
+      setResourceNameError(validateName(generatedName));
+      setData('properties', { ...data.properties, displayName: value, name: generatedName });
+    },
+    [setData, data.properties, isResourceNameManuallyEdited, mode],
+  );
+
+  const onStartResourceNameEdit = useCallback(() => {
+    setIsResourceNameEditing(true);
+  }, []);
+
+  const onResourceNameChange = useCallback(
+    (value: string) => {
+      setResourceNameError(validateName(value));
+      setIsResourceNameManuallyEdited(true);
+      setData('properties', { ...data.properties, name: value });
     },
     [setData, data.properties],
   );
+
   const getStepVariant = useCallback(
     (step: WorkspaceFormSteps) => {
       if (step > currentStep) {
@@ -182,8 +212,10 @@ const WorkspaceForm: React.FC = () => {
           return !!data.podConfig;
         case WorkspaceFormSteps.Properties:
           return (
-            !!data.properties.workspaceName.trim() &&
-            !workspaceNameError &&
+            !!data.properties.displayName.trim() &&
+            !displayNameError &&
+            !!data.properties.name.trim() &&
+            !resourceNameError &&
             !!data.properties.homeVolume
           );
         case WorkspaceFormSteps.Summary:
@@ -191,8 +223,10 @@ const WorkspaceForm: React.FC = () => {
             !!data.kind &&
             !!data.imageConfig &&
             !!data.podConfig &&
-            !!data.properties.workspaceName.trim() &&
-            !workspaceNameError &&
+            !!data.properties.displayName.trim() &&
+            !displayNameError &&
+            !!data.properties.name.trim() &&
+            !resourceNameError &&
             !!data.properties.homeVolume
           );
         default:
@@ -203,9 +237,11 @@ const WorkspaceForm: React.FC = () => {
       data.kind,
       data.imageConfig,
       data.podConfig,
-      data.properties.workspaceName,
+      data.properties.displayName,
+      data.properties.name,
       data.properties.homeVolume,
-      workspaceNameError,
+      displayNameError,
+      resourceNameError,
     ],
   );
 
@@ -243,6 +279,10 @@ const WorkspaceForm: React.FC = () => {
       if (mode === 'create') {
         resetData();
         setData('kind', kind);
+        setDisplayNameError(null);
+        setResourceNameError(null);
+        setIsResourceNameEditing(false);
+        setIsResourceNameManuallyEdited(false);
       }
     },
     [mode, resetData, setData],
@@ -345,7 +385,7 @@ const WorkspaceForm: React.FC = () => {
       await submitFormData({ mode, data: preparedData, api, namespace });
       navigate('workspaces');
       notification.success(
-        `Workspace '${data.properties.workspaceName}' ${mode === 'create' ? 'created' : 'updated'} successfully`,
+        `Workspace '${data.properties.displayName || data.properties.name}' ${mode === 'create' ? 'created' : 'updated'} successfully`,
       );
     } catch (err) {
       setError(extractErrorMessage(err));
@@ -553,8 +593,12 @@ const WorkspaceForm: React.FC = () => {
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
-                        workspaceNameError={workspaceNameError}
-                        onWorkspaceNameChange={onDisplayNameChange}
+                        displayNameError={displayNameError}
+                        onDisplayNameChange={onDisplayNameChange}
+                        resourceNameError={resourceNameError}
+                        isResourceNameEditing={isResourceNameEditing}
+                        onStartResourceNameEdit={onStartResourceNameEdit}
+                        onResourceNameChange={onResourceNameChange}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.Summary && (
