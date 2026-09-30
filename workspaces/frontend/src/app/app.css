@@ -252,6 +252,33 @@ body,
   margin-left: 0;
 }
 
+/* Preserve secondary MenuToggle styling when using the Kubeflow MUI theme. */
+.mui-theme .kubeflow-connect-toggle.pf-m-secondary {
+  --pf-v6-c-menu-toggle--BackgroundColor: var(--pf-v6-c-menu-toggle--m-secondary--BackgroundColor);
+  --pf-v6-c-menu-toggle--PaddingInlineStart: var(
+    --pf-v6-c-menu-toggle--m-secondary--PaddingInlineStart
+  );
+  --pf-v6-c-menu-toggle--PaddingInlineEnd: var(
+    --pf-v6-c-menu-toggle--m-secondary--PaddingInlineEnd
+  );
+  --pf-v6-c-menu-toggle--BorderColor: var(--pf-v6-c-menu-toggle--m-secondary--BorderColor);
+  --pf-v6-c-menu-toggle--hover--BorderColor: var(
+    --pf-v6-c-menu-toggle--m-secondary--hover--BorderColor
+  );
+  --pf-v6-c-menu-toggle--expanded--BorderColor: var(
+    --pf-v6-c-menu-toggle--m-secondary--expanded--BorderColor
+  );
+}
+
+/* Preserve plain MenuToggle styling for workspace row actions when using the Kubeflow MUI theme. */
+.mui-theme .kubeflow-workspace-actions-cell .pf-v6-c-menu-toggle.pf-m-plain {
+  --pf-v6-c-menu-toggle--BackgroundColor: var(--pf-v6-c-menu-toggle--m-plain--BackgroundColor);
+  --pf-v6-c-menu-toggle--PaddingInlineStart: var(
+    --pf-v6-c-menu-toggle--m-plain--PaddingInlineStart
+  );
+  --pf-v6-c-menu-toggle--PaddingInlineEnd: var(--pf-v6-c-menu-toggle--m-plain--PaddingInlineEnd);
+}
+
 /* Single-endpoint "Connect" control: rendered as a MenuToggle (so it keeps the
    same size as the multi-endpoint dropdown), but its caret is rotated to point
    right to signal that clicking connects directly instead of opening a menu. */

@@ -496,6 +496,175 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Eventually(deleteWorkspaceKind, timeout, interval).Should(Succeed())
 		})
+
+		It("should re-adopt existing owned resources across CRD version skew", func() {
+
+			By("creating an instance of WorkspaceKind")
+			createWorkspaceKindSample := func() error {
+				cmd := exec.Command("kubectl", "apply",
+					"-f", filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
+				)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(createWorkspaceKindSample, timeout, interval).Should(Succeed())
+
+			By("creating an instance of Workspace")
+			createWorkspaceSample := func() error {
+				cmd := exec.Command("kubectl", "apply",
+					"-f", filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
+					"-n", workspaceNamespace,
+				)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(createWorkspaceSample, timeout, interval).Should(Succeed())
+
+			By("waiting for the workspace to reach 'Running' state and recording its UID")
+			var currentWorkspaceUID string
+			verifyRunning := func(g Gomega) error {
+				cmd := exec.Command("kubectl", "get", "workspaces",
+					workspaceName,
+					"-n", workspaceNamespace,
+					"-o", "jsonpath={.status.state}",
+				)
+				statusState, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				if statusState != string(kubefloworgv1beta1.WorkspaceStateRunning) {
+					return fmt.Errorf("workspace not running yet, state: %s", statusState)
+				}
+				cmd = exec.Command("kubectl", "get", "workspaces",
+					workspaceName,
+					"-n", workspaceNamespace,
+					"-o", "jsonpath={.metadata.uid}",
+				)
+				uidOutput, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				currentWorkspaceUID = strings.TrimSpace(uidOutput)
+				return nil
+			}
+			Eventually(verifyRunning, timeout, interval).Should(Succeed())
+			Expect(currentWorkspaceUID).NotTo(BeEmpty())
+
+			By("recording the existing StatefulSet and Service names")
+			var statefulSetName, serviceName string
+			stsSelector := fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName)
+			cmd := exec.Command("kubectl", "get", "statefulsets",
+				"-l", stsSelector,
+				"-n", workspaceNamespace,
+				"-o", "jsonpath={.items[0].metadata.name}",
+			)
+			stsOutput, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			statefulSetName = strings.TrimSpace(stsOutput)
+			Expect(statefulSetName).NotTo(BeEmpty())
+
+			cmd = exec.Command("kubectl", "get", "services",
+				"-l", stsSelector,
+				"-n", workspaceNamespace,
+				"-o", "jsonpath={.items[0].metadata.name}",
+			)
+			svcOutput, err := utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred())
+			serviceName = strings.TrimSpace(svcOutput)
+			Expect(serviceName).NotTo(BeEmpty())
+
+			By("simulating an older API version controller reference on the StatefulSet and Service")
+			// NOTE: We simulate version skew (e.g. CRD promotion from v1alpha1 to v1beta1) where
+			//       existing resources retain an older APIVersion in their ownerReferences.
+			//       The owner index matches by API group and ReplaceWorkspaceAsController updates
+			//       the controller reference to the current APIVersion.
+			patchOlderAPIVersion := func() error {
+				ownerRefPatch := fmt.Sprintf(
+					`{"metadata":{"ownerReferences":[`+
+						`{"apiVersion":"kubeflow.org/v1alpha1","kind":"Workspace",`+
+						`"name":%q,"uid":%q,"controller":true,"blockOwnerDeletion":true}`+
+						`]}}`,
+					workspaceName, currentWorkspaceUID,
+				)
+				cmd := exec.Command("kubectl", "patch", "statefulset", statefulSetName,
+					"-n", workspaceNamespace, "--type=merge", "-p", ownerRefPatch)
+				if _, err := utils.Run(cmd); err != nil {
+					return err
+				}
+				cmd = exec.Command("kubectl", "patch", "service", serviceName,
+					"-n", workspaceNamespace, "--type=merge", "-p", ownerRefPatch)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Expect(patchOlderAPIVersion()).To(Succeed())
+
+			By("triggering a reconcile of the Workspace")
+			triggerReconcile := func() error {
+				cmd := exec.Command("kubectl", "annotate", "workspace", workspaceName,
+					"-n", workspaceNamespace,
+					fmt.Sprintf("test.reconcile=%d", time.Now().UnixNano()),
+					"--overwrite",
+				)
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(triggerReconcile, timeout, interval).Should(Succeed())
+
+			By("validating that the StatefulSet controller reference is updated to current APIVersion")
+			verifyStsReAdopted := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "statefulset", statefulSetName,
+					"-n", workspaceNamespace,
+					"-o", "jsonpath={.metadata.ownerReferences[?(@.controller==true)].apiVersion}",
+				)
+				ctrlAPIVersion, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(ctrlAPIVersion)).To(Equal(kubefloworgv1beta1.GroupVersion.String()))
+			}
+			Eventually(verifyStsReAdopted, timeout, interval).Should(Succeed())
+
+			By("validating that the Service controller reference is updated to current APIVersion")
+			verifySvcReAdopted := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "service", serviceName,
+					"-n", workspaceNamespace,
+					"-o", "jsonpath={.metadata.ownerReferences[?(@.controller==true)].apiVersion}",
+				)
+				ctrlAPIVersion, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(strings.TrimSpace(ctrlAPIVersion)).To(Equal(kubefloworgv1beta1.GroupVersion.String()))
+			}
+			Eventually(verifySvcReAdopted, timeout, interval).Should(Succeed())
+
+			By("validating that the Workspace remains in 'Running' state")
+			Eventually(verifyRunning, timeout, interval).Should(Succeed())
+
+			By("deleting the Workspace (cascading delete cleans up owned resources)")
+			deleteWorkspace := func() error {
+				cmd := exec.Command("kubectl", "delete", "workspace", workspaceName,
+					"-n", workspaceNamespace, "--ignore-not-found=true")
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(deleteWorkspace, timeout, interval).Should(Succeed())
+
+			By("verifying that the StatefulSet and Service are deleted as a result of the Workspace deletion")
+			verifyOwnedResourcesDeleted := func(g Gomega) {
+				cmd := exec.Command("kubectl", "get", "statefulset", statefulSetName, "-n", workspaceNamespace)
+				output, err := utils.Run(cmd)
+				g.Expect(err).To(HaveOccurred(), "expected StatefulSet to be deleted")
+				g.Expect(output).To(ContainSubstring("not found"))
+
+				cmd = exec.Command("kubectl", "get", "service", serviceName, "-n", workspaceNamespace)
+				output, err = utils.Run(cmd)
+				g.Expect(err).To(HaveOccurred(), "expected Service to be deleted")
+				g.Expect(output).To(ContainSubstring("not found"))
+			}
+			Eventually(verifyOwnedResourcesDeleted, timeout, interval).Should(Succeed())
+
+			By("deleting the WorkspaceKind")
+			deleteWorkspaceKind := func() error {
+				cmd := exec.Command("kubectl", "delete", "workspacekind", workspaceKindName,
+					"--ignore-not-found=true")
+				_, err := utils.Run(cmd)
+				return err
+			}
+			Eventually(deleteWorkspaceKind, timeout, interval).Should(Succeed())
+		})
 	})
 
 	Context("Activity Rules", func() {
