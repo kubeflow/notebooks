@@ -184,14 +184,14 @@ func goTypeToJSONTypeName(t reflect.Type) string {
 	// guard against self-referential pointer types (e.g., `type A *A`) which would loop infinitely.
 	// this should never occur in practice because json.UnmarshalTypeError.Type is populated by the
 	// stdlib JSON decoder, which rejects self-referential pointer types.
-	if kind == reflect.Ptr && t.Elem() == t {
+	if kind == reflect.Pointer && t.Elem() == t {
 		panic(fmt.Sprintf("goTypeToJSONTypeName: self-referential pointer type: %s", t))
 	}
 
 	switch kind { //nolint:exhaustive
 	case reflect.Invalid:
 		return jsonTypeUnknown
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return goTypeToJSONTypeName(t.Elem())
 	case reflect.Bool:
 		return jsonTypeBoolean
