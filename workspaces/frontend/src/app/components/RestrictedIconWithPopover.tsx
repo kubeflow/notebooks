@@ -1,138 +1,37 @@
-import React, { useCallback, useRef } from 'react';
+import React from 'react';
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { usePopoverHoverPin, UsePopoverHoverPinArgs } from '~/app/hooks/usePopoverHoverPin';
 
-interface RestrictedIconWithPopoverProps {
+interface RestrictedIconWithPopoverProps extends UsePopoverHoverPinArgs {
   message?: string;
-  popoverId: string;
-  activePopoverId: string | null;
-  pinnedPopoverId: string | null;
-  onActiveChange: (id: string | null) => void;
-  onPinnedChange: (id: string | null) => void;
+}
+
+interface RestrictedIconWithPopoverProps extends UsePopoverHoverPinArgs {
+  message?: string;
 }
 
 export const RestrictedIconWithPopover: React.FC<RestrictedIconWithPopoverProps> = ({
   message,
-  popoverId,
-  activePopoverId,
-  pinnedPopoverId,
-  onActiveChange,
-  onPinnedChange,
+  ...popoverArgs
 }) => {
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isHoveringPopoverRef = useRef(false);
-
-  const clearHideTimeout = useCallback(() => {
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-      hideTimeoutRef.current = null;
-    }
-  }, []);
-
-  const handleClick = useCallback(
-    (e?: React.MouseEvent) => {
-      if (e) {
-        e.stopPropagation();
-      }
-      clearHideTimeout();
-      if (pinnedPopoverId === popoverId) {
-        onPinnedChange(null);
-      } else {
-        onPinnedChange(popoverId);
-        onActiveChange(null);
-      }
-    },
-    [pinnedPopoverId, popoverId, onPinnedChange, onActiveChange, clearHideTimeout],
-  );
-
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      clearHideTimeout();
-      if (pinnedPopoverId !== popoverId) {
-        onActiveChange(popoverId);
-      }
-    },
-    [pinnedPopoverId, popoverId, onActiveChange, clearHideTimeout],
-  );
-
-  const handleMouseLeave = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (pinnedPopoverId !== popoverId) {
-        // Start a 1 second timer before hiding
-        hideTimeoutRef.current = setTimeout(() => {
-          // Only hide if we're not hovering over the popover
-          if (!isHoveringPopoverRef.current) {
-            onActiveChange(null);
-          }
-        }, 1000);
-      }
-    },
-    [pinnedPopoverId, popoverId, onActiveChange],
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        e.stopPropagation();
-        handleClick();
-      }
-    },
-    [handleClick],
-  );
-
-  const popoverContentInner = message ?? 'This option is restricted.';
-  const popoverContent = (
-    <div
-      onMouseEnter={() => {
-        clearHideTimeout();
-        isHoveringPopoverRef.current = true;
-      }}
-      onMouseLeave={() => {
-        isHoveringPopoverRef.current = false;
-        if (pinnedPopoverId !== popoverId) {
-          onActiveChange(null);
-        }
-      }}
-    >
-      {popoverContentInner}
-    </div>
-  );
-  const isVisible = activePopoverId === popoverId || pinnedPopoverId === popoverId;
+  const { triggerProps, contentProps, popoverProps } = usePopoverHoverPin(popoverArgs);
 
   return (
     <div className="pf-v6-u-display-inline-block">
       <Popover
-        id={popoverId}
+        id={popoverArgs.popoverId}
         aria-label="Restricted option information"
         headerContent="Restricted"
-        bodyContent={popoverContent}
+        bodyContent={<div {...contentProps}>{message ?? 'This option is restricted.'}</div>}
         minWidth="18.75rem"
         maxWidth="31.25rem"
-        isVisible={isVisible}
-        shouldClose={() => {
-          clearHideTimeout();
-          isHoveringPopoverRef.current = false;
-          onPinnedChange(null);
-          onActiveChange(null);
-        }}
-        shouldOpen={() => {
-          if (!isVisible) {
-            onActiveChange(popoverId);
-          }
-        }}
+        {...popoverProps}
       >
         <span
-          role="button"
-          tabIndex={0}
+          {...triggerProps}
           aria-label="View restricted option information"
-          onClick={handleClick}
-          onKeyDown={handleKeyDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
           style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
           data-testid="restricted-icon"
         >
