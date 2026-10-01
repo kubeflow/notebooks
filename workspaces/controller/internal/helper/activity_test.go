@@ -310,17 +310,18 @@ var _ = Describe("IsEligibleForPause", func() {
 	})
 
 	It("should not be eligible when running duration is below minRunningSeconds", func() {
-		lastActivity := testBaseTimestampMs
-		now := lastActivity + testOneHourMs
-		lastRunningTime := now - 60*1000 // running for only 60s
-		eligible, _ := IsEligibleForPause(lastActivity, lastRunningTime, now, testSecondsSinceActive1Hour, testMinRunningSeconds5Min)
+		lastRunningTime := testBaseTimestampMs
+		lastActivity := lastRunningTime  // active at start
+		now := lastRunningTime + 60*1000 // running for only 60s
+		// Inactive duration is 60s >= 30s, but running duration is 60s < 5m
+		eligible, _ := IsEligibleForPause(lastActivity, lastRunningTime, now, 30, testMinRunningSeconds5Min)
 		Expect(eligible).To(BeFalse())
 	})
 
 	It("should be eligible when running duration meets minRunningSeconds", func() {
 		lastActivity := testBaseTimestampMs
 		now := lastActivity + testOneHourMs
-		lastRunningTime := now - 600*1000 // running for 600s
+		lastRunningTime := lastActivity - 600*1000 // running for 4200s (70 min)
 		eligible, _ := IsEligibleForPause(lastActivity, lastRunningTime, now, testSecondsSinceActive1Hour, testMinRunningSeconds5Min)
 		Expect(eligible).To(BeTrue())
 	})
@@ -336,6 +337,15 @@ var _ = Describe("IsEligibleForPause", func() {
 		now := lastActivity + testOneHourMs
 		eligible, _ := IsEligibleForPause(lastActivity, 0, now, testSecondsSinceActive1Hour, testMinRunningSeconds5Min)
 		Expect(eligible).To(BeFalse())
+	})
+
+	It("should not be eligible when lastActivity is earlier than lastRunningTime", func() {
+		lastRunningTime := testBaseTimestampMs
+		lastActivity := lastRunningTime - 10000 // 10s before restart
+		now := lastRunningTime + 1000           // 1s after restart
+		eligible, eligibleAfter := IsEligibleForPause(lastActivity, lastRunningTime, now, testSecondsSinceActive1Hour, 0)
+		Expect(eligible).To(BeFalse())
+		Expect(eligibleAfter).To(Equal(lastRunningTime + testOneHourMs))
 	})
 })
 

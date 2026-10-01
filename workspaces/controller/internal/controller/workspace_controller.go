@@ -1501,8 +1501,11 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 			status.PauseTime = metav1.Now().UnixMilli()
 		}
 	} else {
-		if status.PauseTime != 0 {
+		if status.PauseTime != 0 || workspace.Status.State == kubefloworgv1beta1.WorkspaceStatePaused {
 			status.PauseTime = 0
+			// Reset stale activity status from before the pause/restart so the Workspace
+			// is not considered eligible for pause while restarting or in the pending phase.
+			status.Activity = kubefloworgv1beta1.WorkspaceActivity{}
 		}
 	}
 

@@ -204,12 +204,21 @@ func CalculateEligibleAfter(lastActivity int64, secondsSinceActive int32) int64 
 //   - the current time is at or after eligibleAfter (lastActivity + secondsSinceActive), AND
 //   - the Workspace has been running for at least minRunningSeconds (based on lastRunningTime).
 //
+// When lastRunningTime is positive and lastActivity is earlier than lastRunningTime (e.g. from
+// a previous run prior to restart), effectiveLastActivity is clamped to lastRunningTime to ensure
+// activity from a prior session does not trigger immediate pausing.
+//
 // lastActivity, lastRunningTime and now are all UNIX epoch in milliseconds.
 func IsEligibleForPause(lastActivity, lastRunningTime, now int64, secondsSinceActive, minRunningSeconds int32) (bool, int64) {
-	eligibleAfter := CalculateEligibleAfter(lastActivity, secondsSinceActive)
+	effectiveLastActivity := lastActivity
+	if lastRunningTime > 0 && effectiveLastActivity > 0 && effectiveLastActivity < lastRunningTime {
+		effectiveLastActivity = lastRunningTime
+	}
+
+	eligibleAfter := CalculateEligibleAfter(effectiveLastActivity, secondsSinceActive)
 
 	// never pause based on an unknown activity time.
-	if lastActivity <= 0 {
+	if effectiveLastActivity <= 0 {
 		return false, eligibleAfter
 	}
 

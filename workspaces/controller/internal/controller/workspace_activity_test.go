@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -133,6 +134,20 @@ var _ = Describe("updateActivityStatusFromProbe", func() {
 		Expect(workspace.Status.Activity.LastActivity).To(Equal(testLastActivityMs))
 		Expect(workspace.Status.Activity.LastUpdate).To(Equal(testEndTimeMs))
 		Expect(workspace.Status.Activity.LastProbe.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
+	})
+
+	It("should clamp lastActivity to lastRunningTime when probe reports an older timestamp from a previous session", func() {
+		workspace.Status.LastRunningTime = testStartTimeMs
+		result := &helper.ProbeResult{
+			StartTime:    testStartTime,
+			EndTime:      testEndTime,
+			Result:       kubefloworgv1beta1.WorkspaceProbeResultSuccess,
+			Message:      "Jupyter probe succeeded",
+			LastActivity: &testLastActivityTime, // testLastActivityMs (4000) < testStartTimeMs (5000)
+		}
+		updateActivityStatusFromProbe(workspace, result)
+		Expect(workspace.Status.Activity.LastActivity).To(Equal(testStartTimeMs))
+		Expect(workspace.Status.Activity.LastUpdate).To(Equal(testEndTimeMs))
 	})
 
 	It("should update lastUpdate but not lastActivity when probe returns no activity and lastActivity is already set", func() {
@@ -262,6 +277,65 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 		Expect(status.State).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
 		Expect(status.Activity).To(Equal(kubefloworgv1beta1.WorkspaceActivity{}))
 		Expect(status.LastRunningTime).To(BeNumerically(">", testInitialActivityMs))
+	})
+
+	It("should reset status.Activity when unpausing a Workspace even while Pod is still Pending", func() {
+		c := fake.NewClientBuilder().WithScheme(scheme).WithIndex(&corev1.Event{}, helper.IndexEventInvolvedObjectUidField, func(rawObj client.Object) []string {
+			event := rawObj.(*corev1.Event)
+			if event.InvolvedObject.UID == "" {
+				return nil
+			}
+			return []string{string(event.InvolvedObject.UID)}
+		}).Build()
+		r := &WorkspaceReconciler{Client: c, Scheme: scheme}
+
+		const namespace = "team-a"
+
+		ws := &kubefloworgv1beta1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: namespace},
+			Spec:       kubefloworgv1beta1.WorkspaceSpec{Paused: false},
+			Status: kubefloworgv1beta1.WorkspaceStatus{
+				State:           kubefloworgv1beta1.WorkspaceStatePaused,
+				PauseTime:       testInitialActivityMs,
+				LastRunningTime: testInitialActivityMs,
+				Activity: kubefloworgv1beta1.WorkspaceActivity{
+					LastActivity: testInitialActivityMs,
+					LastUpdate:   testInitialActivityMs,
+					LastProbe: &kubefloworgv1beta1.WorkspaceActivityLastProbe{
+						Result: kubefloworgv1beta1.WorkspaceProbeResultSuccess,
+					},
+					Rules: &kubefloworgv1beta1.WorkspaceActivityRules{
+						PauseWorkspace: &kubefloworgv1beta1.WorkspaceActivityPauseRule{EligibleAfter: testEligibleAfterMs},
+					},
+				},
+			},
+		}
+
+		const (
+			revision   = "revision-1"
+			generation = int64(1)
+		)
+		statefulSet := &appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: namespace, Generation: generation},
+			Status:     appsv1.StatefulSetStatus{ObservedGeneration: generation, UpdateRevision: revision},
+		}
+
+		pod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ws-0",
+				Namespace: namespace,
+				Labels:    map[string]string{appsv1.StatefulSetRevisionLabel: revision},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodPending,
+			},
+		}
+
+		status, _, err := r.generateWorkspaceStatus(ctx, log, ws, pod, statefulSet, "")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(status.State).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+		Expect(status.PauseTime).To(Equal(int64(0)))
+		Expect(status.Activity).To(Equal(kubefloworgv1beta1.WorkspaceActivity{}))
 	})
 })
 

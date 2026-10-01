@@ -755,13 +755,19 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Eventually(applyActivityWorkspaceKind, timeout, interval).Should(Succeed())
 
-			By("overriding the activityProbe with a fast podExec probe reporting inactivity")
+			By("overriding the activityProbe with a podExec probe recording activity on the home volume")
 			// - minProbeIntervalSeconds/probeIntervalSeconds are set low so the probe runs quickly
-			// - the podExec script reports an old last_activity, making the
-			//   Workspace eligible for pause as soon as the first probe succeeds
+			// - the podExec script writes an activity timestamp to a file on the persistent home volume
+			//   on the first run, simulating a user session whose activity timestamp is preserved
+			//   across restart.
 			// NOTE: the script JSON is escaped twice: once for the shell/JSON output, once for the patch body
 			const inactiveProbeScript = `#!/usr/bin/env bash\n` +
-				`echo '{\"last_activity\": \"2000-01-01T00:00:00Z\"}' > \"$OUTPUT_JSON_PATH\"\nexit 0\n`
+				`ACTIVITY_FILE=\"/home/jovyan/.activity_pause_test\"\n` +
+				`if [ ! -f \"$ACTIVITY_FILE\" ]; then\n` +
+				`  date -u +%Y-%m-%dT%H:%M:%SZ > \"$ACTIVITY_FILE\"\n` +
+				`fi\n` +
+				`echo \"{\\\"last_activity\\\": \\\"$(cat $ACTIVITY_FILE)\\\"}\" > \"$OUTPUT_JSON_PATH\"\n` +
+				`exit 0\n`
 			probePatch := `[` +
 				`{"op":"replace","path":"/spec/podTemplate/activityProbe","value":{` +
 				`"minProbeIntervalSeconds":1,` +
@@ -776,14 +782,14 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Eventually(patchProbe, timeout, interval).Should(Succeed())
 
-			By("overriding the activityRules with a single fast catch-all pause rule")
+			By("overriding the activityRules with a single fast catch-all pause rule (minRunningSeconds=0)")
 			// - secondsSinceActive=16 is the minimum allowed by the CRD validation
-			// - minRunningSeconds=60 ensures the Workspace stays Running long enough for the
-			//   test to observe its Running state and status before pausing triggers
+			// - minRunningSeconds=0 verifies that the Workspace is not paused before secondsSinceActive
+			//   and that on restart it is not immediately paused despite minRunningSeconds=0
 			// - an empty match makes this a catch-all rule that applies to all Workspaces
 			rulesPatch := `[` +
 				`{"op":"replace","path":"/spec/activityRules","value":[` +
-				`{"config":{"secondsSinceActive":16,"minRunningSeconds":60},"match":{},"effect":{"pauseWorkspace":true}}` +
+				`{"config":{"secondsSinceActive":16,"minRunningSeconds":0},"match":{},"effect":{"pauseWorkspace":true}}` +
 				`]}]`
 			patchRules := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", activityWorkspaceKindName,
@@ -898,10 +904,21 @@ var _ = Describe("controller", Ordered, func() {
 			}
 			Eventually(unpauseWorkspace, timeout, interval).Should(Succeed())
 
+			By("verifying that while restarting/pending, the Workspace does not immediately revert to paused")
+			verifyNotImmediatelyPausedWhileStarting := func(g Gomega) error {
+				paused, err := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, "{.spec.paused}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if paused == "true" {
+					return fmt.Errorf("workspace spec.paused reverted to true while restarting")
+				}
+				return nil
+			}
+			Consistently(verifyNotImmediatelyPausedWhileStarting, 3*time.Second, interval).Should(Succeed())
+
 			By("waiting for the restarted Workspace to reach 'Running' state again")
 			Eventually(verifyRunning, timeout, interval).Should(Succeed())
 
-			By("verifying that the restarted Workspace stays Running and is not immediately paused")
+			By("verifying that the restarted Workspace stays Running and is not immediately paused despite minRunningSeconds=0")
 			verifyStaysRunning := func(g Gomega) error {
 				paused, err := utils.GetWorkspaceJSONPath(activityWorkspaceName, workspaceNamespace, "{.spec.paused}")
 				g.Expect(err).NotTo(HaveOccurred())
@@ -1218,14 +1235,26 @@ var _ = Describe("controller", Ordered, func() {
 			Eventually(verifyRunning, timeout, interval).Should(Succeed())
 
 			By("validating that the initial probe runs and populates eligibleAfter based on stale inactivity")
-			const staleEligibleAfter = "946684816000" // 2000-01-01T00:00:00Z + 16s
+			var expectedEligibleAfter string
 			verifyEligiblePopulated := func(g Gomega) error {
+				lastRunningTimeStr, err := utils.GetWorkspaceJSONPath(
+					staleWorkspaceName, workspaceNamespace, "{.status.lastRunningTime}")
+				g.Expect(err).NotTo(HaveOccurred())
+				if lastRunningTimeStr == "" || lastRunningTimeStr == "0" {
+					return fmt.Errorf("lastRunningTime is not set yet")
+				}
+				lastRunningTime, err := strconv.ParseInt(lastRunningTimeStr, 10, 64)
+				g.Expect(err).NotTo(HaveOccurred())
+
 				eligibleAfterStr, err := utils.GetWorkspaceJSONPath(
 					staleWorkspaceName, workspaceNamespace, "{.status.activity.rules.pauseWorkspace.eligibleAfter}")
 				g.Expect(err).NotTo(HaveOccurred())
-				if eligibleAfterStr != staleEligibleAfter {
-					return fmt.Errorf("eligibleAfter is %q, expected %q", eligibleAfterStr, staleEligibleAfter)
+				expected := strconv.FormatInt(lastRunningTime+16000, 10)
+				if eligibleAfterStr != expected {
+					return fmt.Errorf("eligibleAfter is %q, expected %q (lastRunningTime %d + 16s)",
+						eligibleAfterStr, expected, lastRunningTime)
 				}
+				expectedEligibleAfter = expected
 				return nil
 			}
 			Eventually(verifyEligiblePopulated, activityTimeout, interval).Should(Succeed())
@@ -1250,7 +1279,8 @@ var _ = Describe("controller", Ordered, func() {
 				eligibleAfterStr, err := utils.GetWorkspaceJSONPath(
 					staleWorkspaceName, workspaceNamespace, "{.status.activity.rules.pauseWorkspace.eligibleAfter}")
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(eligibleAfterStr).To(Equal(staleEligibleAfter), "eligibleAfter should be preserved during !due reconciles")
+				g.Expect(eligibleAfterStr).To(Equal(expectedEligibleAfter),
+					"eligibleAfter should be preserved during !due reconciles")
 
 				eligibleAfter, err := strconv.ParseInt(eligibleAfterStr, 10, 64)
 				g.Expect(err).NotTo(HaveOccurred())

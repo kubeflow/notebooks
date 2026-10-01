@@ -273,7 +273,7 @@ var _ = Describe("Workspace Controller", func() {
 			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
 			workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
 				MinProbeIntervalSeconds: new(int32(1)),
-				ProbeIntervalSeconds:    new(int32(10)),
+				ProbeIntervalSeconds:    new(int32(1)),
 				PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
 					TimeoutSeconds: new(int32(30)),
 					Script:         "exit 0",
@@ -402,7 +402,7 @@ var _ = Describe("Workspace Controller", func() {
 				updatedWS := &kubefloworgv1beta1.Workspace{}
 				g.Expect(k8sClient.Get(ctx, workspaceKey, updatedWS)).To(Succeed())
 				g.Expect(updatedWS.Spec.Paused).To(BeTrue(), "spec.paused must be persisted to true in the API server")
-			}, timeout, interval).Should(Succeed())
+			}, 25*time.Second, interval).Should(Succeed())
 		})
 	})
 
