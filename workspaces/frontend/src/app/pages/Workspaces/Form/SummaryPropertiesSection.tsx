@@ -67,9 +67,15 @@ export const SummaryPropertiesSection: FC<SummaryPropertiesSectionProps> = ({
 
   return (
     <Stack hasGutter>
-      {!isEditMode && properties.workspaceName.trim() && (
+      {!isEditMode && properties.displayName.trim() && (
         <StackItem>
-          <Content component={ContentVariants.p}>Name: {properties.workspaceName}</Content>
+          <Content component={ContentVariants.p}>Display Name: {properties.displayName}</Content>
+        </StackItem>
+      )}
+
+      {!isEditMode && properties.name.trim() && (
+        <StackItem>
+          <Content component={ContentVariants.p}>Resource Name: {properties.name}</Content>
         </StackItem>
       )}
 
