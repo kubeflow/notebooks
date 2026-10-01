@@ -87,15 +87,15 @@ class WorkspaceKinds {
   applyNameFilter(value: string) {
     cy.findByTestId('filter-dropdown').click();
     cy.findByTestId('filter-dropdown-name').click();
-    cy.findByTestId('filter-name-input').clear();
-    cy.findByTestId('filter-name-input').type(value);
+    this.findFilterInput('name').clear();
+    this.findFilterInput('name').type(value);
   }
 
   applyDescriptionFilter(value: string) {
     cy.findByTestId('filter-dropdown').click();
     cy.findByTestId('filter-dropdown-description').click();
-    cy.findByTestId('filter-description-input').clear();
-    cy.findByTestId('filter-description-input').type(value);
+    this.findFilterInput('description').clear();
+    this.findFilterInput('description').type(value);
   }
 
   applyStatusFilter(status: 'Active' | 'Deprecated') {
@@ -147,7 +147,9 @@ class WorkspaceKinds {
   }
 
   findFilterInput(key: string) {
-    return cy.findByTestId(`filter-${key}-input`);
+    // ThemeAwareSearchInput/PatternFly's SearchInput puts the test-id on the
+    // outer wrapper div; the actual typeable element is the nested <input>.
+    return cy.findByTestId(`filter-${key}-input`).find('input');
   }
 
   assertFilterInputValue(key: string, value: string) {

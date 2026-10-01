@@ -47,7 +47,9 @@ class CreateWorkspace extends WorkspaceForm {
   }
 
   findKindFilterInput() {
-    return cy.findByTestId('kind-filter-name-input');
+    // ThemeAwareSearchInput/PatternFly's SearchInput puts the test-id on the
+    // outer wrapper div; the actual typeable element is the nested <input>.
+    return cy.findByTestId('kind-filter-name-input').find('input');
   }
 
   typeKindFilter(value: string) {
@@ -63,7 +65,7 @@ class CreateWorkspace extends WorkspaceForm {
   }
 
   findImageFilterInput() {
-    return cy.findByTestId('image-filter-name-input');
+    return cy.findByTestId('image-filter-name-input').find('input');
   }
 
   typeImageFilter(value: string) {
@@ -79,7 +81,7 @@ class CreateWorkspace extends WorkspaceForm {
   }
 
   findPodConfigFilterInput() {
-    return cy.findByTestId('pod-config-filter-name-input');
+    return cy.findByTestId('pod-config-filter-name-input').find('input');
   }
 
   typePodConfigFilter(value: string) {

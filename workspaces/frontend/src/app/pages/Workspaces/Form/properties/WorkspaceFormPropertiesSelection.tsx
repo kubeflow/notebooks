@@ -118,7 +118,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
               data-testid="workspace-display-name"
             />
           </ThemeAwareFormGroupWrapper>
-          {selectedProperties.displayName.trim() && (
+          {(selectedProperties.displayName.trim() || isResourceNameEditing) && (
             <>
               {mode === 'create' && isResourceNameEditing ? (
                 <Stack hasGutter>

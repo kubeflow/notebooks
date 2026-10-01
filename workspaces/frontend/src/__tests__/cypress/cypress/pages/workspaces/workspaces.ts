@@ -121,8 +121,8 @@ class Workspaces {
       cy.findByTestId(`filter-workspaces-${args.key}-dropdown`).click();
       cy.findByTestId(`filter-workspaces-${args.key}-${args.value.toLowerCase()}`).click();
     } else {
-      cy.findByTestId(`filter-workspaces-${args.key}-input`).clear();
-      cy.findByTestId(`filter-workspaces-${args.key}-input`).type(args.value);
+      this.findFilterInput(args.key).clear();
+      this.findFilterInput(args.key).type(args.value);
     }
   }
 
@@ -180,7 +180,9 @@ class Workspaces {
   }
 
   findFilterInput(key: string) {
-    return cy.findByTestId(`filter-workspaces-${key}-input`);
+    // ThemeAwareSearchInput/PatternFly's SearchInput puts the test-id on the
+    // outer wrapper div; the actual typeable element is the nested <input>.
+    return cy.findByTestId(`filter-workspaces-${key}-input`).find('input');
   }
 
   assertFilterInputPlaceholder(key: string, placeholder: string) {
