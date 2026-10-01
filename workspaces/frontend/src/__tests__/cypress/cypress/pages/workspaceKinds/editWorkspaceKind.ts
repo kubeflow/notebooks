@@ -136,6 +136,9 @@ class EditWorkspaceKind {
   }
 
   assertLogoUrlInputVisible() {
+    // Plain `.should('be.visible')` does not auto-scroll like action commands do,
+    // and this field can render below the fold once Properties is expanded.
+    this.findLogoUrlInput().scrollIntoView();
     this.findLogoUrlInput().should('be.visible');
   }
 
@@ -670,6 +673,9 @@ class EditWorkspaceKind {
   }
 
   assertAdditionalVolumesSectionVisible() {
+    // Plain `.should('be.visible')` does not auto-scroll like action commands do,
+    // and this section can render below the fold once its parent is expanded.
+    cy.contains('Additional Volumes').scrollIntoView();
     cy.contains('Additional Volumes').should('be.visible');
   }
 

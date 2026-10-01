@@ -25,3 +25,4 @@ podtemplate
 listvalues
 cuda
 rstudio
+fullwidth
