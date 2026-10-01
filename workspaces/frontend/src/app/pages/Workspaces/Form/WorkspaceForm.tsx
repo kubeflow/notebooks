@@ -176,7 +176,7 @@ const WorkspaceForm: React.FC = () => {
     const podConfigOptions = filteredValuesData.podConfig.values ?? [];
     const current = podConfigOptions.find((pc) => pc.id === data.podConfig);
     // denied-but-present is left alone on purpose; hidden options are cleared
-    const isStillValid = !!current;
+    const isStillValid = !!current && !current.hidden;
     if (!isStillValid) {
       setData('podConfig', undefined);
     }

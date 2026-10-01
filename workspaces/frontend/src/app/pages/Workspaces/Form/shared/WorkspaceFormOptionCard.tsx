@@ -8,11 +8,9 @@ import {
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { css } from '@patternfly/react-styles';
-import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
-import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
-import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { HiddenIconWithPopover } from '~/app/components/HiddenIconWithPopover';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
+import { RestrictedIconWithPopover } from '~/app/components/RestrictedIconWithPopover';
 import {
   OptionValue,
   resolveRedirectChain,
@@ -50,6 +48,7 @@ export const WorkspaceFormOptionCard: React.FC<
   const cardId = option.id.replace(/ /g, '-');
   const popoverIdHidden = `hidden-${cardId}`;
   const popoverIdRedirect = `redirect-${cardId}`;
+  const popoverIdRestricted = `restricted-${cardId}`;
   const isDenied = option.restrictions.deny === true;
   const isRedirect = option.redirect !== undefined;
 
@@ -64,10 +63,10 @@ export const WorkspaceFormOptionCard: React.FC<
     if (isDenied) {
       return;
     }
-    // Check if click originated from an icon (hidden or redirect)
+    // Check if click originated from an icon (hidden, redirect, or restricted)
     const target = event.target as HTMLElement;
     const clickedIcon = target.closest(
-      '[data-testid="hidden-icon"], [data-testid="redirect-icon"]',
+      '[data-testid="hidden-icon"], [data-testid="redirect-icon"], [data-testid="restricted-icon"]',
     );
 
     // Only trigger card selection if not clicking on an icon
@@ -117,17 +116,14 @@ export const WorkspaceFormOptionCard: React.FC<
       >
         {isDenied && (
           <FlexItem>
-            <Popover
-              aria-label="Restricted option information"
-              headerContent={<div>Restricted</div>}
-              bodyContent={
-                <div>{option.restrictions.denyMessage?.text ?? 'This option is restricted.'}</div>
-              }
-            >
-              <Icon status="danger" isInline>
-                <ExclamationCircleIcon />
-              </Icon>
-            </Popover>
+            <RestrictedIconWithPopover
+              popoverId={popoverIdRestricted}
+              activePopoverId={activePopoverId}
+              pinnedPopoverId={pinnedPopoverId}
+              onActiveChange={onActivePopoverChange}
+              onPinnedChange={onPinnedPopoverChange}
+              message={option.restrictions.denyMessage?.text}
+            />
           </FlexItem>
         )}
 

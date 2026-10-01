@@ -20,6 +20,12 @@ jest.mock('~/app/components/RedirectIconWithPopover', () => ({
   ),
 }));
 
+jest.mock('~/app/components/RestrictedIconWithPopover', () => ({
+  RestrictedIconWithPopover: ({ popoverId }: { popoverId: string }) => (
+    <div data-testid={`restricted-icon-${popoverId}`}>Restricted Icon</div>
+  ),
+}));
+
 describe('WorkspaceFormOptionCard', () => {
   const mockOnClick = jest.fn();
   const mockOnChange = jest.fn();
@@ -160,6 +166,23 @@ describe('WorkspaceFormOptionCard', () => {
       expect(card).toHaveClass('workspace-option-card--redirected');
     });
 
+    it('should apply workspace-option-card--restricted class when option is denied', () => {
+      const workspaceKind = buildMockWorkspaceKind();
+      const deniedOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
+        id: 'denied-option',
+        restrictions: { deny: true, denyMessage: { text: 'Forbidden' } },
+      };
+      const allOptions = [deniedOption];
+
+      const { container } = render(
+        <WorkspaceFormOptionCard {...defaultProps} option={deniedOption} allOptions={allOptions} />,
+      );
+
+      const card = container.querySelector('#denied-option');
+      expect(card).toHaveClass('workspace-option-card--restricted');
+    });
+
     it('should not apply special classes when option is neither hidden nor redirected', () => {
       const workspaceKind = buildMockWorkspaceKind();
       const normalOption: OptionsImageConfigValue = {
@@ -262,6 +285,44 @@ describe('WorkspaceFormOptionCard', () => {
 
       expect(screen.queryByTestId('redirect-icon-redirect-normal-option')).not.toBeInTheDocument();
     });
+
+    it('should show RestrictedIconWithPopover only when option.restrictions.deny is true', () => {
+      const workspaceKind = buildMockWorkspaceKind();
+      const deniedOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
+        id: 'denied-option',
+        restrictions: { deny: true, denyMessage: { text: 'Forbidden' } },
+      };
+      const allOptions = [deniedOption];
+
+      render(
+        <WorkspaceFormOptionCard {...defaultProps} option={deniedOption} allOptions={allOptions} />,
+      );
+
+      expect(screen.getByTestId('restricted-icon-restricted-denied-option')).toBeInTheDocument();
+    });
+
+    it('should not show RestrictedIconWithPopover when option.restrictions.deny is false', () => {
+      const workspaceKind = buildMockWorkspaceKind();
+      const allowedOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
+        id: 'allowed-option',
+        restrictions: { deny: false },
+      };
+      const allOptions = [allowedOption];
+
+      render(
+        <WorkspaceFormOptionCard
+          {...defaultProps}
+          option={allowedOption}
+          allOptions={allOptions}
+        />,
+      );
+
+      expect(
+        screen.queryByTestId('restricted-icon-restricted-allowed-option'),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('User interactions', () => {
@@ -277,6 +338,25 @@ describe('WorkspaceFormOptionCard', () => {
 
       expect(mockOnClick).toHaveBeenCalledWith(option);
       expect(mockOnClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not call onClick when card is denied/restricted', async () => {
+      const workspaceKind = buildMockWorkspaceKind();
+      const deniedOption: OptionsImageConfigValue = {
+        ...workspaceKind.podTemplate.options.imageConfig.values![0],
+        id: 'denied-option',
+        restrictions: { deny: true },
+      };
+      const allOptions = [deniedOption];
+
+      render(
+        <WorkspaceFormOptionCard {...defaultProps} option={deniedOption} allOptions={allOptions} />,
+      );
+
+      const card = screen.getByText(deniedOption.displayName).closest('.pf-v6-c-card');
+      await userEvent.click(card!);
+
+      expect(mockOnClick).not.toHaveBeenCalled();
     });
 
     it('should call onChange when checkbox changed', async () => {
