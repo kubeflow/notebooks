@@ -37,6 +37,22 @@
   cursor: pointer;
 }
 
+/* PF v6 sets `border: 0` on .pf-v6-c-card and hides its ::before border for
+   isClickable/isSelectable cards unless a CardHeader selectableActions element
+   draws it; the extra .pf-v6-c-card prefix bumps specificity over that rule.
+   Scoped to :not(.mui-theme) since MUI theme already restores its own border. */
+html:not(.mui-theme) .pf-v6-c-card.summary-card--clickable {
+  border: var(--pf-v6-c-card--BorderWidth, 1px) solid
+    var(--pf-v6-c-card--BorderColor, var(--pf-t--global--border--color--default));
+}
+
+html:not(.mui-theme) .pf-v6-c-card.summary-card--clickable:hover {
+  border-color: var(
+    --pf-v6-c-card--m-selectable--hover--BorderColor,
+    var(--pf-t--global--border--color--hover)
+  );
+}
+
 .summary-redirect-icon-button {
   cursor: pointer;
   display: inline-flex;
