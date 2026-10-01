@@ -8,10 +8,6 @@ interface RestrictedIconWithPopoverProps extends UsePopoverHoverPinArgs {
   message?: string;
 }
 
-interface RestrictedIconWithPopoverProps extends UsePopoverHoverPinArgs {
-  message?: string;
-}
-
 export const RestrictedIconWithPopover: React.FC<RestrictedIconWithPopoverProps> = ({
   message,
   ...popoverArgs

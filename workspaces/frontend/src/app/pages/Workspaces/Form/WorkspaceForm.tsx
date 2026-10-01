@@ -116,6 +116,9 @@ const WorkspaceForm: React.FC = () => {
   // Refs for filter control
   const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
   const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
+  // Id of a hidden pod config the user explicitly picked (e.g. via the "show hidden" filter).
+  // Used so the compatibility-cleanup effect doesn't discard a deliberate choice.
+  const userSelectedHiddenPodConfigRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!initialFormDataLoaded || mode === 'create') {
       return;
@@ -175,8 +178,11 @@ const WorkspaceForm: React.FC = () => {
     }
     const podConfigOptions = filteredValuesData.podConfig.values ?? [];
     const current = podConfigOptions.find((pc) => pc.id === data.podConfig);
-    // denied-but-present is left alone on purpose; hidden options are cleared
-    const isStillValid = !!current && !current.hidden;
+    // denied-but-present is left alone on purpose; hidden options are cleared,
+    // unless the user explicitly selected that hidden option themselves
+    const isUserSelectedHidden =
+      !!current?.hidden && userSelectedHiddenPodConfigRef.current === current.id;
+    const isStillValid = !!current && (!current.hidden || isUserSelectedHidden);
     if (!isStillValid) {
       setData('podConfig', undefined);
     }
@@ -299,8 +305,10 @@ const WorkspaceForm: React.FC = () => {
         if (podConfig.hidden || podConfig.redirect !== undefined) {
           podConfigFilterControlRef.current?.adaptFiltersForPodConfig(podConfig);
         }
+        userSelectedHiddenPodConfigRef.current = podConfig.hidden ? podConfig.id : undefined;
         setData('podConfig', podConfig.id);
       } else {
+        userSelectedHiddenPodConfigRef.current = undefined;
         setData('podConfig', undefined);
       }
     },

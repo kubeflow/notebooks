@@ -24,7 +24,10 @@ class RedirectConfirmModal {
   }
 
   assertApplyRedirectButtonNotExists() {
-    return this.find().findByTestId('apply-redirect-button').should('not.exist');
+    return this.find()
+      .should('be.visible')
+      .findByTestId('apply-redirect-button')
+      .should('not.exist');
   }
 
   findContinueButton() {

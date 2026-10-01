@@ -8,13 +8,33 @@ export interface UsePopoverHoverPinArgs {
   onPinnedChange: (id: string | null) => void;
 }
 
+export interface UsePopoverHoverPinReturn {
+  triggerProps: {
+    role: 'button';
+    tabIndex: number;
+    onClick: (e?: React.MouseEvent) => void;
+    onKeyDown: (e: React.KeyboardEvent) => void;
+    onMouseEnter: (e: React.MouseEvent) => void;
+    onMouseLeave: (e: React.MouseEvent) => void;
+  };
+  contentProps: {
+    onMouseEnter: () => void;
+    onMouseLeave: () => void;
+  };
+  popoverProps: {
+    isVisible: boolean;
+    shouldClose: () => void;
+    shouldOpen: () => void;
+  };
+}
+
 export const usePopoverHoverPin = ({
   popoverId,
   activePopoverId,
   pinnedPopoverId,
   onActiveChange,
   onPinnedChange,
-}: UsePopoverHoverPinArgs) => {
+}: UsePopoverHoverPinArgs): UsePopoverHoverPinReturn => {
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isHoveringPopoverRef = useRef(false);
 
