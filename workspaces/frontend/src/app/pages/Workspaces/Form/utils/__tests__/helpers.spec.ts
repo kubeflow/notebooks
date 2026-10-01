@@ -64,6 +64,21 @@ describe('Validate Workspace Name', () => {
 
     expect(result).toEqual(null);
   });
+
+  it.each(['foo..bar', 'foo.-bar', 'foo-.bar'])(
+    'should reject "%s" as an invalid DNS subdomain even though it passes the overall start/end check',
+    (name) => {
+      const result = validateName(name);
+
+      expect(result).toEqual(
+        'Each "."-separated segment must start and end with an alphanumeric character',
+      );
+    },
+  );
+
+  it('should accept multiple valid dot-separated segments', () => {
+    expect(validateName('foo.bar.baz-1')).toEqual(null);
+  });
 });
 
 describe('Validate Display Name', () => {
@@ -80,20 +95,68 @@ describe('Validate Display Name', () => {
     );
   });
 
-  it('should reject control characters', () => {
-    expect(validateDisplayName('hello\u0000world')).toEqual(
-      'Cannot contain control characters or the characters < > { }',
-    );
+  const DISALLOWED_CHARS_MESSAGE =
+    'Only letters (any language), numbers, spaces, and the characters - _ . , \' " : ? ! @ # % ^ * ( ) ~ + / are allowed';
+
+  it('should allow every character in the allowlist in a single pass', () => {
+    expect(validateDisplayName('abcXYZ019-_.,\'":?!@#%^*()~+/ ')).toEqual(null);
   });
 
-  it.each(['<script>', 'a > b', '{template}'])('should reject "%s" containing < > { }', (name) => {
-    expect(validateDisplayName(name)).toEqual(
-      'Cannot contain control characters or the characters < > { }',
-    );
+  it('should allow a realistic international display name', () => {
+    // cspell:disable-next-line
+    expect(validateDisplayName("José's Café (北京)")).toEqual(null);
   });
 
-  it('should allow arbitrary non-alphanumeric characters otherwise', () => {
-    expect(validateDisplayName('My Workspace 🚀 (v2) — café')).toEqual(null);
+  it.each([
+    ['hyphen', '-'],
+    ['underscore', '_'],
+    ['dot', '.'],
+    ['comma', ','],
+    ['single quote', "'"],
+    ['double quote', '"'],
+    ['colon', ':'],
+    ['question mark', '?'],
+    ['exclamation mark', '!'],
+    ['at sign', '@'],
+    ['hash', '#'],
+    ['percent', '%'],
+    ['caret', '^'],
+    ['asterisk', '*'],
+    ['open parenthesis', '('],
+    ['close parenthesis', ')'],
+    ['tilde', '~'],
+    ['plus', '+'],
+    ['forward slash', '/'],
+    ['accented Latin letter', 'é'],
+    ['CJK letter', '北'],
+    ['Cyrillic letter', 'Б'],
+    ['fullwidth digit', '１'],
+  ])('should accept the allowed %s character', (_label, char) => {
+    expect(validateDisplayName(`a${char}b`)).toEqual(null);
+  });
+
+  it.each([
+    ['control character', '\u0000'],
+    ['semicolon', ';'],
+    ['ampersand', '&'],
+    ['dollar sign', '$'],
+    ['equals sign', '='],
+    ['open square bracket', '['],
+    ['close square bracket', ']'],
+    ['open curly brace', '{'],
+    ['close curly brace', '}'],
+    ['less than', '<'],
+    ['greater than', '>'],
+    ['backtick', '`'],
+    ['backslash', '\\'],
+    ['pipe', '|'],
+    ['non-breaking space', '\u00A0'],
+    ['tab', '\t'],
+    ['newline', '\n'],
+    ['emoji', '😀'],
+    ['copyright symbol', '©'],
+  ])('should reject the disallowed %s character', (_label, char) => {
+    expect(validateDisplayName(`a${char}b`)).toEqual(DISALLOWED_CHARS_MESSAGE);
   });
 });
 
@@ -102,20 +165,31 @@ describe('slugifyDisplayName', () => {
     expect(slugifyDisplayName('My Workspace')).toEqual('my-workspace');
   });
 
-  it('should strip accented/diacritic characters to their plain form', () => {
+  it('should transliterate accented Latin letters instead of dropping them', () => {
     expect(slugifyDisplayName('café naïve')).toEqual('cafe-naive');
   });
 
-  it('should strip symbols and punctuation', () => {
+  it('should drop non-Latin scripts rather than romanizing them', () => {
+    expect(slugifyDisplayName('北京')).toEqual('');
+  });
+
+  it('should drop underscores by converting them to dashes, and drop other punctuation', () => {
+    expect(slugifyDisplayName('My_Workspace')).toEqual('my-workspace');
     expect(slugifyDisplayName('Hello, World!!')).toEqual('hello-world');
   });
 
-  it('should collapse repeated separators and trim leading/trailing hyphens', () => {
-    expect(slugifyDisplayName('  --Foo--Bar--  ')).toEqual('foo-bar');
+  it('should preserve dots and not collapse repeated separators', () => {
+    expect(slugifyDisplayName('foo.bar')).toEqual('foo.bar');
+    expect(slugifyDisplayName('  --Foo--Bar--  ')).toEqual('foo--bar');
   });
 
-  it('should return an empty string when nothing alphanumeric remains', () => {
+  it('should trim leading and trailing dashes and dots but keep them in the middle', () => {
+    expect(slugifyDisplayName('--.foo.bar.--')).toEqual('foo.bar');
+  });
+
+  it('should return an empty string when nothing allowed remains', () => {
     expect(slugifyDisplayName('😀😀')).toEqual('');
+    expect(slugifyDisplayName('...')).toEqual('');
   });
 });
 
@@ -131,6 +205,16 @@ describe('generateResourceNameBase', () => {
 
     expect(result).toEqual('apple-mango');
     expect(mockGenerate).toHaveBeenCalledWith({ exactly: 2, minLength: 5, maxLength: 7 });
+  });
+
+  it('should fall back to random words when the slug would be an invalid DNS subdomain', () => {
+    mockGenerate.mockReturnValue(['apple', 'mango']);
+
+    // "foo..bar" converts to itself (dots are preserved) but is not a valid DNS
+    // subdomain, so it must not be accepted as-is.
+    const result = generateResourceNameBase('foo..bar');
+
+    expect(result).toEqual('apple-mango');
   });
 });
 
@@ -169,6 +253,7 @@ describe('getResourceNameCriteria', () => {
       { key: 'chars', label: expect.any(String), isValid: false },
       { key: 'start', label: expect.any(String), isValid: false },
       { key: 'end', label: expect.any(String), isValid: false },
+      { key: 'segments', label: expect.any(String), isValid: false },
     ]);
   });
 
@@ -198,8 +283,26 @@ describe('getResourceNameCriteria', () => {
     expect(isValid('my-workspace-', 'start')).toBe(true);
   });
 
+  it('should flag segments for an invalid dot-separated label even when start/end/chars are fine', () => {
+    expect(isValid('foo..bar', 'segments')).toBe(false);
+    expect(isValid('foo..bar', 'start')).toBe(true);
+    expect(isValid('foo..bar', 'end')).toBe(true);
+    expect(isValid('foo..bar', 'chars')).toBe(true);
+  });
+
   it('should match validateName overall pass/fail for arbitrary inputs', () => {
-    const names = ['my-workspace', 'Invalid', '-bad', 'bad-', 'a'.repeat(64), ''];
+    const names = [
+      'my-workspace',
+      'Invalid',
+      '-bad',
+      'bad-',
+      'a'.repeat(64),
+      '',
+      'foo..bar',
+      'foo.-bar',
+      'foo-.bar',
+      'foo.bar.baz',
+    ];
     names.forEach((name) => {
       const allValid = getResourceNameCriteria(name).every((c) => c.isValid);
       expect(allValid).toBe(validateName(name) === null);

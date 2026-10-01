@@ -293,14 +293,21 @@ describe('Create workspace', () => {
         createWorkspace.attachHomeVolume('home-pvc');
       });
 
-      it('should allow arbitrary non-alphanumeric characters in the display name', () => {
-        createWorkspace.typeDisplayName('My Workspace 🚀 (v2)');
+      it('should allow international letters and the full set of sensible punctuation in the display name', () => {
+        // cspell:disable-next-line
+        createWorkspace.typeDisplayName("José's Café-2.0 (北京) #tag! @site, v1: ~end+x/y?");
         createWorkspace.assertDisplayNameInputValid();
         createWorkspace.assertNextButtonEnabled();
       });
 
-      it('should disable Next when display name contains a blocked character', () => {
-        createWorkspace.typeDisplayName('bad<name>');
+      it('should disable Next when display name contains an emoji', () => {
+        createWorkspace.typeDisplayName('bad😀name');
+        createWorkspace.assertDisplayNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should disable Next when display name contains a code-like character', () => {
+        createWorkspace.typeDisplayName('bad<script>name');
         createWorkspace.assertDisplayNameInputInvalid();
         createWorkspace.assertNextButtonDisabled();
       });

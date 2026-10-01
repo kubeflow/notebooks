@@ -1,7 +1,7 @@
 import { DeploymentMode, asEnumMember } from 'mod-arch-core';
 import { Theme } from 'mod-arch-kubeflow';
 
-export const STYLE_THEME = asEnumMember(process.env.STYLE_THEME, Theme) || Theme.Patternfly;
+export const STYLE_THEME = asEnumMember(process.env.STYLE_THEME, Theme) || Theme.MUI;
 export const DEPLOYMENT_MODE =
   asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Kubeflow;
 export const DEV_MODE = process.env.APP_ENV === 'development';

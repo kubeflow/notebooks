@@ -278,6 +278,10 @@ export const buildPVCSelectOptions = (
   return options;
 };
 
+// A single "."-separated segment of a Kubernetes DNS subdomain name: lowercase
+// alphanumeric characters and "-", starting and ending with an alphanumeric character.
+const DNS_LABEL_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+
 export const validateName = (name: string): string | null => {
   if (!name) {
     return 'Value is required';
@@ -298,6 +302,14 @@ export const validateName = (name: string): string | null => {
   if (!/[a-z0-9]$/.test(name)) {
     return 'Must end with an alphanumeric character';
   }
+
+  // A valid overall start/end doesn't guarantee a valid DNS subdomain: each "."-separated
+  // segment must independently start and end with an alphanumeric character too, which
+  // also rejects empty segments from consecutive dots (e.g. "foo..bar", "foo.-bar", "foo-.bar").
+  if (!name.split('.').every((label) => DNS_LABEL_REGEX.test(label))) {
+    return 'Each "."-separated segment must start and end with an alphanumeric character';
+  }
+
   return null;
 };
 
@@ -329,12 +341,21 @@ export const getResourceNameCriteria = (name: string): ResourceNameCriterion[] =
     label: 'Must end with an alphanumeric character',
     isValid: /[a-z0-9]$/.test(name),
   },
+  {
+    key: 'segments',
+    label: 'Each "."-separated segment must start and end with an alphanumeric character',
+    isValid: name.length > 0 && name.split('.').every((label) => DNS_LABEL_REGEX.test(label)),
+  },
 ];
 
-// Control characters, plus "<", ">", "{", "}" which are blocked as a guardrail against
-// the display name being used unsafely if it's ever rendered/interpreted elsewhere.
-// eslint-disable-next-line no-control-regex
-const DISPLAY_NAME_FORBIDDEN_CHARS_REGEX = /[\u0000-\u001f<>{}]/;
+// Unicode letters/marks/numbers (any language/script) plus a curated set of
+// everyday punctuation.
+// (< > { } ` \ | ; & $ = [ ]) — nothing needs special-casing for those since
+// they simply aren't in this allowlist. Whitespace is a literal space
+// (U+0020) only — not tabs, newlines, or other Unicode spaces.
+const DISPLAY_NAME_ALLOWED_CHARS_REGEX = /^[\p{L}\p{M}\p{N}\-_.,'":?!@#%^*()~+/ ]*$/u;
+const DISPLAY_NAME_ALLOWED_CHARS_MESSAGE =
+  'Only letters (any language), numbers, spaces, and the characters - _ . , \' " : ? ! @ # % ^ * ( ) ~ + / are allowed';
 
 export const validateDisplayName = (displayName: string): string | null => {
   if (!displayName.trim()) {
@@ -345,8 +366,8 @@ export const validateDisplayName = (displayName: string): string | null => {
     return `Must be no more than ${MAX_DISPLAY_NAME_LENGTH} characters`;
   }
 
-  if (DISPLAY_NAME_FORBIDDEN_CHARS_REGEX.test(displayName)) {
-    return 'Cannot contain control characters or the characters < > { }';
+  if (!DISPLAY_NAME_ALLOWED_CHARS_REGEX.test(displayName)) {
+    return DISPLAY_NAME_ALLOWED_CHARS_MESSAGE;
   }
 
   return null;
@@ -354,19 +375,23 @@ export const validateDisplayName = (displayName: string): string | null => {
 
 /**
  * Converts a display name into a lowercase, hyphen-separated slug. Accented Latin
- * letters are normalized to their plain ASCII form first (e.g. "café" -> "cafe")
- * so they survive the alphanumeric check instead of being stripped to nothing.
+ * letters are transliterated to their plain-ASCII base letter via Unicode NFD
+ * decomposition (e.g. "café" becomes "cafe", not "caf") before anything else is
+ * dropped. Any remaining characters outside [0-9, a-Z, -, ., _, space] — including
+ * non-Latin scripts (e.g. Chinese, Cyrillic), symbols, and emoji — are removed
+ * rather than romanized; such display names fall back to the random word-pair
+ * generator in generateResourceNameBase. Everything is lower-cased, spaces and
+ * underscores become dashes, and leading/trailing "-" or "." are trimmed so the
+ * slug is more likely to already satisfy validateName's start/end rule.
  */
 export const slugifyDisplayName = (displayName: string): string =>
   displayName
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFD') // Decompose accented Latin letters into base letter + combining mark
+    .replace(/[\u0300-\u036f]/g, '') // Strip the combining marks, leaving the plain base letter
+    .replace(/[^0-9a-zA-Z\-._ ]/g, '') // Drop anything else: non-Latin scripts, symbols, emoji
     .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[ _]/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '');
 
 const RESOURCE_NAME_HASH_LENGTH = 4;
 const RESOURCE_NAME_HASH_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
