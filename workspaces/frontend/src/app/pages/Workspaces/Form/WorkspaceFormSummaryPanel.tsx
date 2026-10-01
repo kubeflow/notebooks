@@ -177,7 +177,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         case SummaryStep.PodConfigSelection:
           return selectedPodConfig?.id !== originalPodConfig?.id;
         case SummaryStep.Properties:
-          return properties.workspaceName !== originalProperties?.workspaceName;
+          return properties.displayName !== originalProperties?.displayName;
         default:
           return false;
       }
@@ -396,7 +396,8 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         originalLabels: originalPodConfig?.labels,
       })}
 
-      {(properties.workspaceName.trim() ||
+      {(properties.displayName.trim() ||
+        properties.name.trim() ||
         properties.homeVolume ||
         properties.volumes.length > 0 ||
         properties.secrets.length > 0 ||

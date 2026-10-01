@@ -140,7 +140,7 @@ describe('Summary step', () => {
     createWorkspace.clickNext();
 
     // Step 4: Properties
-    createWorkspace.typeWorkspaceName('test-workspace');
+    createWorkspace.typeDisplayName('test-workspace');
     createWorkspace.attachHomeVolume('home-pvc');
     createWorkspace.clickNext();
   };
