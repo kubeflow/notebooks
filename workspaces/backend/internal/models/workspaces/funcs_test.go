@@ -17,12 +17,14 @@ limitations under the License.
 package workspaces
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -96,5 +98,34 @@ var _ = Describe("buildActivityRules", func() {
 		Expect(rules).NotTo(BeNil())
 		Expect(rules.PauseWorkspace).NotTo(BeNil())
 		Expect(rules.PauseWorkspace.EligibleAfter).To(Equal(testEligibleAfter))
+	})
+})
+
+var _ = Describe("ApplyWorkspaceUpdateModelToWorkspace", func() {
+	It("preserves `spec.podTemplate.serviceAccount`, which the update model does not carry", func() {
+		workspace := &kubefloworgv1beta1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{Name: "my-workspace", Namespace: "my-namespace"},
+			Spec: kubefloworgv1beta1.WorkspaceSpec{
+				Kind: "jupyterlab",
+				PodTemplate: kubefloworgv1beta1.WorkspacePodTemplate{
+					ServiceAccount: &kubefloworgv1beta1.WorkspaceServiceAccount{
+						Roles: []kubefloworgv1beta1.WorkspaceRole{{Name: "trainjob-mpi-exec"}},
+					},
+				},
+			},
+		}
+
+		workspaceUpdate := &WorkspaceUpdate{
+			PodTemplate: PodTemplateMutate{
+				PodMetadata: PodMetadataMutate{},
+				Options:     PodTemplateOptionsMutate{ImageConfig: "jupyterlab_scipy_190", PodConfig: "small_cpu"},
+			},
+		}
+
+		Expect(ApplyWorkspaceUpdateModelToWorkspace(context.Background(), nil, workspaceUpdate, workspace)).To(Succeed())
+		Expect(workspace.Spec.PodTemplate.ServiceAccount).NotTo(BeNil())
+		Expect(workspace.Spec.PodTemplate.ServiceAccount.Roles).To(ConsistOf(
+			kubefloworgv1beta1.WorkspaceRole{Name: "trainjob-mpi-exec"},
+		))
 	})
 })
