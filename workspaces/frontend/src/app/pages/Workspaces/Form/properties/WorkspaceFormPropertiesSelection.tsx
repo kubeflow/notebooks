@@ -6,7 +6,6 @@ import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
-import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
 import { ValidatedOptions } from '@patternfly/react-core/dist/esm/helpers';
@@ -121,30 +120,12 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
           {(selectedProperties.displayName.trim() || isResourceNameEditing) && (
             <>
               {mode === 'create' && isResourceNameEditing ? (
-                <Stack hasGutter>
-                  <StackItem>
-                    <ThemeAwareFormGroupWrapper
-                      label="Resource Name"
-                      isRequired
-                      fieldId="workspace-resource-name"
-                      className="pf-u-width-520"
-                    >
-                      <TextInput
-                        id="workspace-resource-name"
-                        isRequired
-                        autoFocus
-                        type="text"
-                        value={selectedProperties.name}
-                        onChange={(_, value) => onResourceNameChange(value)}
-                        validated={
-                          resourceNameError ? ValidatedOptions.error : ValidatedOptions.success
-                        }
-                        aria-label="Resource name"
-                        data-testid="workspace-resource-name-input"
-                      />
-                    </ThemeAwareFormGroupWrapper>
-                  </StackItem>
-                  <StackItem>
+                <ThemeAwareFormGroupWrapper
+                  label="Resource Name"
+                  isRequired
+                  fieldId="workspace-resource-name"
+                  className="pf-u-width-520"
+                  helperTextNode={
                     <HelperText
                       data-testid="workspace-resource-name-criteria"
                       className="workspace-form__helper-text-icon-visible"
@@ -154,13 +135,28 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                           key={criterion.key}
                           data-testid={`workspace-resource-name-criterion-${criterion.key}`}
                           variant={criterion.isValid ? 'success' : 'error'}
+                          className="pf-v6-u-ml-0 pf-v6-u-mt-0"
                         >
                           {criterion.label}
                         </HelperTextItem>
                       ))}
                     </HelperText>
-                  </StackItem>
-                </Stack>
+                  }
+                >
+                  <TextInput
+                    id="workspace-resource-name"
+                    isRequired
+                    autoFocus
+                    type="text"
+                    value={selectedProperties.name}
+                    onChange={(_, value) => onResourceNameChange(value)}
+                    validated={
+                      resourceNameError ? ValidatedOptions.error : ValidatedOptions.success
+                    }
+                    aria-label="Resource name"
+                    data-testid="workspace-resource-name-input"
+                  />
+                </ThemeAwareFormGroupWrapper>
               ) : (
                 <Flex
                   alignItems={{ default: 'alignItemsCenter' }}
