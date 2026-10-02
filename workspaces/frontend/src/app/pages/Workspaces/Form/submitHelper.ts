@@ -30,7 +30,8 @@ const createWorkspace = async (args: {
   const { data, api, namespace } = args;
 
   const wsCreateData: WorkspacesWorkspaceCreate = {
-    name: data.properties.workspaceName,
+    name: data.properties.name,
+    displayName: data.properties.displayName || undefined,
     kind: data.kind.name,
     paused: false,
     podTemplate: {
@@ -63,6 +64,7 @@ const updateWorkspace = async (args: {
   const { data, api, namespace } = args;
 
   const wsUpdateData: WorkspacesWorkspaceUpdate = {
+    displayName: data.properties.displayName,
     paused: false,
     podTemplate: {
       podMetadata: {
@@ -82,7 +84,7 @@ const updateWorkspace = async (args: {
     revision: data.revision,
   };
 
-  return api.workspaces.updateWorkspace(namespace, data.properties.workspaceName, {
+  return api.workspaces.updateWorkspace(namespace, data.properties.name, {
     data: wsUpdateData,
   });
 };

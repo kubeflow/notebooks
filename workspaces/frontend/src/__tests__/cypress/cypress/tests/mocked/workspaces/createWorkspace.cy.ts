@@ -188,9 +188,14 @@ describe('Create workspace', () => {
       // Attach home volume (required)
       createWorkspace.attachHomeVolume('home-pvc');
 
-      const workspaceName = 'my-test-workspace';
-      createWorkspace.typeWorkspaceName(workspaceName);
+      const displayName = 'my-test-workspace';
+      const resourceNamePattern = /^my-test-workspace-[a-z0-9]{4}$/;
+      createWorkspace.typeDisplayName(displayName);
       createWorkspace.assertNextButtonEnabled();
+
+      // Resource Name is auto-derived from the (already domain-friendly) Display Name,
+      // with a random 4-character hash suffix
+      createWorkspace.findResourceNameValue().invoke('text').should('match', resourceNamePattern);
 
       // Step 5: Summary
       createWorkspace.clickNext();
@@ -203,7 +208,8 @@ describe('Create workspace', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
         mockModArchResponse(
           buildMockWorkspaceCreate({
-            name: workspaceName,
+            // The real backend returns the auto-derived resource name, not the raw display name
+            name: 'my-test-workspace-a1b2',
             kind: mockWorkspaceKind.name,
           }),
         ),
@@ -213,7 +219,8 @@ describe('Create workspace', () => {
 
       cy.wait('@createWorkspace').then((interception) => {
         expect(interception.response?.statusCode).to.be.equal(200);
-        expect(interception.request.body.data).to.have.property('name', workspaceName);
+        expect(interception.request.body.data.name).to.match(resourceNamePattern);
+        expect(interception.request.body.data).to.have.property('displayName', displayName);
       });
 
       workspaces.verifyPageURL();
@@ -249,7 +256,7 @@ describe('Create workspace', () => {
       workspaces.verifyPageURL();
     });
 
-    it('should validate workspace name is required', () => {
+    it('should validate display name and resource name are required', () => {
       cy.interceptApi(
         'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
         { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
@@ -265,14 +272,16 @@ describe('Create workspace', () => {
 
       createWorkspace.assertNextButtonDisabled();
 
-      createWorkspace.typeWorkspaceName('test');
+      createWorkspace.typeDisplayName('test');
       createWorkspace.assertNextButtonEnabled();
 
-      createWorkspace.findWorkspaceNameInput().clear();
+      // Clearing the display name hides the Resource Name field entirely
+      createWorkspace.findDisplayNameInput().clear();
+      createWorkspace.assertResourceNameFieldNotVisible();
       createWorkspace.assertNextButtonDisabled();
     });
 
-    describe('Workspace name validation', () => {
+    describe('Display name guardrails', () => {
       beforeEach(() => {
         cy.interceptApi(
           'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
@@ -284,58 +293,144 @@ describe('Create workspace', () => {
         createWorkspace.attachHomeVolume('home-pvc');
       });
 
-      it('should disable Next when name contains uppercase characters', () => {
-        createWorkspace.typeWorkspaceName('MyWorkspace');
-        createWorkspace.assertWorkspaceNameInputInvalid();
-        createWorkspace.assertNextButtonDisabled();
-      });
-
-      it('should disable Next when name contains invalid characters', () => {
-        createWorkspace.typeWorkspaceName('my_workspace!');
-        createWorkspace.assertWorkspaceNameInputInvalid();
-        createWorkspace.assertNextButtonDisabled();
-      });
-
-      it('should disable Next when name starts with a non-alphanumeric character', () => {
-        createWorkspace.typeWorkspaceName('-my-workspace');
-        createWorkspace.assertWorkspaceNameInputInvalid();
-        createWorkspace.assertNextButtonDisabled();
-      });
-
-      it('should disable Next when name ends with a non-alphanumeric character', () => {
-        createWorkspace.typeWorkspaceName('my-workspace-');
-        createWorkspace.assertWorkspaceNameInputInvalid();
-        createWorkspace.assertNextButtonDisabled();
-      });
-
-      it('should disable Next when name exceeds 63 characters', () => {
-        createWorkspace.typeWorkspaceName('a'.repeat(64));
-        createWorkspace.assertWorkspaceNameInputInvalid();
-        createWorkspace.assertNextButtonDisabled();
-      });
-
-      it('should enable Next with a valid name', () => {
-        createWorkspace.typeWorkspaceName('my-workspace.v1');
-        createWorkspace.assertWorkspaceNameInputValid();
+      it('should allow international letters and the full set of sensible punctuation in the display name', () => {
+        // cspell:disable-next-line
+        createWorkspace.typeDisplayName("José's Café-2.0 (北京) #tag! @site, v1: ~end+x/y?");
+        createWorkspace.assertDisplayNameInputValid();
         createWorkspace.assertNextButtonEnabled();
       });
 
-      it('should re-enable Next when an invalid name is corrected', () => {
-        createWorkspace.typeWorkspaceName('Invalid');
+      it('should disable Next when display name contains an emoji', () => {
+        createWorkspace.typeDisplayName('bad😀name');
+        createWorkspace.assertDisplayNameInputInvalid();
         createWorkspace.assertNextButtonDisabled();
+      });
 
-        createWorkspace.findWorkspaceNameInput().clear();
-        createWorkspace.typeWorkspaceName('valid-name');
-        createWorkspace.assertWorkspaceNameInputValid();
+      it('should disable Next when display name contains a code-like character', () => {
+        createWorkspace.typeDisplayName('bad<script>name');
+        createWorkspace.assertDisplayNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should auto-derive a domain-friendly resource name from an alphanumeric display name', () => {
+        createWorkspace.typeDisplayName('My Workspace');
+        createWorkspace
+          .findResourceNameValue()
+          .invoke('text')
+          .should('match', /^my-workspace-[a-z0-9]{4}$/);
+      });
+
+      it('should fall back to a random resource name when the display name has no alphanumeric characters', () => {
+        createWorkspace.typeDisplayName('😀😀');
+        createWorkspace
+          .findResourceNameValue()
+          .invoke('text')
+          .should('match', /^[a-z]{5,7}-[a-z]{5,7}-[a-z0-9]{4}$/);
+      });
+
+      it('should trim leading and trailing spaces from the display name on blur', () => {
+        createWorkspace.typeDisplayName('  My Workspace  ');
+        createWorkspace.blurDisplayName();
+        createWorkspace.assertDisplayName('My Workspace');
+      });
+    });
+
+    describe('Resource name validation', () => {
+      beforeEach(() => {
+        cy.interceptApi(
+          'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse([buildMockPVC({ name: 'home-pvc' })]),
+        ).as('listPVCs');
+
+        completeAllStepsToProperties(mockWorkspaceKind.name, mockImage.id, mockPodConfig.id);
+        createWorkspace.attachHomeVolume('home-pvc');
+        createWorkspace.typeDisplayName('seed-name');
+        createWorkspace.clickResourceNameEdit();
+      });
+
+      it('should disable Next when resource name contains uppercase characters', () => {
+        createWorkspace.typeResourceName('MyWorkspace');
+        createWorkspace.assertResourceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should disable Next when resource name contains invalid characters', () => {
+        createWorkspace.typeResourceName('my_workspace!');
+        createWorkspace.assertResourceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should disable Next when resource name starts with a non-alphanumeric character', () => {
+        createWorkspace.typeResourceName('-my-workspace');
+        createWorkspace.assertResourceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should disable Next when resource name ends with a non-alphanumeric character', () => {
+        createWorkspace.typeResourceName('my-workspace-');
+        createWorkspace.assertResourceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should disable Next when resource name exceeds 63 characters', () => {
+        createWorkspace.typeResourceName('a'.repeat(64));
+        createWorkspace.assertResourceNameInputInvalid();
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should enable Next with a valid resource name', () => {
+        createWorkspace.typeResourceName('my-workspace.v1');
+        createWorkspace.assertResourceNameInputValid();
         createWorkspace.assertNextButtonEnabled();
       });
 
-      it('should disable Next when a valid name is cleared', () => {
-        createWorkspace.typeWorkspaceName('valid-name');
+      it('should re-enable Next when an invalid resource name is corrected', () => {
+        createWorkspace.typeResourceName('Invalid');
+        createWorkspace.assertNextButtonDisabled();
+
+        createWorkspace.typeResourceName('valid-name');
+        createWorkspace.assertResourceNameInputValid();
+        createWorkspace.assertNextButtonEnabled();
+      });
+
+      it('should disable Next when a valid resource name is cleared', () => {
+        createWorkspace.typeResourceName('valid-name');
         createWorkspace.assertNextButtonEnabled();
 
-        createWorkspace.findWorkspaceNameInput().clear();
+        createWorkspace.findResourceNameInput().clear();
         createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should show live pass/fail criteria that update as the resource name changes', () => {
+        // The seeded auto-derived name already satisfies every criterion
+        createWorkspace.assertResourceNameCriterionValid('length');
+        createWorkspace.assertResourceNameCriterionValid('chars');
+        createWorkspace.assertResourceNameCriterionValid('start');
+        createWorkspace.assertResourceNameCriterionValid('end');
+
+        createWorkspace.typeResourceName('-Invalid_Name-');
+
+        createWorkspace.assertResourceNameCriterionValid('length');
+        createWorkspace.assertResourceNameCriterionInvalid('chars');
+        createWorkspace.assertResourceNameCriterionInvalid('start');
+        createWorkspace.assertResourceNameCriterionInvalid('end');
+      });
+
+      it('should lock the resource name against further display-name-driven regeneration once typed', () => {
+        createWorkspace.typeResourceName('manually-set-name');
+
+        createWorkspace.typeDisplayName('A Completely Different Name');
+
+        // The editor never closes, so the value is checked directly on the input
+        createWorkspace.findResourceNameInput().should('have.value', 'manually-set-name');
+      });
+
+      it('should keep the resource name editor open even after pressing Enter', () => {
+        createWorkspace.typeResourceName('valid-name{enter}');
+
+        createWorkspace.findResourceNameInput().should('have.value', 'valid-name');
+        createWorkspace.findResourceNameText().should('not.exist');
       });
     });
 
@@ -378,7 +473,7 @@ describe('Create workspace', () => {
       createWorkspace.selectPodConfig(mockPodConfig.id);
       createWorkspace.advancePastRedirectModal();
 
-      createWorkspace.typeWorkspaceName('my-test-workspace');
+      createWorkspace.typeDisplayName('my-test-workspace');
 
       // Attach home volume (required)
       createWorkspace.attachHomeVolume('home-pvc');
