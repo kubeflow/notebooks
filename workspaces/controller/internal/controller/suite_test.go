@@ -259,8 +259,7 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 						PortId:       "jupyterlab",
 					},
 				},
-				Probes: &kubefloworgv1beta1.WorkspaceKindProbes{},
-				VolumeMounts: kubefloworgv1beta1.WorkspaceKindVolumeMounts{
+				VolumeMountPaths: kubefloworgv1beta1.WorkspaceKindVolumeMountPaths{
 					Home: "/home/jovyan",
 				},
 				Ports: []kubefloworgv1beta1.WorkspaceKindPort{
@@ -278,37 +277,41 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 						},
 					},
 				},
-				ExtraEnv: []v1.EnvVar{
-					{
-						Name:  "NB_PREFIX",
-						Value: `{{ httpPathPrefix "jupyterlab" }}`,
+				PodSpec: kubefloworgv1beta1.WorkspaceKindPodSpec{
+					SecurityContext: &v1.PodSecurityContext{
+						FSGroup: new(int64(100)),
 					},
-				},
-				ExtraVolumeMounts: []v1.VolumeMount{
-					{
-						Name:      "dshm",
-						MountPath: "/dev/shm",
-					},
-				},
-				ExtraVolumes: []v1.Volume{
-					{
-						Name: "dshm",
-						VolumeSource: v1.VolumeSource{
-							EmptyDir: &v1.EmptyDirVolumeSource{
-								Medium: v1.StorageMediumMemory,
+					ExtraVolumes: []v1.Volume{
+						{
+							Name: "dshm",
+							VolumeSource: v1.VolumeSource{
+								EmptyDir: &v1.EmptyDirVolumeSource{
+									Medium: v1.StorageMediumMemory,
+								},
 							},
 						},
 					},
-				},
-				SecurityContext: &v1.PodSecurityContext{
-					FSGroup: new(int64(100)),
-				},
-				ContainerSecurityContext: &v1.SecurityContext{
-					AllowPrivilegeEscalation: new(false),
-					Capabilities: &v1.Capabilities{
-						Drop: []v1.Capability{"ALL"},
+					MainContainer: kubefloworgv1beta1.WorkspaceKindMainContainer{
+						SecurityContext: &v1.SecurityContext{
+							AllowPrivilegeEscalation: new(false),
+							Capabilities: &v1.Capabilities{
+								Drop: []v1.Capability{"ALL"},
+							},
+							RunAsNonRoot: new(true),
+						},
+						ExtraEnv: []v1.EnvVar{
+							{
+								Name:  "NB_PREFIX",
+								Value: `{{ httpPathPrefix "jupyterlab" }}`,
+							},
+						},
+						ExtraVolumeMounts: []v1.VolumeMount{
+							{
+								Name:      "dshm",
+								MountPath: "/dev/shm",
+							},
+						},
 					},
-					RunAsNonRoot: new(true),
 				},
 				Options: kubefloworgv1beta1.WorkspaceKindPodOptions{
 					ImageConfig: kubefloworgv1beta1.ImageConfig{

@@ -182,7 +182,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 	}
 
 	// validate the extra environment variables
-	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ExtraEnv, oldWorkspaceKind.Spec.PodTemplate.ExtraEnv) {
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv, oldWorkspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv) {
 		allErrs = append(allErrs, validateExtraEnv(newWorkspaceKind)...)
 	}
 
@@ -621,12 +621,12 @@ func validateExtraEnv(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.
 	}
 
 	// validate that each value template can be rendered successfully
-	for _, env := range workspaceKind.Spec.PodTemplate.ExtraEnv {
+	for _, env := range workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv {
 		if env.Value != "" {
 			rawValue := env.Value
 			_, err := helper.RenderGoTemplate(rawValue, httpPathPrefixFunc)
 			if err != nil {
-				extraEnvPath := field.NewPath("spec", "podTemplate", "extraEnv").Key(env.Name).Child("value")
+				extraEnvPath := field.NewPath("spec", "podTemplate", "podSpec", "mainContainer", "extraEnv").Key(env.Name).Child("value")
 				errs = append(errs, field.Invalid(extraEnvPath, rawValue, err.Error()))
 			}
 		}

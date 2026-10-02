@@ -1097,7 +1097,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
 				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					invalidValue := `{{ httpPathPrefix "jupyterlab" }`
-					wsk.Spec.PodTemplate.ExtraEnv[0].Value = invalidValue
+					wsk.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv[0].Value = invalidValue
 					return ContainSubstring("failed to parse template %q", invalidValue)
 				},
 			},
@@ -1107,7 +1107,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 
 				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
 				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
-					wsk.Spec.PodTemplate.ExtraEnv[0].Value = `{{ httpPathPrefix "jupyterlab"   }}`
+					wsk.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv[0].Value = `{{ httpPathPrefix "jupyterlab"   }}`
 					return ContainSubstring("")
 				},
 			},
