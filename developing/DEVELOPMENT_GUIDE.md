@@ -296,9 +296,9 @@ npm run build:prod
 > Build Failed: failed to dial gRPC: unable to upgrade to h2c, received 404
 > ```
 > 
-> Try disabling Docker BuildKit support in the terminal where you are running `make tilt-up`:
+> **Note for Notebooks v2 (Workspaces):** Do not disable Docker BuildKit. The `workspaces-controller` Dockerfile uses the `$BUILDPLATFORM` variable for multi-architecture builds, which strictly requires BuildKit to be enabled. If you encounter image pull errors, ensure BuildKit is enabled:
 > ```bash
-> export DOCKER_BUILDKIT=0
+> export DOCKER_BUILDKIT=1
 > ```
 
 > [!TIP]
