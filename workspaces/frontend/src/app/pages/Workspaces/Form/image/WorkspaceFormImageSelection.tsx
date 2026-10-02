@@ -49,12 +49,14 @@ const WorkspaceFormImageSelection: React.FunctionComponent<WorkspaceFormImageSel
     () => [
       {
         label: 'Show hidden',
+        tooltip: 'Also show images that were hidden by your cluster administrator.',
         value: defaultFilterValues.showHidden,
         key: 'showHidden',
         matchesFilter: (image: OptionsImageConfigValue, value: boolean) => value || !image.hidden,
       },
       {
         label: 'Show redirected',
+        tooltip: 'Also show images that have a successor defined by your cluster administrator.',
         value: defaultFilterValues.showRedirected,
         key: 'showRedirected',
         matchesFilter: (image: OptionsImageConfigValue, value: boolean) =>
