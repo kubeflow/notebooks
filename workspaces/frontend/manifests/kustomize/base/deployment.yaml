@@ -35,6 +35,8 @@ spec:
         env:
         - name: PORT
           value: "8080"
+        - name: DEPLOYMENT_MODE
+          value: "kubeflow"
         resources:
           limits:
             cpu: "1"

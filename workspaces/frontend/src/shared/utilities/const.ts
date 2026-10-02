@@ -1,9 +1,21 @@
 import { DeploymentMode, asEnumMember } from 'mod-arch-core';
 import { Theme } from 'mod-arch-kubeflow';
 
+declare global {
+  interface Window {
+    _env_?: {
+      DEPLOYMENT_MODE?: string;
+      [key: string]: string | undefined;
+    };
+  }
+}
+
 export const STYLE_THEME = asEnumMember(process.env.STYLE_THEME, Theme) || Theme.MUI;
+// Uses container runtime injection (window._env_) for deployments, falling back to build-time vars (process.env) for dev/tests.
 export const DEPLOYMENT_MODE =
-  asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Kubeflow;
+  asEnumMember(window._env_?.DEPLOYMENT_MODE, DeploymentMode) ||
+  asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) ||
+  DeploymentMode.Kubeflow;
 export const DEV_MODE = process.env.APP_ENV === 'development';
 export const POLL_INTERVAL = process.env.POLL_INTERVAL
   ? parseInt(process.env.POLL_INTERVAL)
