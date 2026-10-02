@@ -253,12 +253,13 @@ type WorkspaceKindPodTemplate struct {
 	// +kubebuilder:validation:Optional
 	ActivityProbe *ActivityProbe `json:"activityProbe,omitempty"`
 
-	// standard probes to determine Container health (MUTABLE)
+	// podSpec groups Pod-level fields of the Workspace Pod, mirroring the
+	// shape of `corev1.PodSpec`.
 	// +kubebuilder:validation:Optional
-	Probes *WorkspaceKindProbes `json:"probes,omitempty"`
+	PodSpec WorkspaceKindPodSpec `json:"podSpec,omitempty"`
 
-	// volume mount paths
-	VolumeMounts WorkspaceKindVolumeMounts `json:"volumeMounts"`
+	// volume mount paths used by the controller when assembling the Workspace Pod
+	VolumeMountPaths WorkspaceKindVolumeMountPaths `json:"volumeMountPaths"`
 
 	// port definitions which can be referenced in image config values
 	// - think of port definitions as the "types" of services which could be provided by a specific image
@@ -270,35 +271,13 @@ type WorkspaceKindPodTemplate struct {
 	// +listMapKey:="id"
 	Ports []WorkspaceKindPort `json:"ports"`
 
-	// environment variables for Workspace Pods (MUTABLE)
-	//  - the following go template functions are available:
-	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:example:={ "NB_PREFIX": "{{ httpPathPrefix 'jupyterlab' }}" }
-	// +listType:="map"
-	// +listMapKey:="name"
-	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
+	// options are the user-selectable fields, they determine the PodSpec of the Workspace
+	Options WorkspaceKindPodOptions `json:"options"`
+}
 
-	// extra volume mounts for Workspace Pods (MUTABLE)
-	// +kubebuilder:validation:Optional
-	// +listType:="map"
-	// +listMapKey:="mountPath"
-	ExtraVolumeMounts []v1.VolumeMount `json:"extraVolumeMounts,omitempty"`
-
-	// extra volumes for Workspace Pods (MUTABLE)
-	// +kubebuilder:validation:Optional
-	// +listType:="map"
-	// +listMapKey:="name"
-	ExtraVolumes []v1.Volume `json:"extraVolumes,omitempty"`
-
-	// security context for Workspace Pods (MUTABLE)
-	// +kubebuilder:validation:Optional
-	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
-
-	// container security context for Workspace Pods (MUTABLE)
-	// +kubebuilder:validation:Optional
-	ContainerSecurityContext *v1.SecurityContext `json:"containerSecurityContext,omitempty"`
-
+// WorkspaceKindPodSpec groups Pod-level fields that apply to the Workspace Pod, mirroring
+// the shape of `corev1.PodSpec`. Container-level fields live under `mainContainer`.
+type WorkspaceKindPodSpec struct {
 	// the name of the scheduler to use for Workspace Pods (MUTABLE)
 	//  - this is the default for all Workspaces of this WorkspaceKind, it may be
 	//    overridden by the `schedulerName` of a pod config value
@@ -310,8 +289,71 @@ type WorkspaceKindPodTemplate struct {
 	// +kubebuilder:example="default-scheduler"
 	SchedulerName *string `json:"schedulerName,omitempty"`
 
-	// options are the user-selectable fields, they determine the PodSpec of the Workspace
-	Options WorkspaceKindPodOptions `json:"options"`
+	// security context for Workspace Pods (MUTABLE)
+	//  - spec for PodSecurityContext:
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podsecuritycontext-v1-core
+	// +kubebuilder:validation:Optional
+	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
+
+	// extra volumes for Workspace Pods (MUTABLE)
+	//  - spec for Volume:
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core
+	// +kubebuilder:validation:Optional
+	// +listType:="map"
+	// +listMapKey:="name"
+	ExtraVolumes []v1.Volume `json:"extraVolumes,omitempty"`
+
+	// mainContainer configures the "main" user container of the Workspace Pod, mirroring
+	// the shape of `corev1.Container`.
+	// +kubebuilder:validation:Optional
+	MainContainer WorkspaceKindMainContainer `json:"mainContainer,omitempty"`
+}
+
+// WorkspaceKindMainContainer groups container-level fields that apply to the
+// "main" user container of the Workspace Pod, mirroring the shape of `corev1.Container`.
+type WorkspaceKindMainContainer struct {
+	// container security context for the main container (MUTABLE)
+	//  - spec for SecurityContext:
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#securitycontext-v1-core
+	// +kubebuilder:validation:Optional
+	SecurityContext *v1.SecurityContext `json:"securityContext,omitempty"`
+
+	// the startup probe for the main container (MUTABLE)
+	//  - spec for Probe:
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+	// +kubebuilder:validation:Optional
+	StartupProbe *v1.Probe `json:"startupProbe,omitempty"`
+
+	// the liveness probe for the main container (MUTABLE)
+	//  - spec for Probe:
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+	// +kubebuilder:validation:Optional
+	LivenessProbe *v1.Probe `json:"livenessProbe,omitempty"`
+
+	// the readiness probe for the main container (MUTABLE)
+	//  - spec for Probe:
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+	// +kubebuilder:validation:Optional
+	ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty"`
+
+	// environment variables for the main container (MUTABLE)
+	//  - spec for EnvVar:
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvar-v1-core
+	//  - the following go template functions are available:
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example:={ "NB_PREFIX": "{{ httpPathPrefix 'jupyterlab' }}" }
+	// +listType:="map"
+	// +listMapKey:="name"
+	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
+
+	// extra volume mounts for the main container (MUTABLE)
+	//  - spec for VolumeMount:
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumemount-v1-core
+	// +kubebuilder:validation:Optional
+	// +listType:="map"
+	// +listMapKey:="mountPath"
+	ExtraVolumeMounts []v1.VolumeMount `json:"extraVolumeMounts,omitempty"`
 }
 
 type WorkspaceKindPort struct {
@@ -474,21 +516,7 @@ type ActivityProbeJupyter struct {
 	PortId PortId `json:"portId"`
 }
 
-type WorkspaceKindProbes struct {
-	// the startup probe for the main container
-	// +kubebuilder:validation:Optional
-	StartupProbe *v1.Probe `json:"startupProbe,omitempty"`
-
-	// the liveness probe for the main container
-	// +kubebuilder:validation:Optional
-	LivenessProbe *v1.Probe `json:"livenessProbe,omitempty"`
-
-	// the readiness probe for the main container
-	// +kubebuilder:validation:Optional
-	ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty"`
-}
-
-type WorkspaceKindVolumeMounts struct {
+type WorkspaceKindVolumeMountPaths struct {
 	// the path to mount the home PVC (NOT MUTABLE)
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=4096

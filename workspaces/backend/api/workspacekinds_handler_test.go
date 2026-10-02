@@ -553,7 +553,7 @@ spec:
     logo:
       url: "https://upload.wikimedia.org/wikipedia/commons/3/38/Jupyter_logo.svg"
   podTemplate:
-    volumeMounts:
+    volumeMountPaths:
       home: "/home/jovyan"
     ports:
       - id: "jupyterlab"
@@ -1231,7 +1231,7 @@ metadata:
 			By("verifying immutable fields are unchanged in K8s")
 			wsk := &kubefloworgv1beta1.WorkspaceKind{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: wskName}, wsk)).To(Succeed())
-			Expect(wsk.Spec.PodTemplate.VolumeMounts.Home).To(Equal("/home/jovyan"))
+			Expect(wsk.Spec.PodTemplate.VolumeMountPaths.Home).To(Equal("/home/jovyan"))
 		})
 
 		It("should toggle option hidden and persist the change", func() {

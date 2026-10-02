@@ -251,7 +251,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	//
 	// TODO: in the future, we might want to use "pendingRestart" for other changes to WorkspaceKind that update the PodTemplate
-	//       like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`. But for now, changes to these fields
+	//       like `podMetadata`, `podSpec.mainContainer.livenessProbe`, `podSpec.mainContainer.extraEnv`, or
+	//       `podSpec.mainContainer.securityContext`. But for now, changes to these fields
 	//       will result in a forced restart of all Workspaces using the WorkspaceKind.
 	//
 
@@ -998,7 +999,7 @@ func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log log
 }
 
 // generateStatefulSet generates a StatefulSet for a Workspace
-func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec, serviceAccountName string) (*appsv1.StatefulSet, error) { //nolint:gocyclo
+func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec, serviceAccountName string) (*appsv1.StatefulSet, error) {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxStatefulSetNameLength)
 
@@ -1067,8 +1068,8 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// generate container env
-	containerEnv := make([]corev1.EnvVar, len(workspaceKind.Spec.PodTemplate.ExtraEnv))
-	for i, env := range workspaceKind.Spec.PodTemplate.ExtraEnv {
+	containerEnv := make([]corev1.EnvVar, len(workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv))
+	for i, env := range workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv {
 		env := env.DeepCopy() // copy to avoid modifying the original
 		if env.Value != "" {
 			rawValue := env.Value
@@ -1090,26 +1091,16 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	// generate scheduler name
 	// NOTE: the schedulerName from the podConfig takes precedence over the WorkspaceKind
 	//       an empty value causes the Kubernetes API server to apply its own default
-	schedulerName := ptr.Deref(workspaceKind.Spec.PodTemplate.SchedulerName, "")
+	schedulerName := ptr.Deref(workspaceKind.Spec.PodTemplate.PodSpec.SchedulerName, "")
 	if podConfigSpec.SchedulerName != nil {
 		schedulerName = *podConfigSpec.SchedulerName
 	}
 
 	// generate container probes
-	var readinessProbe *corev1.Probe
-	var livenessProbe *corev1.Probe
-	var startupProbe *corev1.Probe
-	if workspaceKind.Spec.PodTemplate.Probes != nil {
-		if workspaceKind.Spec.PodTemplate.Probes.ReadinessProbe != nil {
-			readinessProbe = workspaceKind.Spec.PodTemplate.Probes.ReadinessProbe
-		}
-		if workspaceKind.Spec.PodTemplate.Probes.LivenessProbe != nil {
-			livenessProbe = workspaceKind.Spec.PodTemplate.Probes.LivenessProbe
-		}
-		if workspaceKind.Spec.PodTemplate.Probes.StartupProbe != nil {
-			startupProbe = workspaceKind.Spec.PodTemplate.Probes.StartupProbe
-		}
-	}
+	mainContainer := workspaceKind.Spec.PodTemplate.PodSpec.MainContainer
+	readinessProbe := mainContainer.ReadinessProbe
+	livenessProbe := mainContainer.LivenessProbe
+	startupProbe := mainContainer.StartupProbe
 
 	// generate volumes and volumeMounts
 	volumes := make([]corev1.Volume, 0)
@@ -1129,7 +1120,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 		}
 		homeVolumeMount := corev1.VolumeMount{
 			Name:      homeVolume.Name,
-			MountPath: workspaceKind.Spec.PodTemplate.VolumeMounts.Home,
+			MountPath: workspaceKind.Spec.PodTemplate.VolumeMountPaths.Home,
 		}
 		seenVolumeNames[homeVolume.Name] = true
 		seenVolumeMountPaths[homeVolumeMount.MountPath] = true
@@ -1202,7 +1193,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// add extra volumes
-	for _, extraVolume := range workspaceKind.Spec.PodTemplate.ExtraVolumes {
+	for _, extraVolume := range workspaceKind.Spec.PodTemplate.PodSpec.ExtraVolumes {
 		if seenVolumeNames[extraVolume.Name] {
 			// silently skip duplicate volume names
 			continue
@@ -1212,7 +1203,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// add extra volumeMounts
-	for _, extraVolumeMount := range workspaceKind.Spec.PodTemplate.ExtraVolumeMounts {
+	for _, extraVolumeMount := range workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraVolumeMounts {
 		if seenVolumeMountPaths[extraVolumeMount.MountPath] {
 			// silently skip duplicate mount paths
 			continue
@@ -1272,7 +1263,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 							ReadinessProbe:  readinessProbe,
 							LivenessProbe:   livenessProbe,
 							StartupProbe:    startupProbe,
-							SecurityContext: workspaceKind.Spec.PodTemplate.ContainerSecurityContext,
+							SecurityContext: workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.SecurityContext,
 							VolumeMounts:    volumeMounts,
 							Env:             containerEnv,
 							Resources:       containerResources,
@@ -1280,7 +1271,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 					},
 					NodeSelector:       podConfigSpec.NodeSelector,
 					SchedulerName:      schedulerName,
-					SecurityContext:    workspaceKind.Spec.PodTemplate.SecurityContext,
+					SecurityContext:    workspaceKind.Spec.PodTemplate.PodSpec.SecurityContext,
 					ServiceAccountName: serviceAccountName,
 					Tolerations:        podConfigSpec.Tolerations,
 					Volumes:            volumes,
