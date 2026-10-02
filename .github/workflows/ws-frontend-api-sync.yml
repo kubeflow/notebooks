@@ -1,0 +1,78 @@
+name: Frontend - Sync API Client
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  push:
+    branches:
+      - notebooks-v2
+    paths:
+      - workspaces/backend/openapi/swagger.json
+
+concurrency:
+  group: frontend-api-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync-api-client:
+    name: Sync Frontend API Client
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Find existing sync PR
+        id: sync-pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          .github/scripts/find-frontend-api-sync-pr.sh \
+            "${GITHUB_REPOSITORY}" \
+            "${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Prepare sync branch
+        id: sync-branch
+        run: |
+          .github/scripts/prepare-frontend-api-sync-branch.sh \
+            "${{ steps.sync-pr.outputs.existing }}" \
+            "${{ steps.sync-pr.outputs.branch_name }}" \
+            "${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: workspaces/frontend/package.json
+          cache-dependency-path: workspaces/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: workspaces/frontend
+        run: npm ci
+
+      - name: Sync frontend API client
+        run: |
+          ./workspaces/frontend/scripts/sync-api-client.sh "${GITHUB_SHA}"
+
+      - name: Publish sync branch
+        run: |
+          .github/scripts/publish-frontend-api-sync.sh \
+            "${{ steps.sync-branch.outputs.branch_name }}"
+
+      - name: Create sync PR
+        if: steps.sync-pr.outputs.existing == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          .github/scripts/create-frontend-api-sync-pr.sh \
+            "${GITHUB_REPOSITORY}" \
+            "${GITHUB_REF_NAME}" \
+            "${{ steps.sync-branch.outputs.branch_name }}"
