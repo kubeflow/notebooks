@@ -37,6 +37,22 @@
   cursor: pointer;
 }
 
+/* PF v6 sets `border: 0` on .pf-v6-c-card and hides its ::before border for
+   isClickable/isSelectable cards unless a CardHeader selectableActions element
+   draws it; the extra .pf-v6-c-card prefix bumps specificity over that rule.
+   Scoped to :not(.mui-theme) since MUI theme already restores its own border. */
+html:not(.mui-theme) .pf-v6-c-card.summary-card--clickable {
+  border: var(--pf-v6-c-card--BorderWidth, 1px) solid
+    var(--pf-v6-c-card--BorderColor, var(--pf-t--global--border--color--default));
+}
+
+html:not(.mui-theme) .pf-v6-c-card.summary-card--clickable:hover {
+  border-color: var(
+    --pf-v6-c-card--m-selectable--hover--BorderColor,
+    var(--pf-t--global--border--color--hover)
+  );
+}
+
 .summary-redirect-icon-button {
   cursor: pointer;
   display: inline-flex;
@@ -201,6 +217,15 @@ body,
 .mui-theme .secrets-inline-edit__input.pf-v6-c-form-control:focus-within {
   border-color: var(--mui-palette-primary-main, #1976d2);
   box-shadow: inset 0 0 0 1px var(--mui-palette-primary-main, #1976d2);
+}
+
+/*
+ * The MUI theme (mod-arch-kubeflow's MUI-theme.scss) globally hides every
+ * HelperTextItem's status icon. Opt specific helper text items back in by
+ * adding the `workspace-form__helper-text-icon-visible` class to them.
+ */
+.mui-theme .workspace-form__helper-text-icon-visible .pf-v6-c-helper-text__item-icon {
+  display: inline;
 }
 
 .mui-theme .pf-v6-c-form__group-control .form-fieldset-wrapper .pf-v6-c-menu-toggle {

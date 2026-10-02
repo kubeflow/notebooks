@@ -250,6 +250,40 @@ describe('Edit workspace', () => {
         const requestBody = interception.request.body.data;
         expect(requestBody.podTemplate.options.imageConfig).to.equal(newImageConfigId);
         expect(requestBody.podTemplate.options.podConfig).to.equal(newPodConfigId);
+        expect(requestBody.displayName).to.equal(TEST_WORKSPACE_NAME);
+      });
+    });
+
+    it('should send an updated display name in the request payload', () => {
+      const { mockNamespace } = setupEditWorkspace();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespace.name,
+            workspaceName: TEST_WORKSPACE_NAME,
+          },
+        },
+        mockModArchResponse(buildMockWorkspaceUpdate({})),
+      ).as('updateWorkspace');
+
+      visitEditWorkspace();
+
+      cy.wait('@getWorkspaceKinds');
+      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
+      editWorkspace.advancePastRedirectModal();
+
+      editWorkspace.typeDisplayName('Updated Display Name');
+
+      editWorkspace.clickNext();
+      editWorkspace.clickSave();
+
+      cy.wait('@updateWorkspace').then((interception) => {
+        const requestBody = interception.request.body.data;
+        expect(requestBody.displayName).to.equal('Updated Display Name');
       });
     });
   });
@@ -298,7 +332,8 @@ describe('Edit workspace', () => {
       editWorkspace.advancePastRedirectModal();
       editWorkspace.advancePastRedirectModal();
 
-      editWorkspace.assertWorkspaceName(TEST_WORKSPACE_NAME);
+      editWorkspace.assertDisplayName(TEST_WORKSPACE_NAME);
+      editWorkspace.assertResourceName(TEST_WORKSPACE_NAME);
 
       editWorkspace.assertVolumesCount(2);
       editWorkspace.assertSecretsCount(1);
@@ -383,7 +418,7 @@ describe('Edit workspace', () => {
       editWorkspace.assertKindSelected(WORKSPACE_KIND_NAME);
     });
 
-    it('should display helper text that workspace name cannot be changed', () => {
+    it('should display helper text that resource name cannot be changed', () => {
       setupEditWorkspace();
 
       visitEditWorkspace();
@@ -393,10 +428,10 @@ describe('Edit workspace', () => {
       editWorkspace.advancePastRedirectModal();
       editWorkspace.advancePastRedirectModal();
 
-      editWorkspace.assertWorkspaceNameCannotBeChangedHelperTextVisible();
+      editWorkspace.assertResourceNameCannotBeChangedHelperTextVisible();
     });
 
-    it('should have workspace name input disabled', () => {
+    it('should show the resource name as read-only, non-editable text', () => {
       setupEditWorkspace();
 
       visitEditWorkspace();
@@ -406,7 +441,24 @@ describe('Edit workspace', () => {
       editWorkspace.advancePastRedirectModal();
       editWorkspace.advancePastRedirectModal();
 
-      editWorkspace.assertWorkspaceNameInputDisabled();
+      editWorkspace.assertResourceNameNotEditable();
+    });
+
+    it('should allow editing the display name', () => {
+      setupEditWorkspace();
+
+      visitEditWorkspace();
+
+      cy.wait('@getWorkspaceKinds');
+      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
+      editWorkspace.advancePastRedirectModal();
+
+      editWorkspace.assertDisplayNameInputEnabled();
+      editWorkspace.typeDisplayName('Updated Display Name');
+      editWorkspace.assertDisplayName('Updated Display Name');
+      // Editing the display name must never change the immutable resource name
+      editWorkspace.assertResourceName(TEST_WORKSPACE_NAME);
     });
   });
 

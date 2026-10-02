@@ -3,6 +3,9 @@ kubeflow
 mochawesome
 jovyan
 millicores
+millicore
+nanocore
+nanocores
 workspacekind
 workspacekinds
 healthcheck
@@ -22,3 +25,4 @@ podtemplate
 listvalues
 cuda
 rstudio
+fullwidth

@@ -114,7 +114,8 @@ describe('useWorkspaceFormData', () => {
       imageConfig: podTemplate.options.imageConfig,
       podConfig: podTemplate.options.podConfig,
       properties: {
-        workspaceName: mockWorkspace.name,
+        name: mockWorkspace.name,
+        displayName: mockWorkspace.name,
         volumes: podTemplate.volumes.data.map((v) => ({
           ...v,
           isAttached: true,
