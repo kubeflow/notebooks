@@ -40,7 +40,7 @@ const (
 	controllerImage     = "ghcr.io/kubeflow/notebooks/workspaces-controller:latest"
 
 	// workspace configs
-	workspaceNamespace = "workspace-test"
+	
 	workspaceName      = "jupyterlab-workspace"
 	workspacePortInt   = 8888
 	workspacePortId    = "jupyterlab"
@@ -100,146 +100,20 @@ const (
 )
 
 var (
-	projectDir = ""
+	projectDir         = ""
+	workspaceNamespace string
 )
-
-var _ = Describe("controller", Ordered, func() {
-
-	BeforeAll(func() {
-		projectDir, _ = utils.GetProjectDir()
-
-		By("creating the controller namespace")
-		cmd := exec.Command("kubectl", "create", "ns", controllerNamespace)
-		_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
-
-		By("creating the workspace namespace")
-		cmd = exec.Command("kubectl", "create", "ns", workspaceNamespace)
-		_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
-
-		By("labeling namespaces for Istio injection")
-		err := utils.LabelNamespaceForIstioInjection(controllerNamespace)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		err = utils.LabelNamespaceForIstioInjection(workspaceNamespace)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		By("creating common workspace resources")
-		cmd = exec.Command("kubectl", "apply",
-			"-k", filepath.Join(projectDir, "manifests/kustomize/samples/common"),
-			"-n", workspaceNamespace,
-		)
-		_, err = utils.Run(cmd)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		By("installing CRDs")
-		cmd = exec.Command("make", "install")
-		_, err = utils.Run(cmd)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		By("deploying the workspaces-controller")
-		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
-		_, err = utils.Run(cmd)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		By("waiting for the webhook certificate to be ready")
-		waitForWebhookCert := func(g Gomega) {
-			// First check if cert-manager has processed the Certificate resource
-			cmd := exec.Command("kubectl", "wait", "certificate",
-				"workspaces-serving-cert",
-				"-n", controllerNamespace,
-				"--for=condition=Ready",
-				fmt.Sprintf("--timeout=%s", timeout),
-			)
-			_, err := utils.Run(cmd)
-			g.Expect(err).NotTo(HaveOccurred(), "Certificate resource not ready")
-
-			// Also verify the secret was created
-			cmd = exec.Command("kubectl", "get", "secret",
-				"webhook-server-cert",
-				"-n", controllerNamespace,
-			)
-			_, err = utils.Run(cmd)
-			g.Expect(err).NotTo(HaveOccurred(), "webhook-server-cert secret not found")
-		}
-		Eventually(waitForWebhookCert, timeout, interval).Should(Succeed())
-
-		By("validating that the workspaces-controller pod is running as expected")
-		var controllerPodName string
-		verifyControllerUp := func(g Gomega) {
-			// Get controller pod name
-			cmd := exec.Command("kubectl", "get", "pods",
-				"-l", "app.kubernetes.io/component=controller-manager",
-				"-n", controllerNamespace,
-				"-o", "go-template={{ range .items }}"+
-					"{{ if not .metadata.deletionTimestamp }}"+
-					"{{ .metadata.name }}"+
-					"{{ \"\\n\" }}{{ end }}{{ end }}",
-			)
-			podOutput, err := utils.Run(cmd)
-			g.Expect(err).NotTo(HaveOccurred(), "failed to get workspaces-controller pod")
-
-			// Ensure only 1 controller pod is running
-			podNames := utils.GetNonEmptyLines(podOutput)
-			g.Expect(podNames).To(HaveLen(1), "expected 1 controller pod running")
-			controllerPodName = podNames[0]
-			g.Expect(controllerPodName).To(ContainSubstring("workspaces-controller"))
-
-			// Validate controller pod status
-			cmd = exec.Command("kubectl", "get", "pods",
-				controllerPodName,
-				"-n", controllerNamespace,
-				"-o", "jsonpath={.status.phase}",
-			)
-			statusPhase, err := utils.Run(cmd)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(statusPhase).To(BeEquivalentTo(corev1.PodRunning), "Incorrect workspaces-controller pod phase")
-		}
-		Eventually(verifyControllerUp, timeout, interval).Should(Succeed())
-
+var _ = Describe("controller", func() {
+	
+	BeforeEach(func() {
+		workspaceNamespace = fmt.Sprintf("workspace-test-%d", GinkgoParallelProcess())
 	})
 
-	AfterAll(func() {
-		By("deleting sample Workspace")
-		cmd := exec.Command("kubectl", "delete", "-f",
-			filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
-			"-n", workspaceNamespace,
-			"--wait",
-			fmt.Sprintf("--timeout=%s", timeout),
-		)
-		_, _ = utils.Run(cmd)
+	
 
-		By("deleting sample WorkspaceKind")
-		cmd = exec.Command("kubectl", "delete",
-			"-f", filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
-		)
-		_, _ = utils.Run(cmd)
+	
 
-		By("deleting common workspace resources")
-		cmd = exec.Command("kubectl", "delete",
-			"-k", filepath.Join(projectDir, "manifests/kustomize/samples/common"),
-			"-n", workspaceNamespace,
-		)
-		_, _ = utils.Run(cmd)
-
-		By("deleting the controller")
-		cmd = exec.Command("make", "undeploy")
-		_, _ = utils.Run(cmd)
-
-		By("deleting controller namespace")
-		cmd = exec.Command("kubectl", "delete", "ns", controllerNamespace)
-		_, _ = utils.Run(cmd)
-
-		By("deleting workspace namespace")
-		cmd = exec.Command("kubectl", "delete", "ns", workspaceNamespace)
-		_, _ = utils.Run(cmd)
-
-		By("deleting CRDs")
-		cmd = exec.Command("make", "uninstall")
-		_, _ = utils.Run(cmd)
-
-	})
-
-	Context("Operator", func() {
+	Context("Operator",Ordered, func() {
 
 		It("should run successfully", func() {
 
@@ -667,7 +541,7 @@ var _ = Describe("controller", Ordered, func() {
 		})
 	})
 
-	Context("Activity Rules", func() {
+	Context("Activity Rules",Ordered, func() {
 
 		AfterAll(func() {
 			By("deleting the activity Workspace")
@@ -783,7 +657,7 @@ var _ = Describe("controller", Ordered, func() {
 			// - an empty match makes this a catch-all rule that applies to all Workspaces
 			rulesPatch := `[` +
 				`{"op":"replace","path":"/spec/activityRules","value":[` +
-				`{"config":{"secondsSinceActive":16,"minRunningSeconds":60},"match":{},"effect":{"pauseWorkspace":true}}` +
+				`{"config":{"secondsSinceActive":16,"minRunningSeconds":15},"match":{},"effect":{"pauseWorkspace":true}}` +
 				`]}]`
 			patchRules := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", activityWorkspaceKindName,
@@ -1435,7 +1309,7 @@ var _ = Describe("controller", Ordered, func() {
 		})
 	})
 
-	Context("Activity Probes", func() {
+	Context("Activity Probes",Ordered, func() {
 
 		AfterAll(func() {
 			By("deleting the probe Workspace")

@@ -21,11 +21,14 @@ import (
 	"os"
 	"os/exec"
 	"testing"
+	"path/filepath"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/controller/test/utils"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	
 )
 
 var (
@@ -55,7 +58,12 @@ func TestE2E(t *testing.T) {
 	RunSpecs(t, "e2e suite")
 }
 
-var _ = BeforeSuite(func() {
+var _ = SynchronizedBeforeSuite(func() []byte {
+	// -------------------------------------------------------------
+	// Function 1: Runs ONLY on Worker 1 (Node 1) - Global Cluster Setup
+	// -------------------------------------------------------------
+	
+
 	By("building the controller image")
 	cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", controllerImage))
 	_, err := utils.Run(cmd)
@@ -64,20 +72,6 @@ var _ = BeforeSuite(func() {
 	By("loading the controller image on Kind")
 	err = utils.LoadImageToKindClusterWithName(controllerImage)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-	// TODO: enable Prometheus installation once we start using it
-	// if !skipPrometheusInstall {
-	// 	By("checking if prometheus is installed already")
-	// 	isPrometheusOperatorAlreadyInstalled = utils.IsPrometheusCRDsInstalled()
-	// 	if !isPrometheusOperatorAlreadyInstalled {
-	// 		_, _ = fmt.Fprintf(GinkgoWriter, "Installing Prometheus Operator...\n")
-	// 		Expect(utils.InstallPrometheusOperator()).To(Succeed(), "Failed to install Prometheus Operator")
-	// 	} else {
-	// 		_, _ = fmt.Fprintf(GinkgoWriter, "WARNING: Prometheus Operator is already installed. Skipping installation...\n")
-	// 	}
-	// }
-	// By("checking that prometheus is running")
-	// Expect(utils.WaitPrometheusOperatorRunning()).To(Succeed(), "Prometheus Operator is not running")
 
 	if !skipCertManagerInstall {
 		By("checking if cert manager is installed already")
@@ -107,15 +101,121 @@ var _ = BeforeSuite(func() {
 		By("checking that istio is available")
 		Expect(utils.WaitIstioAvailable()).To(Succeed(), "istio is not available")
 	}
+
+	By("creating the controller namespace")
+	cmd = exec.Command("kubectl", "create", "ns", controllerNamespace)
+	_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
+
+	By("labeling controller namespace for Istio injection")
+	err = utils.LabelNamespaceForIstioInjection(controllerNamespace)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	By("installing CRDs")
+	cmd = exec.Command("make", "install")
+	_, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	By("deploying the workspaces-controller")
+	cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
+	_, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	By("waiting for the webhook certificate to be ready")
+	waitForWebhookCert := func(g Gomega) {
+		cmd := exec.Command("kubectl", "wait", "certificate",
+			"workspaces-serving-cert",
+			"-n", controllerNamespace,
+			"--for=condition=Ready",
+			fmt.Sprintf("--timeout=%s", timeout),
+		)
+		_, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred(), "Certificate resource not ready")
+
+		cmd = exec.Command("kubectl", "get", "secret",
+			"webhook-server-cert",
+			"-n", controllerNamespace,
+		)
+		_, err = utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred(), "webhook-server-cert secret not found")
+	}
+	Eventually(waitForWebhookCert, timeout, interval).Should(Succeed())
+
+	By("validating that the workspaces-controller pod is running as expected")
+	verifyControllerUp := func(g Gomega) {
+		cmd := exec.Command("kubectl", "get", "pods",
+			"-l", "app.kubernetes.io/component=controller-manager",
+			"-n", controllerNamespace,
+			"-o", "go-template={{ range .items }}"+
+				"{{ if not .metadata.deletionTimestamp }}"+
+				"{{ .metadata.name }}"+
+				"{{ \"\\n\" }}{{ end }}{{ end }}",
+		)
+		podOutput, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred(), "failed to get workspaces-controller pod")
+
+		podNames := utils.GetNonEmptyLines(podOutput)
+		g.Expect(podNames).To(HaveLen(1), "expected 1 controller pod running")
+		g.Expect(podNames[0]).To(ContainSubstring("workspaces-controller"))
+
+		cmd = exec.Command("kubectl", "get", "pods",
+			podNames[0],
+			"-n", controllerNamespace,
+			"-o", "jsonpath={.status.phase}",
+		)
+		statusPhase, err := utils.Run(cmd)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(statusPhase).To(BeEquivalentTo(corev1.PodRunning), "Incorrect workspaces-controller pod phase")
+	}
+	Eventually(verifyControllerUp, timeout, interval).Should(Succeed())
+
+	return nil
+}, func(data []byte) {
+	// -------------------------------------------------------------
+	// Function 2: Runs on ALL workers - Per-Worker Namespace Setup
+	// -------------------------------------------------------------
+	projectDir, _ := utils.GetProjectDir()
+	workerNs := fmt.Sprintf("workspace-test-%d", GinkgoParallelProcess())
+
+	By(fmt.Sprintf("creating the workspace namespace for worker %d: %s", GinkgoParallelProcess(), workerNs))
+	cmd := exec.Command("kubectl", "create", "ns", workerNs)
+	_, _ = utils.Run(cmd)
+
+	By(fmt.Sprintf("labeling workspace namespace %s for Istio injection", workerNs))
+	err := utils.LabelNamespaceForIstioInjection(workerNs)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	By(fmt.Sprintf("creating common workspace resources in %s", workerNs))
+	cmd = exec.Command("kubectl", "apply",
+		"-k", filepath.Join(projectDir, "manifests/kustomize/samples/common"),
+		"-n", workerNs,
+	)
+	_, err = utils.Run(cmd)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 })
 
-var _ = AfterSuite(func() {
+var _ = SynchronizedAfterSuite(func() {
 
-	// if !skipPrometheusInstall && !isPrometheusOperatorAlreadyInstalled {
-	// 	By("uninstalling Prometheus Operator")
-	// 	_, _ = fmt.Fprintf(GinkgoWriter, "Uninstalling Prometheus Operator...\n")
-	// 	utils.UninstallPrometheusOperator()
-	// }
+	// Function 1: Runs on ALL workers - Clean up worker namespace
+
+	workerNs := fmt.Sprintf("workspace-test-%d", GinkgoParallelProcess())
+	By(fmt.Sprintf("deleting workspace namespace for worker %d: %s", GinkgoParallelProcess(), workerNs))
+	cmd := exec.Command("kubectl", "delete", "ns", workerNs)
+	_, _ = utils.Run(cmd)
+}, func() {
+	
+	// Function 2: Runs ONLY on Worker 1 - Global Cluster Teardown
+
+	By("deleting the controller")
+	cmd := exec.Command("make", "undeploy")
+	_, _ = utils.Run(cmd)
+
+	By("deleting controller namespace")
+	cmd = exec.Command("kubectl", "delete", "ns", controllerNamespace)
+	_, _ = utils.Run(cmd)
+
+	By("deleting CRDs")
+	cmd = exec.Command("make", "uninstall")
+	_, _ = utils.Run(cmd)
 
 	if !skipCertManagerInstall && !isCertManagerAlreadyInstalled {
 		By("uninstalling CertManager")
