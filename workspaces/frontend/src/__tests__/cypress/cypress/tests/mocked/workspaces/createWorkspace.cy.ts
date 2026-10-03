@@ -1344,7 +1344,7 @@ describe('Create workspace', () => {
         secretsCreateModal.assertErrorAlertInFooter();
 
         // Editing the form clears the failure from the last attempt; the modal stays open
-        secretsCreateModal.findSecretNameInput().type('-2');
+        secretsCreateModal.appendToSecretName('-2');
         secretsCreateModal.assertErrorAlertNotExists();
         secretsCreateModal.assertModalExists();
       });

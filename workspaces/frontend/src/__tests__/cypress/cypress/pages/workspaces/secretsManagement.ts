@@ -122,6 +122,10 @@ class SecretsModal {
     return this.find().findAllByTestId('key-input');
   }
 
+  typeKey(index: number, key: string) {
+    return this.findKeyInput().eq(index).clear().type(key);
+  }
+
   findErrorAlert() {
     return this.find().findByTestId('error-alert');
   }

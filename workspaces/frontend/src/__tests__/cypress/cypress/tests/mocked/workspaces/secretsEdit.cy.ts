@@ -219,7 +219,7 @@ describe('Edit Secret Modal', () => {
     secretsModal.assertErrorAlertInFooter();
 
     // Editing a key clears the failure from the last attempt; the modal stays open
-    secretsModal.findKeyInput().first().type('2');
+    secretsModal.typeKey(0, 'apiKey2');
     secretsModal.findErrorAlert().should('not.exist');
     secretsModal.assertModalVisible();
   });

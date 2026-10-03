@@ -408,6 +408,10 @@ class SecretsCreateModal {
     return this.findSecretNameInput().clear().type(name);
   }
 
+  appendToSecretName(value: string) {
+    return this.findSecretNameInput().type(value);
+  }
+
   assertSecretNameValue(value: string) {
     return this.findSecretNameInput().should('have.value', value);
   }
