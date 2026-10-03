@@ -140,6 +140,14 @@ class CreateWorkspace extends WorkspaceForm {
     });
   }
 
+  assertCardHasRestrictedIndicator(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    const normalizedId = cardId.replace(/ /g, '-');
+    cy.get(`#${normalizedId}`).should('have.class', 'workspace-option-card--restricted');
+    return cy.get(`#${normalizedId}`).within(() => {
+      cy.get('[data-testid="restricted-icon"]').should('exist');
+    });
+  }
+
   assertCardHasBothIndicators(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
     const normalizedId = cardId.replace(/ /g, '-');
     cy.get(`#${normalizedId}`)
@@ -161,6 +169,18 @@ class CreateWorkspace extends WorkspaceForm {
     return cy
       .get(`#${cardId.replace(/ /g, '-')}`)
       .should('not.have.class', 'workspace-option-card--redirected');
+  }
+
+  assertCardDoesNotHaveRestrictedIndicator(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    const normalizedId = cardId.replace(/ /g, '-');
+    cy.get(`#${normalizedId}`).should('not.have.class', 'workspace-option-card--restricted');
+    return cy.get(`#${normalizedId}`).within(() => {
+      cy.get('[data-testid="restricted-icon"]').should('not.exist');
+    });
+  }
+
+  findRestrictedIcon(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.get(`#${cardId.replace(/ /g, '-')}`).find('[data-testid="restricted-icon"]');
   }
 
   assertCardIsSelected(cardId: string): Cypress.Chainable<JQuery<HTMLElement>> {
