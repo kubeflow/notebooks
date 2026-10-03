@@ -336,6 +336,11 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			a.failedValidationResponse(w, r, errMsgKubernetesValidation, nil, causes)
 			return
 		}
+		if apierrors.IsConflict(err) {
+			causes := helper.StatusCausesFromAPIStatus(err)
+			a.conflictResponse(w, r, err, causes)
+			return
+		}
 		a.serverErrorResponse(w, r, fmt.Errorf("error updating secret: %w", err))
 		return
 	}
