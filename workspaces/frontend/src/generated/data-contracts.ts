@@ -4278,6 +4278,58 @@ export interface V1Beta1WorkspaceKindClusterRole {
   name: string;
 }
 
+export interface V1Beta1WorkspaceKindMainContainer {
+  /**
+   * environment variables for the main container (MUTABLE)
+   *  - spec for EnvVar:
+   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvar-v1-core
+   *  - the following go template functions are available:
+   *     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+   * +kubebuilder:validation:Optional
+   * +kubebuilder:example:={ "NB_PREFIX": "{{ httpPathPrefix 'jupyterlab' }}" }
+   * +listType:="map"
+   * +listMapKey:="name"
+   */
+  extraEnv?: V1EnvVar[];
+  /**
+   * extra volume mounts for the main container (MUTABLE)
+   *  - spec for VolumeMount:
+   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumemount-v1-core
+   * +kubebuilder:validation:Optional
+   * +listType:="map"
+   * +listMapKey:="mountPath"
+   */
+  extraVolumeMounts?: V1VolumeMount[];
+  /**
+   * the liveness probe for the main container (MUTABLE)
+   *  - spec for Probe:
+   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+   * +kubebuilder:validation:Optional
+   */
+  livenessProbe?: V1Probe;
+  /**
+   * the readiness probe for the main container (MUTABLE)
+   *  - spec for Probe:
+   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+   * +kubebuilder:validation:Optional
+   */
+  readinessProbe?: V1Probe;
+  /**
+   * container security context for the main container (MUTABLE)
+   *  - spec for SecurityContext:
+   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#securitycontext-v1-core
+   * +kubebuilder:validation:Optional
+   */
+  securityContext?: V1SecurityContext;
+  /**
+   * the startup probe for the main container (MUTABLE)
+   *  - spec for Probe:
+   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+   * +kubebuilder:validation:Optional
+   */
+  startupProbe?: V1Probe;
+}
+
 export interface V1Beta1WorkspaceKindPodMetadata {
   /**
    * annotations to be applied to the Pod resource
@@ -4298,64 +4350,22 @@ export interface V1Beta1WorkspaceKindPodOptions {
   podConfig: V1Beta1PodConfig;
 }
 
-export interface V1Beta1WorkspaceKindPodTemplate {
-  /**
-   * activityProbe configs to determine Workspace activity (MUTABLE)
-   * +kubebuilder:validation:Optional
-   */
-  activityProbe?: V1Beta1ActivityProbe;
-  /**
-   * container security context for Workspace Pods (MUTABLE)
-   * +kubebuilder:validation:Optional
-   */
-  containerSecurityContext?: V1SecurityContext;
-  /**
-   * environment variables for Workspace Pods (MUTABLE)
-   *  - the following go template functions are available:
-   *     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
-   * +kubebuilder:validation:Optional
-   * +kubebuilder:example:={ "NB_PREFIX": "{{ httpPathPrefix 'jupyterlab' }}" }
-   * +listType:="map"
-   * +listMapKey:="name"
-   */
-  extraEnv?: V1EnvVar[];
-  /**
-   * extra volume mounts for Workspace Pods (MUTABLE)
-   * +kubebuilder:validation:Optional
-   * +listType:="map"
-   * +listMapKey:="mountPath"
-   */
-  extraVolumeMounts?: V1VolumeMount[];
+export interface V1Beta1WorkspaceKindPodSpec {
   /**
    * extra volumes for Workspace Pods (MUTABLE)
+   *  - spec for Volume:
+   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core
    * +kubebuilder:validation:Optional
    * +listType:="map"
    * +listMapKey:="name"
    */
   extraVolumes?: V1Volume[];
-  /** options are the user-selectable fields, they determine the PodSpec of the Workspace */
-  options: V1Beta1WorkspaceKindPodOptions;
   /**
-   * metadata for Workspace Pods (MUTABLE)
+   * mainContainer configures the "main" user container of the Workspace Pod, mirroring
+   * the shape of `corev1.Container`.
    * +kubebuilder:validation:Optional
    */
-  podMetadata?: V1Beta1WorkspaceKindPodMetadata;
-  /**
-   * port definitions which can be referenced in image config values
-   * - think of port definitions as the "types" of services which could be provided by a specific image
-   * - a port definition has a common id (URL path) for consistency if the listening TCP port changes
-   * - ports are referenced in image config values by their `id` and their definition here establishes
-   *   their protocol type, and default display name in the UI
-   * +kubebuilder:validation:MinItems:=1
-   * +listType:="map"
-   * +listMapKey:="id"
-   */
-  ports: V1Beta1WorkspaceKindPort[];
-  /**
-   * standard probes to determine Container health (MUTABLE)
-   * +kubebuilder:validation:Optional
-   */
-  probes?: V1Beta1WorkspaceKindProbes;
+  mainContainer?: V1Beta1WorkspaceKindMainContainer;
   /**
    * the name of the scheduler to use for Workspace Pods (MUTABLE)
    *  - this is the default for all Workspaces of this WorkspaceKind, it may be
@@ -4370,9 +4380,43 @@ export interface V1Beta1WorkspaceKindPodTemplate {
   schedulerName?: string;
   /**
    * security context for Workspace Pods (MUTABLE)
+   *  - spec for PodSecurityContext:
+   *    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podsecuritycontext-v1-core
    * +kubebuilder:validation:Optional
    */
   securityContext?: V1PodSecurityContext;
+}
+
+export interface V1Beta1WorkspaceKindPodTemplate {
+  /**
+   * activityProbe configs to determine Workspace activity (MUTABLE)
+   * +kubebuilder:validation:Optional
+   */
+  activityProbe?: V1Beta1ActivityProbe;
+  /** options are the user-selectable fields, they determine the PodSpec of the Workspace */
+  options: V1Beta1WorkspaceKindPodOptions;
+  /**
+   * metadata for Workspace Pods (MUTABLE)
+   * +kubebuilder:validation:Optional
+   */
+  podMetadata?: V1Beta1WorkspaceKindPodMetadata;
+  /**
+   * podSpec groups Pod-level fields of the Workspace Pod, mirroring the
+   * shape of `corev1.PodSpec`.
+   * +kubebuilder:validation:Optional
+   */
+  podSpec?: V1Beta1WorkspaceKindPodSpec;
+  /**
+   * port definitions which can be referenced in image config values
+   * - think of port definitions as the "types" of services which could be provided by a specific image
+   * - a port definition has a common id (URL path) for consistency if the listening TCP port changes
+   * - ports are referenced in image config values by their `id` and their definition here establishes
+   *   their protocol type, and default display name in the UI
+   * +kubebuilder:validation:MinItems:=1
+   * +listType:="map"
+   * +listMapKey:="id"
+   */
+  ports: V1Beta1WorkspaceKindPort[];
   /**
    * service account configs for Workspace Pods
    *  - each Workspace runs as its own ServiceAccount, which is created and owned by
@@ -4386,8 +4430,8 @@ export interface V1Beta1WorkspaceKindPodTemplate {
    * +kubebuilder:validation:Optional
    */
   statefulSetMetadata?: V1Beta1WorkspaceKindStatefulSetMetadata;
-  /** volume mount paths */
-  volumeMounts: V1Beta1WorkspaceKindVolumeMounts;
+  /** volume mount paths used by the controller when assembling the Workspace Pod */
+  volumeMountPaths: V1Beta1WorkspaceKindVolumeMountPaths;
 }
 
 export interface V1Beta1WorkspaceKindPort {
@@ -4415,24 +4459,6 @@ export interface V1Beta1WorkspaceKindPort {
    * +kubebuilder:example:="HTTP"
    */
   protocol: V1Beta1ImagePortProtocol;
-}
-
-export interface V1Beta1WorkspaceKindProbes {
-  /**
-   * the liveness probe for the main container
-   * +kubebuilder:validation:Optional
-   */
-  livenessProbe?: V1Probe;
-  /**
-   * the readiness probe for the main container
-   * +kubebuilder:validation:Optional
-   */
-  readinessProbe?: V1Probe;
-  /**
-   * the startup probe for the main container
-   * +kubebuilder:validation:Optional
-   */
-  startupProbe?: V1Probe;
 }
 
 export interface V1Beta1WorkspaceKindServiceAccount {
@@ -4512,7 +4538,7 @@ export interface V1Beta1WorkspaceKindStatefulSetMetadata {
   labels?: Record<string, string>;
 }
 
-export interface V1Beta1WorkspaceKindVolumeMounts {
+export interface V1Beta1WorkspaceKindVolumeMountPaths {
   /**
    * the path to mount the home PVC (NOT MUTABLE)
    * +kubebuilder:validation:MinLength:=2
@@ -4583,10 +4609,10 @@ export interface WorkspacekindsPodTemplate {
   options: OptionsPodTemplateOptions;
   podMetadata: WorkspacekindsPodMetadata;
   statefulSetMetadata: WorkspacekindsStatefulSetMetadata;
-  volumeMounts: WorkspacekindsPodVolumeMounts;
+  volumeMountPaths: WorkspacekindsPodVolumeMountPaths;
 }
 
-export interface WorkspacekindsPodVolumeMounts {
+export interface WorkspacekindsPodVolumeMountPaths {
   home: string;
 }
 

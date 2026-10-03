@@ -38,7 +38,7 @@ export interface VolumesAttachModalProps {
   mountedPaths: Set<string>;
   /**
    * When provided the mount path is locked to this value (sourced from the
-   * workspace kind's podTemplate.volumeMounts.home) and cannot be edited.
+   * workspace kind's podTemplate.volumeMountPaths.home) and cannot be edited.
    */
   fixedMountPath?: string;
   /** PVC names already mounted in the other volume section (home or data) */
