@@ -10,7 +10,6 @@ import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { css } from '@patternfly/react-styles';
 import { HiddenIconWithPopover } from '~/app/components/HiddenIconWithPopover';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
-import { RestrictedIconWithPopover } from '~/app/components/RestrictedIconWithPopover';
 import {
   OptionValue,
   resolveRedirectChain,
@@ -116,7 +115,8 @@ export const WorkspaceFormOptionCard: React.FC<
       >
         {isDenied && (
           <FlexItem>
-            <RestrictedIconWithPopover
+            <HiddenIconWithPopover
+              type="restricted"
               popoverId={popoverIdRestricted}
               activePopoverId={activePopoverId}
               pinnedPopoverId={pinnedPopoverId}
@@ -137,6 +137,7 @@ export const WorkspaceFormOptionCard: React.FC<
         {option.hidden && (
           <FlexItem>
             <HiddenIconWithPopover
+              type="hidden"
               popoverId={popoverIdHidden}
               activePopoverId={activePopoverId}
               pinnedPopoverId={pinnedPopoverId}

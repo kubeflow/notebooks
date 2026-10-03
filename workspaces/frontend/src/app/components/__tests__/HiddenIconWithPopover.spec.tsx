@@ -1,10 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { RestrictedIconWithPopover } from '~/app/components/RestrictedIconWithPopover';
+import { HiddenIconWithPopover } from '~/app/components/HiddenIconWithPopover';
 
-describe('RestrictedIconWithPopover', () => {
+describe('HiddenIconWithPopover', () => {
   const defaultProps = {
+    type: 'restricted' as const,
     popoverId: 'restricted-test-card',
     activePopoverId: null,
     pinnedPopoverId: null,
@@ -23,7 +24,7 @@ describe('RestrictedIconWithPopover', () => {
   });
 
   it('renders trigger button with accessibility attributes', () => {
-    render(<RestrictedIconWithPopover {...defaultProps} />);
+    render(<HiddenIconWithPopover {...defaultProps} />);
 
     const button = screen.getByRole('button', { name: 'View restricted option information' });
     expect(button).toBeInTheDocument();
@@ -32,7 +33,7 @@ describe('RestrictedIconWithPopover', () => {
   });
 
   it('triggers onActiveChange with popoverId on mouse enter', () => {
-    render(<RestrictedIconWithPopover {...defaultProps} />);
+    render(<HiddenIconWithPopover {...defaultProps} />);
 
     const button = screen.getByTestId('restricted-icon');
     fireEvent.mouseEnter(button);
@@ -41,7 +42,7 @@ describe('RestrictedIconWithPopover', () => {
   });
 
   it('clears active popover after delay on mouse leave', () => {
-    render(<RestrictedIconWithPopover {...defaultProps} />);
+    render(<HiddenIconWithPopover {...defaultProps} />);
 
     const button = screen.getByTestId('restricted-icon');
     fireEvent.mouseLeave(button);
@@ -56,7 +57,7 @@ describe('RestrictedIconWithPopover', () => {
   });
 
   it('pins popover on click and clears active popover', () => {
-    render(<RestrictedIconWithPopover {...defaultProps} />);
+    render(<HiddenIconWithPopover {...defaultProps} />);
 
     const button = screen.getByTestId('restricted-icon');
     fireEvent.click(button);
@@ -66,9 +67,7 @@ describe('RestrictedIconWithPopover', () => {
   });
 
   it('unpins popover when clicked while already pinned', () => {
-    render(
-      <RestrictedIconWithPopover {...defaultProps} pinnedPopoverId={defaultProps.popoverId} />,
-    );
+    render(<HiddenIconWithPopover {...defaultProps} pinnedPopoverId={defaultProps.popoverId} />);
 
     const button = screen.getByTestId('restricted-icon');
     fireEvent.click(button);
@@ -77,15 +76,13 @@ describe('RestrictedIconWithPopover', () => {
   });
 
   it('supports keyboard Enter and Space keys to toggle pinned state', () => {
-    const { rerender } = render(<RestrictedIconWithPopover {...defaultProps} />);
+    const { rerender } = render(<HiddenIconWithPopover {...defaultProps} />);
 
     const button = screen.getByTestId('restricted-icon');
     fireEvent.keyDown(button, { key: 'Enter' });
     expect(defaultProps.onPinnedChange).toHaveBeenCalledWith(defaultProps.popoverId);
 
-    rerender(
-      <RestrictedIconWithPopover {...defaultProps} pinnedPopoverId={defaultProps.popoverId} />,
-    );
+    rerender(<HiddenIconWithPopover {...defaultProps} pinnedPopoverId={defaultProps.popoverId} />);
 
     fireEvent.keyDown(button, { key: ' ' });
     expect(defaultProps.onPinnedChange).toHaveBeenCalledWith(null);
@@ -93,9 +90,7 @@ describe('RestrictedIconWithPopover', () => {
 
   it('renders custom message in popover when visible', () => {
     act(() => {
-      render(
-        <RestrictedIconWithPopover {...defaultProps} activePopoverId={defaultProps.popoverId} />,
-      );
+      render(<HiddenIconWithPopover {...defaultProps} activePopoverId={defaultProps.popoverId} />);
     });
 
     expect(screen.getByText('Restricted')).toBeInTheDocument();
@@ -105,7 +100,7 @@ describe('RestrictedIconWithPopover', () => {
   it('renders fallback message when no message is provided', () => {
     act(() => {
       render(
-        <RestrictedIconWithPopover
+        <HiddenIconWithPopover
           {...defaultProps}
           message={undefined}
           activePopoverId={defaultProps.popoverId}
@@ -114,5 +109,41 @@ describe('RestrictedIconWithPopover', () => {
     });
 
     expect(screen.getByText('This option is restricted.')).toBeInTheDocument();
+  });
+
+  describe('hidden type', () => {
+    const hiddenProps = {
+      ...defaultProps,
+      type: 'hidden' as const,
+      popoverId: 'hidden-test-card',
+      message: undefined,
+    };
+
+    it('renders trigger with hidden accessibility attributes and test id', () => {
+      render(<HiddenIconWithPopover {...hiddenProps} />);
+
+      expect(
+        screen.getByRole('button', { name: 'View hidden option information' }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('hidden-icon')).toBeInTheDocument();
+      expect(screen.queryByTestId('restricted-icon')).not.toBeInTheDocument();
+    });
+
+    it('renders the hidden header and default message when visible', () => {
+      act(() => {
+        render(<HiddenIconWithPopover {...hiddenProps} activePopoverId={hiddenProps.popoverId} />);
+      });
+
+      expect(screen.getByText('Hidden Option')).toBeInTheDocument();
+      expect(screen.getByText(/Your administrator has hidden this option/)).toBeInTheDocument();
+    });
+
+    it('pins popover on click', () => {
+      render(<HiddenIconWithPopover {...hiddenProps} />);
+
+      fireEvent.click(screen.getByTestId('hidden-icon'));
+
+      expect(hiddenProps.onPinnedChange).toHaveBeenCalledWith(hiddenProps.popoverId);
+    });
   });
 });

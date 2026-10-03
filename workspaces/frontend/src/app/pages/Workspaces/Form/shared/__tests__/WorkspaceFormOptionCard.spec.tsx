@@ -9,20 +9,18 @@ import { WorkspaceFormOptionCard } from '~/app/pages/Workspaces/Form/shared/Work
 
 // Mock the icon components
 jest.mock('~/app/components/HiddenIconWithPopover', () => ({
-  HiddenIconWithPopover: ({ popoverId }: { popoverId: string }) => (
-    <div data-testid={`hidden-icon-${popoverId}`}>Hidden Icon</div>
-  ),
+  HiddenIconWithPopover: ({
+    type,
+    popoverId,
+  }: {
+    type: 'restricted' | 'hidden';
+    popoverId: string;
+  }) => <div data-testid={`${type}-icon-${popoverId}`}>{type} Icon</div>,
 }));
 
 jest.mock('~/app/components/RedirectIconWithPopover', () => ({
   RedirectIconWithPopover: ({ popoverId }: { popoverId: string }) => (
     <div data-testid={`redirect-icon-${popoverId}`}>Redirect Icon</div>
-  ),
-}));
-
-jest.mock('~/app/components/RestrictedIconWithPopover', () => ({
-  RestrictedIconWithPopover: ({ popoverId }: { popoverId: string }) => (
-    <div data-testid={`restricted-icon-${popoverId}`}>Restricted Icon</div>
   ),
 }));
 
