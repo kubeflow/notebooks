@@ -18,22 +18,30 @@ package webhook
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
+
+// orphanDeleteMessage explains why orphan deletion of a Workspace is not permitted.
+const orphanDeleteMessage = "orphan deletion is not permitted for Workspaces, " +
+	"because it would leave the resources owned by the Workspace (StatefulSet, Service, VirtualService) " +
+	"running in the cluster with no parent, use cascading deletion instead"
 
 // WorkspaceValidator validates a Workspace object
 type WorkspaceValidator struct {
@@ -41,7 +49,7 @@ type WorkspaceValidator struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspace,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspaces,verbs=create;update,versions=v1beta1,name=vworkspace.kb.io,admissionReviewVersions=v1,serviceName=workspaces-webhook-service
+// +kubebuilder:webhook:path=/validate-kubeflow-org-v1beta1-workspace,mutating=false,failurePolicy=fail,sideEffects=None,groups=kubeflow.org,resources=workspaces,verbs=create;update;delete,versions=v1beta1,name=vworkspace.kb.io,admissionReviewVersions=v1,serviceName=workspaces-webhook-service
 
 // SetupWebhookWithManager sets up the webhook with the manager
 func (v *WorkspaceValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -75,6 +83,7 @@ func (v *WorkspaceValidator) ValidateCreate(ctx context.Context, workspace *kube
 	// validate the Workspace
 	// NOTE: we do this after fetching the WorkspaceKind as there will be multiple types in the future,
 	//       and we need to know which one the Workspace is using to validate it correctly.
+	allErrs = append(allErrs, v.validateNoOrphanFinalizer(workspace)...)
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspace)...)
 	allErrs = append(allErrs, v.validateImageConfig(workspace, workspaceKind)...)
 	allErrs = append(allErrs, v.validatePodConfig(workspace, workspaceKind)...)
@@ -98,6 +107,13 @@ func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldWorkspace, n
 	log.V(1).Info("validating Workspace update")
 
 	var allErrs field.ErrorList
+
+	// don't allow the "orphan" finalizer to be added to an existing Workspace
+	// NOTE: we only reject updates that ADD the finalizer, so a Workspace which somehow already has it
+	//       can still be updated (e.g. to remove the finalizer)
+	if !controllerutil.ContainsFinalizer(oldWorkspace, metav1.FinalizerOrphanDependents) {
+		allErrs = append(allErrs, v.validateNoOrphanFinalizer(newWorkspace)...)
+	}
 
 	// check if workspace kind related fields have changed
 	var workspaceKindChange = false
@@ -163,9 +179,89 @@ func (v *WorkspaceValidator) ValidateUpdate(ctx context.Context, oldWorkspace, n
 // The optional warnings will be added to the response as warning messages.
 // Return an error if the object is invalid.
 func (v *WorkspaceValidator) ValidateDelete(ctx context.Context, workspace *kubefloworgv1beta1.Workspace) (admission.Warnings, error) {
-	// no validation needed for deletion
-	// NOTE: add "delete" to the webhook configuration (+kubebuilder:webhook) if you want to enable deletion validation
-	return nil, nil
+	log := log.FromContext(ctx)
+	log.V(1).Info("validating Workspace delete")
+
+	var allErrs field.ErrorList //nolint:prealloc
+
+	// don't allow the Workspace to be deleted with `propagationPolicy=Orphan`
+	fieldErrs, err := v.validateNoOrphanPropagationPolicy(ctx)
+	if err != nil {
+		return nil, err
+	}
+	allErrs = append(allErrs, fieldErrs...)
+
+	if len(allErrs) == 0 {
+		return nil, nil
+	}
+
+	return nil, apierrors.NewInvalid(
+		schema.GroupKind{Group: kubefloworgv1beta1.GroupVersion.Group, Kind: "Workspace"},
+		workspace.Name,
+		allErrs,
+	)
+}
+
+// validateNoOrphanFinalizer validates that a Workspace does not have the "orphan" finalizer,
+// which would cause its owned resources to be left running in the cluster once it is deleted.
+func (v *WorkspaceValidator) validateNoOrphanFinalizer(workspace *kubefloworgv1beta1.Workspace) []*field.Error {
+	var errs []*field.Error
+
+	finalizersPath := field.NewPath("metadata", "finalizers")
+
+	if controllerutil.ContainsFinalizer(workspace, metav1.FinalizerOrphanDependents) {
+		errs = append(errs, field.Invalid(
+			finalizersPath,
+			metav1.FinalizerOrphanDependents,
+			orphanDeleteMessage,
+		))
+	}
+
+	return errs
+}
+
+// validateNoOrphanPropagationPolicy validates that the in-flight delete request did not request orphan
+// deletion, either with `propagationPolicy=Orphan` or the deprecated `orphanDependents=true` option.
+func (v *WorkspaceValidator) validateNoOrphanPropagationPolicy(ctx context.Context) ([]*field.Error, error) {
+	var errs []*field.Error
+
+	propagationPolicyPath := field.NewPath("propagationPolicy")
+	orphanDependentsPath := field.NewPath("orphanDependents")
+
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		// the admission request is always present for real delete requests, so treat its absence as an error
+		return nil, fmt.Errorf("unable to read admission request to determine deletion propagation policy: %w", err)
+	}
+
+	// if there are no delete options, the default (non-orphan) propagation policy is used
+	if len(req.Options.Raw) == 0 {
+		return nil, nil
+	}
+
+	deleteOptions := &metav1.DeleteOptions{}
+	if err := json.Unmarshal(req.Options.Raw, deleteOptions); err != nil {
+		return nil, fmt.Errorf("unable to decode delete options: %w", err)
+	}
+
+	if deleteOptions.PropagationPolicy != nil && *deleteOptions.PropagationPolicy == metav1.DeletePropagationOrphan {
+		errs = append(errs, field.Invalid(
+			propagationPolicyPath,
+			*deleteOptions.PropagationPolicy,
+			orphanDeleteMessage,
+		))
+	}
+
+	// `orphanDependents` is deprecated, but the API server still honors it
+	if deleteOptions.OrphanDependents != nil && *deleteOptions.OrphanDependents { //nolint:staticcheck
+		errs = append(errs, field.Invalid(
+			orphanDependentsPath,
+			*deleteOptions.OrphanDependents, //nolint:staticcheck
+			orphanDeleteMessage,
+		))
+	}
+
+	return errs, nil
 }
 
 // validateWorkspaceKind fetches the WorkspaceKind for a Workspace and returns an error if it does not exist
