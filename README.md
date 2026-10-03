@@ -23,12 +23,16 @@ Key features of Kubeflow Notebooks:
 
 > [!WARNING]
 >
-> Kubeflow Notebooks v2 is __not yet released__. We are actively developing the first stable release and will share updates soon.
-> See [`kubeflow/notebooks#85`](https://github.com/kubeflow/notebooks/issues/85) for more details.
+> Kubeflow Notebooks is currently released as a beta.
+
+Currently, Kubeflow Notebooks must be deployed as part of a Kubeflow platform installation (not as a standalone component (which is planned [in the future](https://github.com/kubeflow/notebooks/issues/1336))).
+
+Please refer to the [Deployment Guide](https://www.kubeflow.org/docs/components/workspaces/operator-guides/deployment-guide/) page for more information.
 
 ## Documentation
 
 The official documentation for Kubeflow Notebooks can be found [here](https://www.kubeflow.org/docs/components/notebooks/).
+The current roadmap is tracked in the issues in this project as described in [`ROADMAP.md`](ROADMAP.md).
 
 ## Community
 
