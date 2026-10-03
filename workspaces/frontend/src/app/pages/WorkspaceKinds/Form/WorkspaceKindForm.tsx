@@ -137,8 +137,8 @@ const convertToFormData = (
         labels: podTemplate.podMetadata?.labels ?? {},
         annotations: podTemplate.podMetadata?.annotations ?? {},
       },
-      volumeMounts: {
-        home: podTemplate.volumeMounts.home,
+      volumeMountPaths: {
+        home: podTemplate.volumeMountPaths.home,
       },
       activityProbe: podTemplate.activityProbe,
     },

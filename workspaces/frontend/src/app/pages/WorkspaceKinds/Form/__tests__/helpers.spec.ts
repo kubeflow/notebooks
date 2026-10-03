@@ -73,11 +73,14 @@ const buildMockApiUpdate = (
       labels: { app: 'test' },
       annotations: { note: 'test-annotation' },
     },
+    podSpec: {
+      mainContainer: {},
+    },
     ports: [{ id: 'http', defaultDisplayName: 'HTTP', protocol: 'HTTP' as never }],
     serviceAccount: {
       clusterRoles: [{ name: 'kubeflow-edit' }],
     },
-    volumeMounts: { home: '/home/jovyan' },
+    volumeMountPaths: { home: '/home/jovyan' },
   },
   ...overrides,
 });
@@ -131,7 +134,7 @@ const buildMockFormData = (overrides?: Partial<WorkspaceKindFormData>): Workspac
       labels: { app: 'test' },
       annotations: { note: 'test-annotation' },
     },
-    volumeMounts: { home: '/home/jovyan' },
+    volumeMountPaths: { home: '/home/jovyan' },
     activityProbe: {
       probeIntervalSeconds: 3600,
       jupyter: { lastActivity: true, portId: 'http' },
@@ -231,7 +234,7 @@ describe('convertFormDataToUpdate', () => {
       labels: { app: 'test' },
       annotations: { note: 'test-annotation' },
     });
-    expect(result.podTemplate.volumeMounts).toEqual({ home: '/home/jovyan' });
+    expect(result.podTemplate.volumeMountPaths).toEqual({ home: '/home/jovyan' });
   });
 
   it('should map image config values correctly', () => {
@@ -417,17 +420,17 @@ describe('convertFormDataToUpdate', () => {
     });
   });
 
-  it('should preserve the original volumeMounts.home (immutable field)', () => {
+  it('should preserve the original volumeMountPaths.home (immutable field)', () => {
     const formData = buildMockFormData({
       podTemplate: {
         podMetadata: { labels: {}, annotations: {} },
-        volumeMounts: { home: '/home/changed-by-user' },
+        volumeMountPaths: { home: '/home/changed-by-user' },
       },
     });
     const original = buildMockApiUpdate();
     const result = convertFormDataToUpdate(formData, original);
 
-    expect(result.podTemplate.volumeMounts).toEqual({ home: '/home/jovyan' });
+    expect(result.podTemplate.volumeMountPaths).toEqual({ home: '/home/jovyan' });
   });
 
   it('should format seconds below 60 as raw seconds', () => {

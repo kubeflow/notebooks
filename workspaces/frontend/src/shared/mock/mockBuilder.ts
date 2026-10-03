@@ -460,7 +460,7 @@ export const buildMockWorkspaceKind = (
         myWorkspaceKindStatefulSetAnnotation: 'my-value',
       },
     },
-    volumeMounts: {
+    volumeMountPaths: {
       home: '/home/jovyan',
     },
     options: {
@@ -734,6 +734,9 @@ export const buildMockWorkspaceKindUpdate = (
       },
     },
     podMetadata: listItem.podTemplate.podMetadata,
+    podSpec: {
+      mainContainer: {},
+    },
     ports: [
       {
         id: 'http',
@@ -744,7 +747,7 @@ export const buildMockWorkspaceKindUpdate = (
     serviceAccount: {
       clusterRoles: [],
     },
-    volumeMounts: listItem.podTemplate.volumeMounts,
+    volumeMountPaths: listItem.podTemplate.volumeMountPaths,
   },
 });
 
