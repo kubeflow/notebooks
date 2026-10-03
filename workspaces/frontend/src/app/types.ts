@@ -5,7 +5,7 @@ import {
   V1Beta1ActivityProbe,
   WorkspacekindsActivityRule,
   WorkspacekindsPodMetadata,
-  WorkspacekindsPodVolumeMounts,
+  WorkspacekindsPodVolumeMountPaths,
   WorkspacekindsWorkspaceKindListItem,
   WorkspacesPodSecretMount,
   WorkspacesPodTemplateOptionsMutate,
@@ -113,7 +113,7 @@ export interface WorkspaceKindPodConfigData {
 }
 export interface WorkspaceKindPodTemplateData {
   podMetadata: WorkspacekindsPodMetadata;
-  volumeMounts: WorkspacekindsPodVolumeMounts;
+  volumeMountPaths: WorkspacekindsPodVolumeMountPaths;
   activityProbe?: V1Beta1ActivityProbe;
   extraVolumeMounts?: WorkspacesPodVolumeMount[];
 }

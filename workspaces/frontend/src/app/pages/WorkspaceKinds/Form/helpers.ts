@@ -193,7 +193,7 @@ export const EMPTY_WORKSPACE_KIND_FORM_DATA = {
       labels: {},
       annotations: {},
     },
-    volumeMounts: {
+    volumeMountPaths: {
       home: '',
     },
     extraVolumeMounts: [],
@@ -279,7 +279,7 @@ export const convertFormDataToUpdate = (
       labels: formData.podTemplate.podMetadata.labels,
       annotations: formData.podTemplate.podMetadata.annotations,
     },
-    volumeMounts: original.podTemplate.volumeMounts,
+    volumeMountPaths: original.podTemplate.volumeMountPaths,
     activityProbe: formData.podTemplate.activityProbe,
     options: {
       imageConfig: {

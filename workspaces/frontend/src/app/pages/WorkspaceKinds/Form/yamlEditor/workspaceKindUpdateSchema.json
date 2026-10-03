@@ -331,7 +331,7 @@
     },
     "v1beta1.WorkspaceKindPodTemplate": {
       "type": "object",
-      "required": ["options", "ports", "volumeMounts"],
+      "required": ["options", "ports", "volumeMountPaths"],
       "properties": {
         "activityProbe": {
           "description": "activityProbe configs to determine Workspace activity (MUTABLE)\n+kubebuilder:validation:Optional",
@@ -340,35 +340,6 @@
               "$ref": "#/$defs/v1beta1.ActivityProbe"
             }
           ]
-        },
-        "containerSecurityContext": {
-          "description": "container security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.SecurityContext"
-            }
-          ]
-        },
-        "extraEnv": {
-          "description": "environment variables for Workspace Pods (MUTABLE)\n - the following go template functions are available:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.EnvVar"
-          }
-        },
-        "extraVolumeMounts": {
-          "description": "extra volume mounts for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.VolumeMount"
-          }
-        },
-        "extraVolumes": {
-          "description": "extra volumes for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.Volume"
-          }
         },
         "options": {
           "description": "options are the user-selectable fields, they determine the PodSpec of the Workspace",
@@ -386,32 +357,20 @@
             }
           ]
         },
+        "podSpec": {
+          "description": "podSpec groups Pod-level fields of the Workspace Pod, mirroring the\nshape of `corev1.PodSpec`.\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.WorkspaceKindPodSpec"
+            }
+          ]
+        },
         "ports": {
           "description": "port definitions which can be referenced in image config values\n- think of port definitions as the \"types\" of services which could be provided by a specific image\n- a port definition has a common id (URL path) for consistency if the listening TCP port changes\n- ports are referenced in image config values by their `id` and their definition here establishes\n  their protocol type, and default display name in the UI\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
           "type": "array",
           "items": {
             "$ref": "#/$defs/v1beta1.WorkspaceKindPort"
           }
-        },
-        "probes": {
-          "description": "standard probes to determine Container health (MUTABLE)\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.WorkspaceKindProbes"
-            }
-          ]
-        },
-        "schedulerName": {
-          "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the `schedulerName` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the \"default-scheduler\"\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
-          "type": "string"
-        },
-        "securityContext": {
-          "description": "security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.PodSecurityContext"
-            }
-          ]
         },
         "serviceAccount": {
           "description": "service account configs for Workspace Pods\n - each Workspace runs as its own ServiceAccount, which is created and owned by\n   the controller and named \"ws-{WORKSPACE_NAME}\"\n - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`\n+kubebuilder:validation:Optional",
@@ -429,11 +388,11 @@
             }
           ]
         },
-        "volumeMounts": {
-          "description": "volume mount paths",
+        "volumeMountPaths": {
+          "description": "volume mount paths used by the controller when assembling the Workspace Pod",
           "allOf": [
             {
-              "$ref": "#/$defs/v1beta1.WorkspaceKindVolumeMounts"
+              "$ref": "#/$defs/v1beta1.WorkspaceKindVolumeMountPaths"
             }
           ]
         }
@@ -496,344 +455,604 @@
         }
       }
     },
-    "v1.SecurityContext": {
+    "v1beta1.WorkspaceKindPodOptions": {
       "type": "object",
+      "required": ["imageConfig", "podConfig"],
       "properties": {
-        "allowPrivilegeEscalation": {
-          "description": "AllowPrivilegeEscalation controls whether a process can gain more\nprivileges than its parent process. This bool directly controls if\nthe no_new_privs flag will be set on the container process.\nAllowPrivilegeEscalation is true always when the container is:\n1) run as Privileged\n2) has CAP_SYS_ADMIN\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
-          "type": "boolean"
-        },
-        "appArmorProfile": {
-          "description": "appArmorProfile is the AppArmor options to use by this container. If set, this profile\noverrides the pod's appArmorProfile.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+        "imageConfig": {
+          "description": "imageConfig options",
           "allOf": [
             {
-              "$ref": "#/$defs/v1.AppArmorProfile"
+              "$ref": "#/$defs/v1beta1.ImageConfig"
             }
           ]
         },
-        "capabilities": {
-          "description": "The capabilities to add/drop when running containers.\nDefaults to the default set of capabilities granted by the container runtime.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+        "podConfig": {
+          "description": "podConfig options",
           "allOf": [
             {
-              "$ref": "#/$defs/v1.Capabilities"
-            }
-          ]
-        },
-        "privileged": {
-          "description": "Run container in privileged mode.\nProcesses in privileged containers are essentially equivalent to root on the host.\nDefaults to false.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
-          "type": "boolean"
-        },
-        "procMount": {
-          "description": "procMount denotes the type of proc mount to use for the containers.\nThe default value is Default which uses the container runtime defaults for\nreadonly paths and masked paths.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.ProcMountType"
-            }
-          ]
-        },
-        "readOnlyRootFilesystem": {
-          "description": "Whether this container has a read-only root filesystem.\nDefault is false.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
-          "type": "boolean"
-        },
-        "runAsGroup": {
-          "description": "The GID to run the entrypoint of the container process.\nUses runtime default if unset.\nMay also be set in PodSecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
-          "type": "integer"
-        },
-        "runAsNonRoot": {
-          "description": "Indicates that the container must run as a non-root user.\nIf true, the Kubelet will validate the image at runtime to ensure that it\ndoes not run as UID 0 (root) and fail to start the container if it does.\nIf unset or false, no such validation will be performed.\nMay also be set in PodSecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\n+optional",
-          "type": "boolean"
-        },
-        "runAsUser": {
-          "description": "The UID to run the entrypoint of the container process.\nDefaults to user specified in image metadata if unspecified.\nMay also be set in PodSecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
-          "type": "integer"
-        },
-        "seLinuxOptions": {
-          "description": "The SELinux context to be applied to the container.\nIf unspecified, the container runtime will allocate a random SELinux context for each\ncontainer.  May also be set in PodSecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.SELinuxOptions"
-            }
-          ]
-        },
-        "seccompProfile": {
-          "description": "The seccomp options to use by this container. If seccomp options are\nprovided at both the pod & container level, the container options\noverride the pod options.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.SeccompProfile"
-            }
-          ]
-        },
-        "windowsOptions": {
-          "description": "The Windows specific settings applied to all containers.\nIf unspecified, the options from the PodSecurityContext will be used.\nIf set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.\nNote that this field cannot be set when spec.os.name is linux.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.WindowsSecurityContextOptions"
+              "$ref": "#/$defs/v1beta1.PodConfig"
             }
           ]
         }
       }
     },
-    "v1.AppArmorProfile": {
+    "v1beta1.ImageConfig": {
       "type": "object",
-      "required": ["type"],
+      "required": ["spawner", "values"],
       "properties": {
-        "localhostProfile": {
-          "description": "localhostProfile indicates a profile loaded on the node that should be used.\nThe profile must be preconfigured on the node to work.\nMust match the loaded name of the profile.\nMust be set if and only if type is \"Localhost\".\n+optional",
+        "spawner": {
+          "description": "spawner ui configs",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.OptionsSpawnerConfig"
+            }
+          ]
+        },
+        "values": {
+          "description": "the list of image configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1beta1.ImageConfigValue"
+          }
+        }
+      }
+    },
+    "v1beta1.OptionsSpawnerConfig": {
+      "type": "object",
+      "required": ["default"],
+      "properties": {
+        "default": {
+          "description": "the id of the default option\n - this will be selected by default in the spawner ui\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"jupyterlab_scipy_190\"",
+          "type": "string"
+        }
+      }
+    },
+    "v1beta1.ImageConfigValue": {
+      "type": "object",
+      "required": ["id", "spawner", "spec"],
+      "properties": {
+        "id": {
+          "description": "the id of this image config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"",
           "type": "string"
         },
-        "type": {
-          "description": "type indicates which kind of AppArmor profile will be applied.\nValid options are:\n  Localhost - a profile pre-loaded on the node.\n  RuntimeDefault - the container runtime's default profile.\n  Unconfined - no AppArmor enforcement.\n+unionDiscriminator",
+        "redirect": {
+          "description": "redirect configs\n+kubebuilder:validation:Optional",
           "allOf": [
             {
-              "$ref": "#/$defs/v1.AppArmorProfileType"
+              "$ref": "#/$defs/v1beta1.OptionRedirect"
+            }
+          ]
+        },
+        "spawner": {
+          "description": "information for the spawner ui",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.OptionSpawnerInfo"
+            }
+          ]
+        },
+        "spec": {
+          "description": "the spec of the image config",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.ImageConfigSpec"
             }
           ]
         }
       }
     },
-    "v1.AppArmorProfileType": {
-      "type": "string",
-      "enum": ["Unconfined", "RuntimeDefault", "Localhost"],
-      "x-enum-varnames": [
-        "AppArmorProfileTypeUnconfined",
-        "AppArmorProfileTypeRuntimeDefault",
-        "AppArmorProfileTypeLocalhost"
-      ]
-    },
-    "v1.Capabilities": {
+    "v1beta1.OptionRedirect": {
       "type": "object",
+      "required": ["to"],
       "properties": {
-        "add": {
-          "description": "Added capabilities\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "message": {
+          "description": "information about the redirect\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.RedirectMessage"
+            }
+          ]
         },
-        "drop": {
-          "description": "Removed capabilities\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "to": {
+          "description": "the id of the option to redirect to\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"",
+          "type": "string"
         }
       }
     },
-    "v1.ProcMountType": {
-      "type": "string",
-      "enum": ["Default", "Unmasked"],
-      "x-enum-varnames": ["DefaultProcMount", "UnmaskedProcMount"]
-    },
-    "v1.SELinuxOptions": {
+    "v1beta1.RedirectMessage": {
       "type": "object",
+      "required": ["level", "text"],
       "properties": {
         "level": {
-          "description": "Level is SELinux level label that applies to the container.\n+optional",
-          "type": "string"
+          "description": "the importance level of the message\n+kubebuilder:example:=\"Info\"",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.RedirectMessageLevel"
+            }
+          ]
         },
-        "role": {
-          "description": "Role is a SELinux role label that applies to the container.\n+optional",
-          "type": "string"
-        },
-        "type": {
-          "description": "Type is a SELinux type label that applies to the container.\n+optional",
-          "type": "string"
-        },
-        "user": {
-          "description": "User is a SELinux user label that applies to the container.\n+optional",
+        "text": {
+          "description": "the text of the message to show\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024\n+kubebuilder:example:=\"This update will increase the version of JupyterLab to v1.7.1\"",
           "type": "string"
         }
       }
     },
-    "v1.SeccompProfile": {
+    "v1beta1.RedirectMessageLevel": {
+      "type": "string",
+      "enum": ["Info", "Warning", "Danger"],
+      "x-enum-varnames": [
+        "RedirectMessageLevelInfo",
+        "RedirectMessageLevelWarning",
+        "RedirectMessageLevelDanger"
+      ]
+    },
+    "v1beta1.OptionSpawnerInfo": {
       "type": "object",
-      "required": ["type"],
+      "required": ["displayName"],
       "properties": {
-        "localhostProfile": {
-          "description": "localhostProfile indicates a profile defined in a file on the node should be used.\nThe profile must be preconfigured on the node to work.\nMust be a descending path, relative to the kubelet's configured seccomp profile location.\nMust be set if type is \"Localhost\". Must NOT be set for any other type.\n+optional",
+        "description": {
+          "description": "a description of the option\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024",
           "type": "string"
         },
-        "type": {
-          "description": "type indicates which kind of seccomp profile will be applied.\nValid options are:\n\nLocalhost - a profile defined in a file on the node should be used.\nRuntimeDefault - the container runtime default profile should be used.\nUnconfined - no profile should be applied.\n+unionDiscriminator",
+        "displayName": {
+          "description": "the display name of the option\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=128",
+          "type": "string"
+        },
+        "hidden": {
+          "description": "if this option should be hidden from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+          "type": "boolean"
+        },
+        "labels": {
+          "description": "labels for the option\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MaxItems:=32\n+listType:=\"map\"\n+listMapKey:=\"key\"",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1beta1.OptionSpawnerLabel"
+          }
+        }
+      }
+    },
+    "v1beta1.OptionSpawnerLabel": {
+      "type": "object",
+      "required": ["key", "value"],
+      "properties": {
+        "key": {
+          "description": "the key of the label\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64",
+          "type": "string"
+        },
+        "value": {
+          "description": "the value of the label\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=64",
+          "type": "string"
+        }
+      }
+    },
+    "v1beta1.ImageConfigSpec": {
+      "type": "object",
+      "required": ["image", "imagePullPolicy", "ports"],
+      "properties": {
+        "image": {
+          "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0\"",
+          "type": "string"
+        },
+        "imagePullPolicy": {
+          "description": "the pull policy for the container image\n+kubebuilder:validation:Optional\n+kubebuilder:default:=\"IfNotPresent\"\n+kubebuilder:validation:Enum:={\"Always\",\"IfNotPresent\",\"Never\"}",
           "allOf": [
             {
-              "$ref": "#/$defs/v1.SeccompProfileType"
+              "$ref": "#/$defs/v1.PullPolicy"
+            }
+          ]
+        },
+        "ports": {
+          "description": "ports that the container listens on\n  - if multiple ports are defined, the user will see multiple \"Connect\" buttons\n    in a dropdown menu on the Workspace overview page\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1beta1.ImagePort"
+          }
+        }
+      }
+    },
+    "v1.PullPolicy": {
+      "type": "string",
+      "enum": ["Always", "Never", "IfNotPresent"],
+      "x-enum-varnames": ["PullAlways", "PullNever", "PullIfNotPresent"]
+    },
+    "v1beta1.ImagePort": {
+      "type": "object",
+      "required": ["id", "port"],
+      "properties": {
+        "displayName": {
+          "description": "the display name of the port\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+kubebuilder:validation:Optional",
+          "type": "string"
+        },
+        "id": {
+          "description": "the id of the port\n - this is NOT used as the Container or Service port name, but as part of the HTTP path\n+kubebuilder:example=\"jupyterlab\"",
+          "type": "string"
+        },
+        "port": {
+          "description": "the port number\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=65535\n+kubebuilder:example:=8888",
+          "type": "integer"
+        }
+      }
+    },
+    "v1beta1.PodConfig": {
+      "type": "object",
+      "required": ["spawner", "values"],
+      "properties": {
+        "spawner": {
+          "description": "spawner ui configs",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.OptionsSpawnerConfig"
+            }
+          ]
+        },
+        "values": {
+          "description": "the list of pod configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1beta1.PodConfigValue"
+          }
+        }
+      }
+    },
+    "v1beta1.PodConfigValue": {
+      "type": "object",
+      "required": ["id", "spawner", "spec"],
+      "properties": {
+        "id": {
+          "description": "the id of this pod config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"big_gpu\"",
+          "type": "string"
+        },
+        "redirect": {
+          "description": "redirect configs\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.OptionRedirect"
+            }
+          ]
+        },
+        "spawner": {
+          "description": "information for the spawner ui",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.OptionSpawnerInfo"
+            }
+          ]
+        },
+        "spec": {
+          "description": "the spec of the pod config",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.PodConfigSpec"
             }
           ]
         }
       }
     },
-    "v1.SeccompProfileType": {
-      "type": "string",
-      "enum": ["Unconfined", "RuntimeDefault", "Localhost"],
-      "x-enum-varnames": [
-        "SeccompProfileTypeUnconfined",
-        "SeccompProfileTypeRuntimeDefault",
-        "SeccompProfileTypeLocalhost"
-      ]
-    },
-    "v1.WindowsSecurityContextOptions": {
+    "v1beta1.PodConfigSpec": {
       "type": "object",
       "properties": {
-        "gmsaCredentialSpec": {
-          "description": "GMSACredentialSpec is where the GMSA admission webhook\n(https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the\nGMSA credential spec named by the GMSACredentialSpecName field.\n+optional",
+        "affinity": {
+          "description": "affinity configs for the pod\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.Affinity"
+            }
+          ]
+        },
+        "nodeSelector": {
+          "description": "node selector configs for the pod\n+kubebuilder:validation:Optional",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "resources": {
+          "description": "resource configs for the \"main\" container in the pod\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.ResourceRequirements"
+            }
+          ]
+        },
+        "schedulerName": {
+          "description": "the name of the scheduler to use for the pod\n - this takes precedence over the `schedulerName` of the pod template\n - set this to \"default-scheduler\" to have this pod config use the\n   default Kubernetes scheduler, even if the pod template sets another one\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"volcano\"",
           "type": "string"
         },
-        "gmsaCredentialSpecName": {
-          "description": "GMSACredentialSpecName is the name of the GMSA credential spec to use.\n+optional",
+        "tolerations": {
+          "description": "toleration configs for the pod\n+kubebuilder:validation:Optional",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.Toleration"
+          }
+        }
+      }
+    },
+    "v1.Affinity": {
+      "type": "object",
+      "properties": {
+        "nodeAffinity": {
+          "description": "Describes node affinity scheduling rules for the pod.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.NodeAffinity"
+            }
+          ]
+        },
+        "podAffinity": {
+          "description": "Describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s)).\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.PodAffinity"
+            }
+          ]
+        },
+        "podAntiAffinity": {
+          "description": "Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s)).\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.PodAntiAffinity"
+            }
+          ]
+        }
+      }
+    },
+    "v1.NodeAffinity": {
+      "type": "object",
+      "properties": {
+        "preferredDuringSchedulingIgnoredDuringExecution": {
+          "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and adding\n\"weight\" to the sum if the node matches the corresponding matchExpressions; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.PreferredSchedulingTerm"
+          }
+        },
+        "requiredDuringSchedulingIgnoredDuringExecution": {
+          "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to an update), the system\nmay or may not try to eventually evict the pod from its node.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.NodeSelector"
+            }
+          ]
+        }
+      }
+    },
+    "v1.PreferredSchedulingTerm": {
+      "type": "object",
+      "required": ["preference", "weight"],
+      "properties": {
+        "preference": {
+          "description": "A node selector term, associated with the corresponding weight.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.NodeSelectorTerm"
+            }
+          ]
+        },
+        "weight": {
+          "description": "Weight associated with matching the corresponding nodeSelectorTerm, in the range 1-100.",
+          "type": "integer"
+        }
+      }
+    },
+    "v1.NodeSelectorTerm": {
+      "type": "object",
+      "properties": {
+        "matchExpressions": {
+          "description": "A list of node selector requirements by node's labels.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.NodeSelectorRequirement"
+          }
+        },
+        "matchFields": {
+          "description": "A list of node selector requirements by node's fields.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.NodeSelectorRequirement"
+          }
+        }
+      }
+    },
+    "v1.NodeSelectorRequirement": {
+      "type": "object",
+      "required": ["key", "operator"],
+      "properties": {
+        "key": {
+          "description": "The label key that the selector applies to.",
           "type": "string"
         },
-        "hostProcess": {
-          "description": "HostProcess determines if a container should be run as a 'Host Process' container.\nAll of a Pod's containers must have the same effective HostProcess value\n(it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).\nIn addition, if HostProcess is true then HostNetwork must also be set to true.\n+optional",
-          "type": "boolean"
+        "operator": {
+          "description": "Represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.NodeSelectorOperator"
+            }
+          ]
         },
-        "runAsUserName": {
-          "description": "The UserName in Windows to run the entrypoint of the container process.\nDefaults to the user specified in image metadata if unspecified.\nMay also be set in PodSecurityContext. If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\n+optional",
+        "values": {
+          "description": "An array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. If the operator is Gt or Lt, the values\narray must have a single element, which will be interpreted as an integer.\nThis array is replaced during a strategic merge patch.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1.NodeSelectorOperator": {
+      "type": "string",
+      "enum": ["In", "NotIn", "Exists", "DoesNotExist", "Gt", "Lt"],
+      "x-enum-varnames": [
+        "NodeSelectorOpIn",
+        "NodeSelectorOpNotIn",
+        "NodeSelectorOpExists",
+        "NodeSelectorOpDoesNotExist",
+        "NodeSelectorOpGt",
+        "NodeSelectorOpLt"
+      ]
+    },
+    "v1.NodeSelector": {
+      "type": "object",
+      "required": ["nodeSelectorTerms"],
+      "properties": {
+        "nodeSelectorTerms": {
+          "description": "Required. A list of node selector terms. The terms are ORed.\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.NodeSelectorTerm"
+          }
+        }
+      }
+    },
+    "v1.PodAffinity": {
+      "type": "object",
+      "properties": {
+        "preferredDuringSchedulingIgnoredDuringExecution": {
+          "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and adding\n\"weight\" to the sum if the node has pods which matches the corresponding podAffinityTerm; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.WeightedPodAffinityTerm"
+          }
+        },
+        "requiredDuringSchedulingIgnoredDuringExecution": {
+          "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.PodAffinityTerm"
+          }
+        }
+      }
+    },
+    "v1.WeightedPodAffinityTerm": {
+      "type": "object",
+      "required": ["podAffinityTerm", "weight"],
+      "properties": {
+        "podAffinityTerm": {
+          "description": "Required. A pod affinity term, associated with the corresponding weight.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.PodAffinityTerm"
+            }
+          ]
+        },
+        "weight": {
+          "description": "weight associated with matching the corresponding podAffinityTerm,\nin the range 1-100.",
+          "type": "integer"
+        }
+      }
+    },
+    "v1.PodAffinityTerm": {
+      "type": "object",
+      "required": ["topologyKey"],
+      "properties": {
+        "labelSelector": {
+          "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.LabelSelector"
+            }
+          ]
+        },
+        "matchLabelKeys": {
+          "description": "MatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with `labelSelector` as `key in (value)`\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both matchLabelKeys and labelSelector.\nAlso, matchLabelKeys cannot be set when labelSelector isn't set.\n\n+listType=atomic\n+optional",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mismatchLabelKeys": {
+          "description": "MismatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with `labelSelector` as `key notin (value)`\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both mismatchLabelKeys and labelSelector.\nAlso, mismatchLabelKeys cannot be set when labelSelector isn't set.\n\n+listType=atomic\n+optional",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "namespaceSelector": {
+          "description": "A label query over the set of namespaces that the term applies to.\nThe term is applied to the union of the namespaces selected by this field\nand the ones listed in the namespaces field.\nnull selector and null or empty namespaces list means \"this pod's namespace\".\nAn empty selector ({}) matches all namespaces.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.LabelSelector"
+            }
+          ]
+        },
+        "namespaces": {
+          "description": "namespaces specifies a static list of namespace names that the term applies to.\nThe term is applied to the union of the namespaces listed in this field\nand the ones selected by namespaceSelector.\nnull or empty namespaces list and null namespaceSelector means \"this pod's namespace\".\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "topologyKey": {
+          "description": "This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching\nthe labelSelector in the specified namespaces, where co-located is defined as running on a node\nwhose value of the label with key topologyKey matches that of any node on which any of the\nselected pods is running.\nEmpty topologyKey is not allowed.",
           "type": "string"
         }
       }
     },
-    "v1.EnvVar": {
+    "v1.PodAntiAffinity": {
+      "type": "object",
+      "properties": {
+        "preferredDuringSchedulingIgnoredDuringExecution": {
+          "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe anti-affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling anti-affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and subtracting\n\"weight\" from the sum if the node has pods which matches the corresponding podAffinityTerm; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.WeightedPodAffinityTerm"
+          }
+        },
+        "requiredDuringSchedulingIgnoredDuringExecution": {
+          "description": "If the anti-affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the anti-affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.PodAffinityTerm"
+          }
+        }
+      }
+    },
+    "v1.ResourceRequirements": {
+      "type": "object",
+      "properties": {
+        "claims": {
+          "description": "Claims lists the names of resources, defined in spec.resourceClaims,\nthat are used by this container.\n\nThis field depends on the\nDynamicResourceAllocation feature gate.\n\nThis field is immutable. It can only be set for containers.\n\n+listType=map\n+listMapKey=name\n+featureGate=DynamicResourceAllocation\n+optional",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/k8s_io_api_core_v1.ResourceClaim"
+          }
+        },
+        "limits": {
+          "description": "Limits describes the maximum amount of compute resources allowed.\nMore info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.ResourceList"
+            }
+          ]
+        },
+        "requests": {
+          "description": "Requests describes the minimum amount of compute resources required.\nIf Requests is omitted for a container, it defaults to Limits if that is explicitly specified,\notherwise to an implementation-defined value. Requests cannot exceed Limits.\nMore info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.ResourceList"
+            }
+          ]
+        }
+      }
+    },
+    "k8s_io_api_core_v1.ResourceClaim": {
       "type": "object",
       "required": ["name"],
       "properties": {
         "name": {
-          "description": "Name of the environment variable.\nMay consist of any printable ASCII characters except '='.",
+          "description": "Name must match the name of one entry in pod.spec.resourceClaims of\nthe Pod where this field is used. It makes that resource available\ninside a container.",
           "type": "string"
         },
-        "value": {
-          "description": "Variable references $(VAR_NAME) are expanded\nusing the previously defined environment variables in the container and\nany service environment variables. If a variable cannot be resolved,\nthe reference in the input string will be unchanged. Double $$ are reduced\nto a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.\n\"$$(VAR_NAME)\" will produce the string literal \"$(VAR_NAME)\".\nEscaped references will never be expanded, regardless of whether the variable\nexists or not.\nDefaults to \"\".\n+optional",
-          "type": "string"
-        },
-        "valueFrom": {
-          "description": "Source for the environment variable's value. Cannot be used if value is not empty.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.EnvVarSource"
-            }
-          ]
-        }
-      }
-    },
-    "v1.EnvVarSource": {
-      "type": "object",
-      "properties": {
-        "configMapKeyRef": {
-          "description": "Selects a key of a ConfigMap.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.ConfigMapKeySelector"
-            }
-          ]
-        },
-        "fieldRef": {
-          "description": "Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,\nspec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.ObjectFieldSelector"
-            }
-          ]
-        },
-        "fileKeyRef": {
-          "description": "FileKeyRef selects a key of the env file.\nRequires the EnvFiles feature gate to be enabled.\n\n+featureGate=EnvFiles\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.FileKeySelector"
-            }
-          ]
-        },
-        "resourceFieldRef": {
-          "description": "Selects a resource of the container: only resources limits and requests\n(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.ResourceFieldSelector"
-            }
-          ]
-        },
-        "secretKeyRef": {
-          "description": "Selects a key of a secret in the pod's namespace\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.SecretKeySelector"
-            }
-          ]
-        }
-      }
-    },
-    "v1.ConfigMapKeySelector": {
-      "type": "object",
-      "required": ["key"],
-      "properties": {
-        "key": {
-          "description": "The key to select.",
-          "type": "string"
-        },
-        "name": {
-          "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
-          "type": "string"
-        },
-        "optional": {
-          "description": "Specify whether the ConfigMap or its key must be defined\n+optional",
-          "type": "boolean"
-        }
-      }
-    },
-    "v1.ObjectFieldSelector": {
-      "type": "object",
-      "required": ["fieldPath"],
-      "properties": {
-        "apiVersion": {
-          "description": "Version of the schema the FieldPath is written in terms of, defaults to \"v1\".\n+optional",
-          "type": "string"
-        },
-        "fieldPath": {
-          "description": "Path of the field to select in the specified API version.",
+        "request": {
+          "description": "Request is the name chosen for a request in the referenced claim.\nIf empty, everything from the claim is made available, otherwise\nonly the result of this request.\n\n+optional",
           "type": "string"
         }
       }
     },
-    "v1.FileKeySelector": {
+    "v1.ResourceList": {
       "type": "object",
-      "required": ["key", "path", "volumeName"],
-      "properties": {
-        "key": {
-          "description": "The key within the env file. An invalid key will prevent the pod from starting.\nThe keys defined within a source may consist of any printable ASCII characters except '='.\nDuring Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.\n+required",
-          "type": "string"
-        },
-        "optional": {
-          "description": "Specify whether the file or its key must be defined. If the file or key\ndoes not exist, then the env var is not published.\nIf optional is set to true and the specified key does not exist,\nthe environment variable will not be set in the Pod's containers.\n\nIf optional is set to false and the specified key does not exist,\nan error will be returned during Pod creation.\n+optional\n+default=false",
-          "type": "boolean"
-        },
-        "path": {
-          "description": "The path within the volume from which to select the file.\nMust be relative and may not contain the '..' path or start with '..'.\n+required",
-          "type": "string"
-        },
-        "volumeName": {
-          "description": "The name of the volume mount containing the env file.\n+required",
-          "type": "string"
-        }
-      }
-    },
-    "v1.ResourceFieldSelector": {
-      "type": "object",
-      "required": ["resource"],
-      "properties": {
-        "containerName": {
-          "description": "Container name: required for volumes, optional for env vars\n+optional",
-          "type": "string"
-        },
-        "divisor": {
-          "description": "Specifies the output format of the exposed resources, defaults to \"1\"\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/resource.Quantity"
-            }
-          ]
-        },
-        "resource": {
-          "description": "Required: resource to select",
-          "type": "string"
-        }
+      "additionalProperties": {
+        "$ref": "#/$defs/resource.Quantity"
       }
     },
     "resource.Quantity": {
@@ -852,83 +1071,108 @@
         }
       }
     },
-    "v1.SecretKeySelector": {
+    "v1.Toleration": {
       "type": "object",
-      "required": ["key"],
       "properties": {
+        "effect": {
+          "description": "Effect indicates the taint effect to match. Empty means match all taint effects.\nWhen specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.TaintEffect"
+            }
+          ]
+        },
         "key": {
-          "description": "The key of the secret to select from.  Must be a valid secret key.",
+          "description": "Key is the taint key that the toleration applies to. Empty means match all taint keys.\nIf the key is empty, operator must be Exists; this combination means to match all values and all keys.\n+optional",
           "type": "string"
         },
-        "name": {
-          "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
-          "type": "string"
+        "operator": {
+          "description": "Operator represents a key's relationship to the value.\nValid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.\nExists is equivalent to wildcard for value, so that a pod can\ntolerate all taints of a particular category.\nLt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.TolerationOperator"
+            }
+          ]
         },
-        "optional": {
-          "description": "Specify whether the Secret or its key must be defined\n+optional",
-          "type": "boolean"
+        "tolerationSeconds": {
+          "description": "TolerationSeconds represents the period of time the toleration (which must be\nof effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,\nit is not set, which means tolerate the taint forever (do not evict). Zero and\nnegative values will be treated as 0 (evict immediately) by the system.\n+optional",
+          "type": "integer"
+        },
+        "value": {
+          "description": "Value is the taint value the toleration matches to.\nIf the operator is Exists, the value should be empty, otherwise just a regular string.\n+optional",
+          "type": "string"
         }
       }
     },
-    "v1.VolumeMount": {
+    "v1.TaintEffect": {
+      "type": "string",
+      "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"],
+      "x-enum-varnames": [
+        "TaintEffectNoSchedule",
+        "TaintEffectPreferNoSchedule",
+        "TaintEffectNoExecute"
+      ]
+    },
+    "v1.TolerationOperator": {
+      "type": "string",
+      "enum": ["Exists", "Equal", "Lt", "Gt"],
+      "x-enum-varnames": [
+        "TolerationOpExists",
+        "TolerationOpEqual",
+        "TolerationOpLt",
+        "TolerationOpGt"
+      ]
+    },
+    "v1beta1.WorkspaceKindPodMetadata": {
       "type": "object",
-      "required": ["mountPath", "name"],
       "properties": {
-        "mountPath": {
-          "description": "Path within the container at which the volume should be mounted.  Must\nnot contain ':'.",
-          "type": "string"
+        "annotations": {
+          "description": "annotations to be applied to the Pod resource\n+kubebuilder:validation:Optional",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
-        "mountPropagation": {
-          "description": "mountPropagation determines how mounts are propagated from the host\nto container and the other way around.\nWhen not set, MountPropagationNone is used.\nThis field is beta in 1.10.\nWhen RecursiveReadOnly is set to IfPossible or to Enabled, MountPropagation must be None or unspecified\n(which defaults to None).\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.MountPropagationMode"
-            }
-          ]
-        },
-        "name": {
-          "description": "This must match the Name of a Volume.",
-          "type": "string"
-        },
-        "readOnly": {
-          "description": "Mounted read-only if true, read-write otherwise (false or unspecified).\nDefaults to false.\n+optional",
-          "type": "boolean"
-        },
-        "recursiveReadOnly": {
-          "description": "RecursiveReadOnly specifies whether read-only mounts should be handled\nrecursively.\n\nIf ReadOnly is false, this field has no meaning and must be unspecified.\n\nIf ReadOnly is true, and this field is set to Disabled, the mount is not made\nrecursively read-only.  If this field is set to IfPossible, the mount is made\nrecursively read-only, if it is supported by the container runtime.  If this\nfield is set to Enabled, the mount is made recursively read-only if it is\nsupported by the container runtime, otherwise the pod will not be started and\nan error will be generated to indicate the reason.\n\nIf this field is set to IfPossible or Enabled, MountPropagation must be set to\nNone (or be unspecified, which defaults to None).\n\nIf this field is not specified, it is treated as an equivalent of Disabled.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.RecursiveReadOnlyMode"
-            }
-          ]
-        },
-        "subPath": {
-          "description": "Path within the volume from which the container's volume should be mounted.\nDefaults to \"\" (volume's root).\n+optional",
-          "type": "string"
-        },
-        "subPathExpr": {
-          "description": "Expanded path within the volume from which the container's volume should be mounted.\nBehaves similarly to SubPath but environment variable references $(VAR_NAME) are expanded using the container's environment.\nDefaults to \"\" (volume's root).\nSubPathExpr and SubPath are mutually exclusive.\n+optional",
-          "type": "string"
+        "labels": {
+          "description": "labels to be applied to the Pod resource\n+kubebuilder:validation:Optional",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         }
       }
     },
-    "v1.MountPropagationMode": {
-      "type": "string",
-      "enum": ["None", "HostToContainer", "Bidirectional"],
-      "x-enum-varnames": [
-        "MountPropagationNone",
-        "MountPropagationHostToContainer",
-        "MountPropagationBidirectional"
-      ]
-    },
-    "v1.RecursiveReadOnlyMode": {
-      "type": "string",
-      "enum": ["Disabled", "IfPossible", "Enabled"],
-      "x-enum-varnames": [
-        "RecursiveReadOnlyDisabled",
-        "RecursiveReadOnlyIfPossible",
-        "RecursiveReadOnlyEnabled"
-      ]
+    "v1beta1.WorkspaceKindPodSpec": {
+      "type": "object",
+      "properties": {
+        "extraVolumes": {
+          "description": "extra volumes for Workspace Pods (MUTABLE)\n - spec for Volume:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1.Volume"
+          }
+        },
+        "mainContainer": {
+          "description": "mainContainer configures the \"main\" user container of the Workspace Pod, mirroring\nthe shape of `corev1.Container`.\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.WorkspaceKindMainContainer"
+            }
+          ]
+        },
+        "schedulerName": {
+          "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the `schedulerName` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the \"default-scheduler\"\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
+          "type": "string"
+        },
+        "securityContext": {
+          "description": "security context for Workspace Pods (MUTABLE)\n - spec for PodSecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podsecuritycontext-v1-core\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.PodSecurityContext"
+            }
+          ]
+        }
+      }
     },
     "v1.Volume": {
       "type": "object",
@@ -1465,6 +1709,42 @@
         }
       }
     },
+    "v1.ObjectFieldSelector": {
+      "type": "object",
+      "required": ["fieldPath"],
+      "properties": {
+        "apiVersion": {
+          "description": "Version of the schema the FieldPath is written in terms of, defaults to \"v1\".\n+optional",
+          "type": "string"
+        },
+        "fieldPath": {
+          "description": "Path of the field to select in the specified API version.",
+          "type": "string"
+        }
+      }
+    },
+    "v1.ResourceFieldSelector": {
+      "type": "object",
+      "required": ["resource"],
+      "properties": {
+        "containerName": {
+          "description": "Container name: required for volumes, optional for env vars\n+optional",
+          "type": "string"
+        },
+        "divisor": {
+          "description": "Specifies the output format of the exposed resources, defaults to \"1\"\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/resource.Quantity"
+            }
+          ]
+        },
+        "resource": {
+          "description": "Required: resource to select",
+          "type": "string"
+        }
+      }
+    },
     "v1.EmptyDirVolumeSource": {
       "type": "object",
       "properties": {
@@ -1832,12 +2112,6 @@
         }
       }
     },
-    "v1.ResourceList": {
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/$defs/resource.Quantity"
-      }
-    },
     "v1.PersistentVolumeMode": {
       "type": "string",
       "enum": ["Block", "Filesystem"],
@@ -2035,11 +2309,6 @@
           "type": "string"
         }
       }
-    },
-    "v1.PullPolicy": {
-      "type": "string",
-      "enum": ["Always", "Never", "IfNotPresent"],
-      "x-enum-varnames": ["PullAlways", "PullNever", "PullIfNotPresent"]
     },
     "v1.ISCSIVolumeSource": {
       "type": "object",
@@ -2568,749 +2837,25 @@
         }
       }
     },
-    "v1beta1.WorkspaceKindPodOptions": {
+    "v1beta1.WorkspaceKindMainContainer": {
       "type": "object",
-      "required": ["imageConfig", "podConfig"],
       "properties": {
-        "imageConfig": {
-          "description": "imageConfig options",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.ImageConfig"
-            }
-          ]
-        },
-        "podConfig": {
-          "description": "podConfig options",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.PodConfig"
-            }
-          ]
-        }
-      }
-    },
-    "v1beta1.ImageConfig": {
-      "type": "object",
-      "required": ["spawner", "values"],
-      "properties": {
-        "spawner": {
-          "description": "spawner ui configs",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.OptionsSpawnerConfig"
-            }
-          ]
-        },
-        "values": {
-          "description": "the list of image configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
+        "extraEnv": {
+          "description": "environment variables for the main container (MUTABLE)\n - spec for EnvVar:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvar-v1-core\n - the following go template functions are available:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
           "type": "array",
           "items": {
-            "$ref": "#/$defs/v1beta1.ImageConfigValue"
+            "$ref": "#/$defs/v1.EnvVar"
           }
-        }
-      }
-    },
-    "v1beta1.OptionsSpawnerConfig": {
-      "type": "object",
-      "required": ["default"],
-      "properties": {
-        "default": {
-          "description": "the id of the default option\n - this will be selected by default in the spawner ui\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"jupyterlab_scipy_190\"",
-          "type": "string"
-        }
-      }
-    },
-    "v1beta1.ImageConfigValue": {
-      "type": "object",
-      "required": ["id", "spawner", "spec"],
-      "properties": {
-        "id": {
-          "description": "the id of this image config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"",
-          "type": "string"
         },
-        "redirect": {
-          "description": "redirect configs\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.OptionRedirect"
-            }
-          ]
-        },
-        "spawner": {
-          "description": "information for the spawner ui",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.OptionSpawnerInfo"
-            }
-          ]
-        },
-        "spec": {
-          "description": "the spec of the image config",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.ImageConfigSpec"
-            }
-          ]
-        }
-      }
-    },
-    "v1beta1.OptionRedirect": {
-      "type": "object",
-      "required": ["to"],
-      "properties": {
-        "message": {
-          "description": "information about the redirect\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.RedirectMessage"
-            }
-          ]
-        },
-        "to": {
-          "description": "the id of the option to redirect to\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"",
-          "type": "string"
-        }
-      }
-    },
-    "v1beta1.RedirectMessage": {
-      "type": "object",
-      "required": ["level", "text"],
-      "properties": {
-        "level": {
-          "description": "the importance level of the message\n+kubebuilder:example:=\"Info\"",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.RedirectMessageLevel"
-            }
-          ]
-        },
-        "text": {
-          "description": "the text of the message to show\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024\n+kubebuilder:example:=\"This update will increase the version of JupyterLab to v1.7.1\"",
-          "type": "string"
-        }
-      }
-    },
-    "v1beta1.RedirectMessageLevel": {
-      "type": "string",
-      "enum": ["Info", "Warning", "Danger"],
-      "x-enum-varnames": [
-        "RedirectMessageLevelInfo",
-        "RedirectMessageLevelWarning",
-        "RedirectMessageLevelDanger"
-      ]
-    },
-    "v1beta1.OptionSpawnerInfo": {
-      "type": "object",
-      "required": ["displayName"],
-      "properties": {
-        "description": {
-          "description": "a description of the option\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024",
-          "type": "string"
-        },
-        "displayName": {
-          "description": "the display name of the option\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=128",
-          "type": "string"
-        },
-        "hidden": {
-          "description": "if this option should be hidden from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
-          "type": "boolean"
-        },
-        "labels": {
-          "description": "labels for the option\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MaxItems:=32\n+listType:=\"map\"\n+listMapKey:=\"key\"",
+        "extraVolumeMounts": {
+          "description": "extra volume mounts for the main container (MUTABLE)\n - spec for VolumeMount:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumemount-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
           "type": "array",
           "items": {
-            "$ref": "#/$defs/v1beta1.OptionSpawnerLabel"
-          }
-        }
-      }
-    },
-    "v1beta1.OptionSpawnerLabel": {
-      "type": "object",
-      "required": ["key", "value"],
-      "properties": {
-        "key": {
-          "description": "the key of the label\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64",
-          "type": "string"
-        },
-        "value": {
-          "description": "the value of the label\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=64",
-          "type": "string"
-        }
-      }
-    },
-    "v1beta1.ImageConfigSpec": {
-      "type": "object",
-      "required": ["image", "imagePullPolicy", "ports"],
-      "properties": {
-        "image": {
-          "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0\"",
-          "type": "string"
-        },
-        "imagePullPolicy": {
-          "description": "the pull policy for the container image\n+kubebuilder:validation:Optional\n+kubebuilder:default:=\"IfNotPresent\"\n+kubebuilder:validation:Enum:={\"Always\",\"IfNotPresent\",\"Never\"}",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.PullPolicy"
-            }
-          ]
-        },
-        "ports": {
-          "description": "ports that the container listens on\n  - if multiple ports are defined, the user will see multiple \"Connect\" buttons\n    in a dropdown menu on the Workspace overview page\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1beta1.ImagePort"
-          }
-        }
-      }
-    },
-    "v1beta1.ImagePort": {
-      "type": "object",
-      "required": ["id", "port"],
-      "properties": {
-        "displayName": {
-          "description": "the display name of the port\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+kubebuilder:validation:Optional",
-          "type": "string"
-        },
-        "id": {
-          "description": "the id of the port\n - this is NOT used as the Container or Service port name, but as part of the HTTP path\n+kubebuilder:example=\"jupyterlab\"",
-          "type": "string"
-        },
-        "port": {
-          "description": "the port number\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=65535\n+kubebuilder:example:=8888",
-          "type": "integer"
-        }
-      }
-    },
-    "v1beta1.PodConfig": {
-      "type": "object",
-      "required": ["spawner", "values"],
-      "properties": {
-        "spawner": {
-          "description": "spawner ui configs",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.OptionsSpawnerConfig"
-            }
-          ]
-        },
-        "values": {
-          "description": "the list of pod configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1beta1.PodConfigValue"
-          }
-        }
-      }
-    },
-    "v1beta1.PodConfigValue": {
-      "type": "object",
-      "required": ["id", "spawner", "spec"],
-      "properties": {
-        "id": {
-          "description": "the id of this pod config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"big_gpu\"",
-          "type": "string"
-        },
-        "redirect": {
-          "description": "redirect configs\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.OptionRedirect"
-            }
-          ]
-        },
-        "spawner": {
-          "description": "information for the spawner ui",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.OptionSpawnerInfo"
-            }
-          ]
-        },
-        "spec": {
-          "description": "the spec of the pod config",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.PodConfigSpec"
-            }
-          ]
-        }
-      }
-    },
-    "v1beta1.PodConfigSpec": {
-      "type": "object",
-      "properties": {
-        "affinity": {
-          "description": "affinity configs for the pod\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.Affinity"
-            }
-          ]
-        },
-        "nodeSelector": {
-          "description": "node selector configs for the pod\n+kubebuilder:validation:Optional",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
+            "$ref": "#/$defs/v1.VolumeMount"
           }
         },
-        "resources": {
-          "description": "resource configs for the \"main\" container in the pod\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.ResourceRequirements"
-            }
-          ]
-        },
-        "schedulerName": {
-          "description": "the name of the scheduler to use for the pod\n - this takes precedence over the `schedulerName` of the pod template\n - set this to \"default-scheduler\" to have this pod config use the\n   default Kubernetes scheduler, even if the pod template sets another one\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"volcano\"",
-          "type": "string"
-        },
-        "tolerations": {
-          "description": "toleration configs for the pod\n+kubebuilder:validation:Optional",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.Toleration"
-          }
-        }
-      }
-    },
-    "v1.Affinity": {
-      "type": "object",
-      "properties": {
-        "nodeAffinity": {
-          "description": "Describes node affinity scheduling rules for the pod.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.NodeAffinity"
-            }
-          ]
-        },
-        "podAffinity": {
-          "description": "Describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s)).\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.PodAffinity"
-            }
-          ]
-        },
-        "podAntiAffinity": {
-          "description": "Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s)).\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.PodAntiAffinity"
-            }
-          ]
-        }
-      }
-    },
-    "v1.NodeAffinity": {
-      "type": "object",
-      "properties": {
-        "preferredDuringSchedulingIgnoredDuringExecution": {
-          "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and adding\n\"weight\" to the sum if the node matches the corresponding matchExpressions; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.PreferredSchedulingTerm"
-          }
-        },
-        "requiredDuringSchedulingIgnoredDuringExecution": {
-          "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to an update), the system\nmay or may not try to eventually evict the pod from its node.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.NodeSelector"
-            }
-          ]
-        }
-      }
-    },
-    "v1.PreferredSchedulingTerm": {
-      "type": "object",
-      "required": ["preference", "weight"],
-      "properties": {
-        "preference": {
-          "description": "A node selector term, associated with the corresponding weight.",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.NodeSelectorTerm"
-            }
-          ]
-        },
-        "weight": {
-          "description": "Weight associated with matching the corresponding nodeSelectorTerm, in the range 1-100.",
-          "type": "integer"
-        }
-      }
-    },
-    "v1.NodeSelectorTerm": {
-      "type": "object",
-      "properties": {
-        "matchExpressions": {
-          "description": "A list of node selector requirements by node's labels.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.NodeSelectorRequirement"
-          }
-        },
-        "matchFields": {
-          "description": "A list of node selector requirements by node's fields.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.NodeSelectorRequirement"
-          }
-        }
-      }
-    },
-    "v1.NodeSelectorRequirement": {
-      "type": "object",
-      "required": ["key", "operator"],
-      "properties": {
-        "key": {
-          "description": "The label key that the selector applies to.",
-          "type": "string"
-        },
-        "operator": {
-          "description": "Represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.NodeSelectorOperator"
-            }
-          ]
-        },
-        "values": {
-          "description": "An array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. If the operator is Gt or Lt, the values\narray must have a single element, which will be interpreted as an integer.\nThis array is replaced during a strategic merge patch.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "v1.NodeSelectorOperator": {
-      "type": "string",
-      "enum": ["In", "NotIn", "Exists", "DoesNotExist", "Gt", "Lt"],
-      "x-enum-varnames": [
-        "NodeSelectorOpIn",
-        "NodeSelectorOpNotIn",
-        "NodeSelectorOpExists",
-        "NodeSelectorOpDoesNotExist",
-        "NodeSelectorOpGt",
-        "NodeSelectorOpLt"
-      ]
-    },
-    "v1.NodeSelector": {
-      "type": "object",
-      "required": ["nodeSelectorTerms"],
-      "properties": {
-        "nodeSelectorTerms": {
-          "description": "Required. A list of node selector terms. The terms are ORed.\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.NodeSelectorTerm"
-          }
-        }
-      }
-    },
-    "v1.PodAffinity": {
-      "type": "object",
-      "properties": {
-        "preferredDuringSchedulingIgnoredDuringExecution": {
-          "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and adding\n\"weight\" to the sum if the node has pods which matches the corresponding podAffinityTerm; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.WeightedPodAffinityTerm"
-          }
-        },
-        "requiredDuringSchedulingIgnoredDuringExecution": {
-          "description": "If the affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.PodAffinityTerm"
-          }
-        }
-      }
-    },
-    "v1.WeightedPodAffinityTerm": {
-      "type": "object",
-      "required": ["podAffinityTerm", "weight"],
-      "properties": {
-        "podAffinityTerm": {
-          "description": "Required. A pod affinity term, associated with the corresponding weight.",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.PodAffinityTerm"
-            }
-          ]
-        },
-        "weight": {
-          "description": "weight associated with matching the corresponding podAffinityTerm,\nin the range 1-100.",
-          "type": "integer"
-        }
-      }
-    },
-    "v1.PodAffinityTerm": {
-      "type": "object",
-      "required": ["topologyKey"],
-      "properties": {
-        "labelSelector": {
-          "description": "A label query over a set of resources, in this case pods.\nIf it's null, this PodAffinityTerm matches with no Pods.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.LabelSelector"
-            }
-          ]
-        },
-        "matchLabelKeys": {
-          "description": "MatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with `labelSelector` as `key in (value)`\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both matchLabelKeys and labelSelector.\nAlso, matchLabelKeys cannot be set when labelSelector isn't set.\n\n+listType=atomic\n+optional",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "mismatchLabelKeys": {
-          "description": "MismatchLabelKeys is a set of pod label keys to select which pods will\nbe taken into consideration. The keys are used to lookup values from the\nincoming pod labels, those key-value labels are merged with `labelSelector` as `key notin (value)`\nto select the group of existing pods which pods will be taken into consideration\nfor the incoming pod's pod (anti) affinity. Keys that don't exist in the incoming\npod labels will be ignored. The default value is empty.\nThe same key is forbidden to exist in both mismatchLabelKeys and labelSelector.\nAlso, mismatchLabelKeys cannot be set when labelSelector isn't set.\n\n+listType=atomic\n+optional",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "namespaceSelector": {
-          "description": "A label query over the set of namespaces that the term applies to.\nThe term is applied to the union of the namespaces selected by this field\nand the ones listed in the namespaces field.\nnull selector and null or empty namespaces list means \"this pod's namespace\".\nAn empty selector ({}) matches all namespaces.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.LabelSelector"
-            }
-          ]
-        },
-        "namespaces": {
-          "description": "namespaces specifies a static list of namespace names that the term applies to.\nThe term is applied to the union of the namespaces listed in this field\nand the ones selected by namespaceSelector.\nnull or empty namespaces list and null namespaceSelector means \"this pod's namespace\".\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "topologyKey": {
-          "description": "This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching\nthe labelSelector in the specified namespaces, where co-located is defined as running on a node\nwhose value of the label with key topologyKey matches that of any node on which any of the\nselected pods is running.\nEmpty topologyKey is not allowed.",
-          "type": "string"
-        }
-      }
-    },
-    "v1.PodAntiAffinity": {
-      "type": "object",
-      "properties": {
-        "preferredDuringSchedulingIgnoredDuringExecution": {
-          "description": "The scheduler will prefer to schedule pods to nodes that satisfy\nthe anti-affinity expressions specified by this field, but it may choose\na node that violates one or more of the expressions. The node that is\nmost preferred is the one with the greatest sum of weights, i.e.\nfor each node that meets all of the scheduling requirements (resource\nrequest, requiredDuringScheduling anti-affinity expressions, etc.),\ncompute a sum by iterating through the elements of this field and subtracting\n\"weight\" from the sum if the node has pods which matches the corresponding podAffinityTerm; the\nnode(s) with the highest sum are the most preferred.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.WeightedPodAffinityTerm"
-          }
-        },
-        "requiredDuringSchedulingIgnoredDuringExecution": {
-          "description": "If the anti-affinity requirements specified by this field are not met at\nscheduling time, the pod will not be scheduled onto the node.\nIf the anti-affinity requirements specified by this field cease to be met\nat some point during pod execution (e.g. due to a pod label update), the\nsystem may or may not try to eventually evict the pod from its node.\nWhen there are multiple elements, the lists of nodes corresponding to each\npodAffinityTerm are intersected, i.e. all terms must be satisfied.\n+optional\n+listType=atomic",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/v1.PodAffinityTerm"
-          }
-        }
-      }
-    },
-    "v1.ResourceRequirements": {
-      "type": "object",
-      "properties": {
-        "claims": {
-          "description": "Claims lists the names of resources, defined in spec.resourceClaims,\nthat are used by this container.\n\nThis field depends on the\nDynamicResourceAllocation feature gate.\n\nThis field is immutable. It can only be set for containers.\n\n+listType=map\n+listMapKey=name\n+featureGate=DynamicResourceAllocation\n+optional",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/k8s_io_api_core_v1.ResourceClaim"
-          }
-        },
-        "limits": {
-          "description": "Limits describes the maximum amount of compute resources allowed.\nMore info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.ResourceList"
-            }
-          ]
-        },
-        "requests": {
-          "description": "Requests describes the minimum amount of compute resources required.\nIf Requests is omitted for a container, it defaults to Limits if that is explicitly specified,\notherwise to an implementation-defined value. Requests cannot exceed Limits.\nMore info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.ResourceList"
-            }
-          ]
-        }
-      }
-    },
-    "k8s_io_api_core_v1.ResourceClaim": {
-      "type": "object",
-      "required": ["name"],
-      "properties": {
-        "name": {
-          "description": "Name must match the name of one entry in pod.spec.resourceClaims of\nthe Pod where this field is used. It makes that resource available\ninside a container.",
-          "type": "string"
-        },
-        "request": {
-          "description": "Request is the name chosen for a request in the referenced claim.\nIf empty, everything from the claim is made available, otherwise\nonly the result of this request.\n\n+optional",
-          "type": "string"
-        }
-      }
-    },
-    "v1.Toleration": {
-      "type": "object",
-      "properties": {
-        "effect": {
-          "description": "Effect indicates the taint effect to match. Empty means match all taint effects.\nWhen specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.TaintEffect"
-            }
-          ]
-        },
-        "key": {
-          "description": "Key is the taint key that the toleration applies to. Empty means match all taint keys.\nIf the key is empty, operator must be Exists; this combination means to match all values and all keys.\n+optional",
-          "type": "string"
-        },
-        "operator": {
-          "description": "Operator represents a key's relationship to the value.\nValid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.\nExists is equivalent to wildcard for value, so that a pod can\ntolerate all taints of a particular category.\nLt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).\n+optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.TolerationOperator"
-            }
-          ]
-        },
-        "tolerationSeconds": {
-          "description": "TolerationSeconds represents the period of time the toleration (which must be\nof effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,\nit is not set, which means tolerate the taint forever (do not evict). Zero and\nnegative values will be treated as 0 (evict immediately) by the system.\n+optional",
-          "type": "integer"
-        },
-        "value": {
-          "description": "Value is the taint value the toleration matches to.\nIf the operator is Exists, the value should be empty, otherwise just a regular string.\n+optional",
-          "type": "string"
-        }
-      }
-    },
-    "v1.TaintEffect": {
-      "type": "string",
-      "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"],
-      "x-enum-varnames": [
-        "TaintEffectNoSchedule",
-        "TaintEffectPreferNoSchedule",
-        "TaintEffectNoExecute"
-      ]
-    },
-    "v1.TolerationOperator": {
-      "type": "string",
-      "enum": ["Exists", "Equal", "Lt", "Gt"],
-      "x-enum-varnames": [
-        "TolerationOpExists",
-        "TolerationOpEqual",
-        "TolerationOpLt",
-        "TolerationOpGt"
-      ]
-    },
-    "v1beta1.WorkspaceKindPodMetadata": {
-      "type": "object",
-      "properties": {
-        "annotations": {
-          "description": "annotations to be applied to the Pod resource\n+kubebuilder:validation:Optional",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "labels": {
-          "description": "labels to be applied to the Pod resource\n+kubebuilder:validation:Optional",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "v1beta1.WorkspaceKindPort": {
-      "type": "object",
-      "required": ["defaultDisplayName", "id", "protocol"],
-      "properties": {
-        "defaultDisplayName": {
-          "description": "the default display name of the port\n- note, this can be overridden on a per image config value basis\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+kubebuilder:example:=\"JupyterLab\"",
-          "type": "string"
-        },
-        "httpProxy": {
-          "description": "the http proxy config for the port (MUTABLE)\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.HTTPProxy"
-            }
-          ]
-        },
-        "id": {
-          "description": "the id of the port\n- identifier for the port in `imageconfig` ports.[].id\n+kubebuilder:example=\"jupyterlab\"",
-          "type": "string"
-        },
-        "protocol": {
-          "description": "the protocol of the port\n+kubebuilder:example:=\"HTTP\"",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.ImagePortProtocol"
-            }
-          ]
-        }
-      }
-    },
-    "v1beta1.HTTPProxy": {
-      "type": "object",
-      "properties": {
-        "removePathPrefix": {
-          "description": "if the path prefix is stripped from incoming HTTP requests\n - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix\n   is stripped from incoming requests, the application sees the request\n   as if it was made to '/...'\n - this only works if the application serves RELATIVE URLs for its assets\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
-          "type": "boolean"
-        },
-        "requestHeaders": {
-          "description": "header manipulation rules for incoming HTTP requests\n - sets the `spec.http[].headers.request` of the Istio VirtualService\n   https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.IstioHeaderOperations"
-            }
-          ]
-        }
-      }
-    },
-    "v1beta1.IstioHeaderOperations": {
-      "type": "object",
-      "properties": {
-        "add": {
-          "description": "append the given values to the headers specified by keys (will create a comma-separated list of values)\n - the following go template functions are available in the values:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"My-Header\": \"value-to-append\" }",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        },
-        "remove": {
-          "description": "remove the specified headers\n+kubebuilder:validation:Optional\n+kubebuilder:example:={\"Header-To-Remove\"}",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "set": {
-          "description": "overwrite the headers specified by key with the given values\n - the following go template functions are available in the values:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ httpPathPrefix 'rstudio' }}\" }",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "v1beta1.ImagePortProtocol": {
-      "type": "string",
-      "enum": ["HTTP"],
-      "x-enum-varnames": ["ImagePortProtocolHTTP"]
-    },
-    "v1beta1.WorkspaceKindProbes": {
-      "type": "object",
-      "properties": {
         "livenessProbe": {
-          "description": "the liveness probe for the main container\n+kubebuilder:validation:Optional",
+          "description": "the liveness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core\n+kubebuilder:validation:Optional",
           "allOf": [
             {
               "$ref": "#/$defs/v1.Probe"
@@ -3318,15 +2863,23 @@
           ]
         },
         "readinessProbe": {
-          "description": "the readiness probe for the main container\n+kubebuilder:validation:Optional",
+          "description": "the readiness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core\n+kubebuilder:validation:Optional",
           "allOf": [
             {
               "$ref": "#/$defs/v1.Probe"
             }
           ]
         },
+        "securityContext": {
+          "description": "container security context for the main container (MUTABLE)\n - spec for SecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#securitycontext-v1-core\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.SecurityContext"
+            }
+          ]
+        },
         "startupProbe": {
-          "description": "the startup probe for the main container\n+kubebuilder:validation:Optional",
+          "description": "the startup probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core\n+kubebuilder:validation:Optional",
           "allOf": [
             {
               "$ref": "#/$defs/v1.Probe"
@@ -3334,6 +2887,191 @@
           ]
         }
       }
+    },
+    "v1.EnvVar": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "description": "Name of the environment variable.\nMay consist of any printable ASCII characters except '='.",
+          "type": "string"
+        },
+        "value": {
+          "description": "Variable references $(VAR_NAME) are expanded\nusing the previously defined environment variables in the container and\nany service environment variables. If a variable cannot be resolved,\nthe reference in the input string will be unchanged. Double $$ are reduced\nto a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.\n\"$$(VAR_NAME)\" will produce the string literal \"$(VAR_NAME)\".\nEscaped references will never be expanded, regardless of whether the variable\nexists or not.\nDefaults to \"\".\n+optional",
+          "type": "string"
+        },
+        "valueFrom": {
+          "description": "Source for the environment variable's value. Cannot be used if value is not empty.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.EnvVarSource"
+            }
+          ]
+        }
+      }
+    },
+    "v1.EnvVarSource": {
+      "type": "object",
+      "properties": {
+        "configMapKeyRef": {
+          "description": "Selects a key of a ConfigMap.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.ConfigMapKeySelector"
+            }
+          ]
+        },
+        "fieldRef": {
+          "description": "Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,\nspec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.ObjectFieldSelector"
+            }
+          ]
+        },
+        "fileKeyRef": {
+          "description": "FileKeyRef selects a key of the env file.\nRequires the EnvFiles feature gate to be enabled.\n\n+featureGate=EnvFiles\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.FileKeySelector"
+            }
+          ]
+        },
+        "resourceFieldRef": {
+          "description": "Selects a resource of the container: only resources limits and requests\n(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.ResourceFieldSelector"
+            }
+          ]
+        },
+        "secretKeyRef": {
+          "description": "Selects a key of a secret in the pod's namespace\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.SecretKeySelector"
+            }
+          ]
+        }
+      }
+    },
+    "v1.ConfigMapKeySelector": {
+      "type": "object",
+      "required": ["key"],
+      "properties": {
+        "key": {
+          "description": "The key to select.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+          "type": "string"
+        },
+        "optional": {
+          "description": "Specify whether the ConfigMap or its key must be defined\n+optional",
+          "type": "boolean"
+        }
+      }
+    },
+    "v1.FileKeySelector": {
+      "type": "object",
+      "required": ["key", "path", "volumeName"],
+      "properties": {
+        "key": {
+          "description": "The key within the env file. An invalid key will prevent the pod from starting.\nThe keys defined within a source may consist of any printable ASCII characters except '='.\nDuring Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.\n+required",
+          "type": "string"
+        },
+        "optional": {
+          "description": "Specify whether the file or its key must be defined. If the file or key\ndoes not exist, then the env var is not published.\nIf optional is set to true and the specified key does not exist,\nthe environment variable will not be set in the Pod's containers.\n\nIf optional is set to false and the specified key does not exist,\nan error will be returned during Pod creation.\n+optional\n+default=false",
+          "type": "boolean"
+        },
+        "path": {
+          "description": "The path within the volume from which to select the file.\nMust be relative and may not contain the '..' path or start with '..'.\n+required",
+          "type": "string"
+        },
+        "volumeName": {
+          "description": "The name of the volume mount containing the env file.\n+required",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SecretKeySelector": {
+      "type": "object",
+      "required": ["key"],
+      "properties": {
+        "key": {
+          "description": "The key of the secret to select from.  Must be a valid secret key.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Name of the referent.\nThis field is effectively required, but due to backwards compatibility is\nallowed to be empty. Instances of this type with an empty value here are\nalmost certainly wrong.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional\n+default=\"\"\n+kubebuilder:default=\"\"\nTODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.",
+          "type": "string"
+        },
+        "optional": {
+          "description": "Specify whether the Secret or its key must be defined\n+optional",
+          "type": "boolean"
+        }
+      }
+    },
+    "v1.VolumeMount": {
+      "type": "object",
+      "required": ["mountPath", "name"],
+      "properties": {
+        "mountPath": {
+          "description": "Path within the container at which the volume should be mounted.  Must\nnot contain ':'.",
+          "type": "string"
+        },
+        "mountPropagation": {
+          "description": "mountPropagation determines how mounts are propagated from the host\nto container and the other way around.\nWhen not set, MountPropagationNone is used.\nThis field is beta in 1.10.\nWhen RecursiveReadOnly is set to IfPossible or to Enabled, MountPropagation must be None or unspecified\n(which defaults to None).\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.MountPropagationMode"
+            }
+          ]
+        },
+        "name": {
+          "description": "This must match the Name of a Volume.",
+          "type": "string"
+        },
+        "readOnly": {
+          "description": "Mounted read-only if true, read-write otherwise (false or unspecified).\nDefaults to false.\n+optional",
+          "type": "boolean"
+        },
+        "recursiveReadOnly": {
+          "description": "RecursiveReadOnly specifies whether read-only mounts should be handled\nrecursively.\n\nIf ReadOnly is false, this field has no meaning and must be unspecified.\n\nIf ReadOnly is true, and this field is set to Disabled, the mount is not made\nrecursively read-only.  If this field is set to IfPossible, the mount is made\nrecursively read-only, if it is supported by the container runtime.  If this\nfield is set to Enabled, the mount is made recursively read-only if it is\nsupported by the container runtime, otherwise the pod will not be started and\nan error will be generated to indicate the reason.\n\nIf this field is set to IfPossible or Enabled, MountPropagation must be set to\nNone (or be unspecified, which defaults to None).\n\nIf this field is not specified, it is treated as an equivalent of Disabled.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.RecursiveReadOnlyMode"
+            }
+          ]
+        },
+        "subPath": {
+          "description": "Path within the volume from which the container's volume should be mounted.\nDefaults to \"\" (volume's root).\n+optional",
+          "type": "string"
+        },
+        "subPathExpr": {
+          "description": "Expanded path within the volume from which the container's volume should be mounted.\nBehaves similarly to SubPath but environment variable references $(VAR_NAME) are expanded using the container's environment.\nDefaults to \"\" (volume's root).\nSubPathExpr and SubPath are mutually exclusive.\n+optional",
+          "type": "string"
+        }
+      }
+    },
+    "v1.MountPropagationMode": {
+      "type": "string",
+      "enum": ["None", "HostToContainer", "Bidirectional"],
+      "x-enum-varnames": [
+        "MountPropagationNone",
+        "MountPropagationHostToContainer",
+        "MountPropagationBidirectional"
+      ]
+    },
+    "v1.RecursiveReadOnlyMode": {
+      "type": "string",
+      "enum": ["Disabled", "IfPossible", "Enabled"],
+      "x-enum-varnames": [
+        "RecursiveReadOnlyDisabled",
+        "RecursiveReadOnlyIfPossible",
+        "RecursiveReadOnlyEnabled"
+      ]
     },
     "v1.Probe": {
       "type": "object",
@@ -3522,6 +3260,203 @@
         }
       }
     },
+    "v1.SecurityContext": {
+      "type": "object",
+      "properties": {
+        "allowPrivilegeEscalation": {
+          "description": "AllowPrivilegeEscalation controls whether a process can gain more\nprivileges than its parent process. This bool directly controls if\nthe no_new_privs flag will be set on the container process.\nAllowPrivilegeEscalation is true always when the container is:\n1) run as Privileged\n2) has CAP_SYS_ADMIN\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "type": "boolean"
+        },
+        "appArmorProfile": {
+          "description": "appArmorProfile is the AppArmor options to use by this container. If set, this profile\noverrides the pod's appArmorProfile.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.AppArmorProfile"
+            }
+          ]
+        },
+        "capabilities": {
+          "description": "The capabilities to add/drop when running containers.\nDefaults to the default set of capabilities granted by the container runtime.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.Capabilities"
+            }
+          ]
+        },
+        "privileged": {
+          "description": "Run container in privileged mode.\nProcesses in privileged containers are essentially equivalent to root on the host.\nDefaults to false.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "type": "boolean"
+        },
+        "procMount": {
+          "description": "procMount denotes the type of proc mount to use for the containers.\nThe default value is Default which uses the container runtime defaults for\nreadonly paths and masked paths.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.ProcMountType"
+            }
+          ]
+        },
+        "readOnlyRootFilesystem": {
+          "description": "Whether this container has a read-only root filesystem.\nDefault is false.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "type": "boolean"
+        },
+        "runAsGroup": {
+          "description": "The GID to run the entrypoint of the container process.\nUses runtime default if unset.\nMay also be set in PodSecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "type": "integer"
+        },
+        "runAsNonRoot": {
+          "description": "Indicates that the container must run as a non-root user.\nIf true, the Kubelet will validate the image at runtime to ensure that it\ndoes not run as UID 0 (root) and fail to start the container if it does.\nIf unset or false, no such validation will be performed.\nMay also be set in PodSecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\n+optional",
+          "type": "boolean"
+        },
+        "runAsUser": {
+          "description": "The UID to run the entrypoint of the container process.\nDefaults to user specified in image metadata if unspecified.\nMay also be set in PodSecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "type": "integer"
+        },
+        "seLinuxOptions": {
+          "description": "The SELinux context to be applied to the container.\nIf unspecified, the container runtime will allocate a random SELinux context for each\ncontainer.  May also be set in PodSecurityContext.  If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.SELinuxOptions"
+            }
+          ]
+        },
+        "seccompProfile": {
+          "description": "The seccomp options to use by this container. If seccomp options are\nprovided at both the pod & container level, the container options\noverride the pod options.\nNote that this field cannot be set when spec.os.name is windows.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.SeccompProfile"
+            }
+          ]
+        },
+        "windowsOptions": {
+          "description": "The Windows specific settings applied to all containers.\nIf unspecified, the options from the PodSecurityContext will be used.\nIf set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.\nNote that this field cannot be set when spec.os.name is linux.\n+optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.WindowsSecurityContextOptions"
+            }
+          ]
+        }
+      }
+    },
+    "v1.AppArmorProfile": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "localhostProfile": {
+          "description": "localhostProfile indicates a profile loaded on the node that should be used.\nThe profile must be preconfigured on the node to work.\nMust match the loaded name of the profile.\nMust be set if and only if type is \"Localhost\".\n+optional",
+          "type": "string"
+        },
+        "type": {
+          "description": "type indicates which kind of AppArmor profile will be applied.\nValid options are:\n  Localhost - a profile pre-loaded on the node.\n  RuntimeDefault - the container runtime's default profile.\n  Unconfined - no AppArmor enforcement.\n+unionDiscriminator",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.AppArmorProfileType"
+            }
+          ]
+        }
+      }
+    },
+    "v1.AppArmorProfileType": {
+      "type": "string",
+      "enum": ["Unconfined", "RuntimeDefault", "Localhost"],
+      "x-enum-varnames": [
+        "AppArmorProfileTypeUnconfined",
+        "AppArmorProfileTypeRuntimeDefault",
+        "AppArmorProfileTypeLocalhost"
+      ]
+    },
+    "v1.Capabilities": {
+      "type": "object",
+      "properties": {
+        "add": {
+          "description": "Added capabilities\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "drop": {
+          "description": "Removed capabilities\n+optional\n+listType=atomic",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1.ProcMountType": {
+      "type": "string",
+      "enum": ["Default", "Unmasked"],
+      "x-enum-varnames": ["DefaultProcMount", "UnmaskedProcMount"]
+    },
+    "v1.SELinuxOptions": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "description": "Level is SELinux level label that applies to the container.\n+optional",
+          "type": "string"
+        },
+        "role": {
+          "description": "Role is a SELinux role label that applies to the container.\n+optional",
+          "type": "string"
+        },
+        "type": {
+          "description": "Type is a SELinux type label that applies to the container.\n+optional",
+          "type": "string"
+        },
+        "user": {
+          "description": "User is a SELinux user label that applies to the container.\n+optional",
+          "type": "string"
+        }
+      }
+    },
+    "v1.SeccompProfile": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "localhostProfile": {
+          "description": "localhostProfile indicates a profile defined in a file on the node should be used.\nThe profile must be preconfigured on the node to work.\nMust be a descending path, relative to the kubelet's configured seccomp profile location.\nMust be set if type is \"Localhost\". Must NOT be set for any other type.\n+optional",
+          "type": "string"
+        },
+        "type": {
+          "description": "type indicates which kind of seccomp profile will be applied.\nValid options are:\n\nLocalhost - a profile defined in a file on the node should be used.\nRuntimeDefault - the container runtime default profile should be used.\nUnconfined - no profile should be applied.\n+unionDiscriminator",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1.SeccompProfileType"
+            }
+          ]
+        }
+      }
+    },
+    "v1.SeccompProfileType": {
+      "type": "string",
+      "enum": ["Unconfined", "RuntimeDefault", "Localhost"],
+      "x-enum-varnames": [
+        "SeccompProfileTypeUnconfined",
+        "SeccompProfileTypeRuntimeDefault",
+        "SeccompProfileTypeLocalhost"
+      ]
+    },
+    "v1.WindowsSecurityContextOptions": {
+      "type": "object",
+      "properties": {
+        "gmsaCredentialSpec": {
+          "description": "GMSACredentialSpec is where the GMSA admission webhook\n(https://github.com/kubernetes-sigs/windows-gmsa) inlines the contents of the\nGMSA credential spec named by the GMSACredentialSpecName field.\n+optional",
+          "type": "string"
+        },
+        "gmsaCredentialSpecName": {
+          "description": "GMSACredentialSpecName is the name of the GMSA credential spec to use.\n+optional",
+          "type": "string"
+        },
+        "hostProcess": {
+          "description": "HostProcess determines if a container should be run as a 'Host Process' container.\nAll of a Pod's containers must have the same effective HostProcess value\n(it is not allowed to have a mix of HostProcess containers and non-HostProcess containers).\nIn addition, if HostProcess is true then HostNetwork must also be set to true.\n+optional",
+          "type": "boolean"
+        },
+        "runAsUserName": {
+          "description": "The UserName in Windows to run the entrypoint of the container process.\nDefaults to the user specified in image metadata if unspecified.\nMay also be set in PodSecurityContext. If set in both SecurityContext and\nPodSecurityContext, the value specified in SecurityContext takes precedence.\n+optional",
+          "type": "string"
+        }
+      }
+    },
     "v1.PodSecurityContext": {
       "type": "object",
       "properties": {
@@ -3642,6 +3577,84 @@
         }
       }
     },
+    "v1beta1.WorkspaceKindPort": {
+      "type": "object",
+      "required": ["defaultDisplayName", "id", "protocol"],
+      "properties": {
+        "defaultDisplayName": {
+          "description": "the default display name of the port\n- note, this can be overridden on a per image config value basis\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+kubebuilder:example:=\"JupyterLab\"",
+          "type": "string"
+        },
+        "httpProxy": {
+          "description": "the http proxy config for the port (MUTABLE)\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.HTTPProxy"
+            }
+          ]
+        },
+        "id": {
+          "description": "the id of the port\n- identifier for the port in `imageconfig` ports.[].id\n+kubebuilder:example=\"jupyterlab\"",
+          "type": "string"
+        },
+        "protocol": {
+          "description": "the protocol of the port\n+kubebuilder:example:=\"HTTP\"",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.ImagePortProtocol"
+            }
+          ]
+        }
+      }
+    },
+    "v1beta1.HTTPProxy": {
+      "type": "object",
+      "properties": {
+        "removePathPrefix": {
+          "description": "if the path prefix is stripped from incoming HTTP requests\n - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix\n   is stripped from incoming requests, the application sees the request\n   as if it was made to '/...'\n - this only works if the application serves RELATIVE URLs for its assets\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+          "type": "boolean"
+        },
+        "requestHeaders": {
+          "description": "header manipulation rules for incoming HTTP requests\n - sets the `spec.http[].headers.request` of the Istio VirtualService\n   https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations\n+kubebuilder:validation:Optional",
+          "allOf": [
+            {
+              "$ref": "#/$defs/v1beta1.IstioHeaderOperations"
+            }
+          ]
+        }
+      }
+    },
+    "v1beta1.IstioHeaderOperations": {
+      "type": "object",
+      "properties": {
+        "add": {
+          "description": "append the given values to the headers specified by keys (will create a comma-separated list of values)\n - the following go template functions are available in the values:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"My-Header\": \"value-to-append\" }",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "remove": {
+          "description": "remove the specified headers\n+kubebuilder:validation:Optional\n+kubebuilder:example:={\"Header-To-Remove\"}",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "set": {
+          "description": "overwrite the headers specified by key with the given values\n - the following go template functions are available in the values:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ httpPathPrefix 'rstudio' }}\" }",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "v1beta1.ImagePortProtocol": {
+      "type": "string",
+      "enum": ["HTTP"],
+      "x-enum-varnames": ["ImagePortProtocolHTTP"]
+    },
     "v1beta1.WorkspaceKindServiceAccount": {
       "type": "object",
       "properties": {
@@ -3683,7 +3696,7 @@
         }
       }
     },
-    "v1beta1.WorkspaceKindVolumeMounts": {
+    "v1beta1.WorkspaceKindVolumeMountPaths": {
       "type": "object",
       "required": ["home"],
       "properties": {
