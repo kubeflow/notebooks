@@ -1,3 +1,5 @@
+import { assertSecretModalErrorInFooter } from '~/__tests__/cypress/cypress/pages/components/secretModalFooter';
+
 class RedirectConfirmModal {
   find() {
     return cy.findByTestId('redirect-confirm-modal');
@@ -470,6 +472,10 @@ class SecretsCreateModal {
     return this.findSecretNameInput().clear().type(name);
   }
 
+  appendToSecretName(value: string) {
+    return this.findSecretNameInput().type(value);
+  }
+
   assertSecretNameValue(value: string) {
     return this.findSecretNameInput().should('have.value', value);
   }
@@ -572,6 +578,10 @@ class SecretsCreateModal {
 
   assertErrorAlertNotExists() {
     return this.findErrorAlert().should('not.exist');
+  }
+
+  assertErrorAlertInFooter() {
+    return assertSecretModalErrorInFooter(this.findErrorAlert());
   }
 
   findHelperText() {

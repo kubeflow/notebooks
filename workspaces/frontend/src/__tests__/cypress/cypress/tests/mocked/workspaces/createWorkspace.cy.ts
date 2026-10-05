@@ -1224,6 +1224,32 @@ describe('Create workspace', () => {
 
         secretsCreateModal.assertErrorAlertContainsMessage('Duplicate keys are not allowed');
       });
+
+      it('should show the validation error in the modal footer, next to the action buttons', () => {
+        openSecretsCreationModal();
+
+        secretsCreateModal.clickCreate();
+
+        secretsCreateModal.assertErrorAlertContainsMessage('Secret name is required');
+        secretsCreateModal.assertErrorAlertInFooter();
+      });
+
+      it('should update the validation error as the form is corrected, then clear it', () => {
+        openSecretsCreationModal();
+
+        // Nothing is shown before the first submit attempt
+        secretsCreateModal.assertErrorAlertNotExists();
+        secretsCreateModal.clickCreate();
+        secretsCreateModal.assertErrorAlertContainsMessage('Secret name is required');
+
+        // From then on the error follows the current values
+        secretsCreateModal.typeSecretName('valid-secret-name');
+        secretsCreateModal.assertErrorAlertContainsMessage('Key is required (pair 1)');
+        secretsCreateModal.typeKey(0, 'key1');
+        secretsCreateModal.assertErrorAlertContainsMessage('Value is required (pair 1)');
+        secretsCreateModal.typeValue(0, 'value1');
+        secretsCreateModal.assertErrorAlertNotExists();
+      });
     });
 
     describe('Key-value pairs management', () => {
@@ -1386,6 +1412,35 @@ describe('Create workspace', () => {
         // Error alert should be displayed (axios error message)
         secretsCreateModal.assertErrorAlertContainsMessage('Request failed with status code 409');
         // Modal should remain open
+        secretsCreateModal.assertModalExists();
+      });
+
+      it('should show a failed create in the modal footer and clear it once the form is edited', () => {
+        cy.interceptApi(
+          'POST /api/:apiVersion/secrets/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          {
+            error: {
+              code: '409',
+              message: 'Secret already exists',
+            },
+          },
+        ).as('createSecretError');
+
+        openSecretsCreationModal();
+
+        secretsCreateModal.typeSecretName('test-secret');
+        secretsCreateModal.typeKey(0, 'key1');
+        secretsCreateModal.typeValue(0, 'value1');
+        secretsCreateModal.clickCreate();
+        cy.wait('@createSecretError');
+
+        secretsCreateModal.assertErrorAlertContainsMessage('Request failed with status code 409');
+        secretsCreateModal.assertErrorAlertInFooter();
+
+        // Editing the form clears the failure from the last attempt; the modal stays open
+        secretsCreateModal.appendToSecretName('-2');
+        secretsCreateModal.assertErrorAlertNotExists();
         secretsCreateModal.assertModalExists();
       });
 
