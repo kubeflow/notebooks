@@ -134,5 +134,5 @@ check-kubectl: ## Verify that kubectl is available in PATH.
 clean: ## Remove downloaded tool binaries.
 	rm -rf $(LOCALBIN)
 	@echo "INFO: '$(LOCALBIN)' successfully cleaned."
-	rm -rf $(FRONTEND_ENV_LOCAL)
+	rm -f $(FRONTEND_ENV_LOCAL)
 	@echo "INFO: '$(FRONTEND_ENV_LOCAL)' successfully cleaned."

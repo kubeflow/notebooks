@@ -1,10 +1,11 @@
 import { defineConfig } from 'cypress';
-import { registerK8sTasks } from './cypress/support/tasks/k8s-client';
-import { registerSetupTasks } from './cypress/support/tasks/k8s-setup';
+import { registerK8sTasks } from './cypress/support/plugin/k8sClient';
+import { registerSetupTasks } from './cypress/support/plugin/k8sSetup';
+import { environment } from './cypress/support/environment';
 
 export default defineConfig({
   e2e: {
-    baseUrl: process.env.CYPRESS_BASE_URL || 'https://localhost:8443/workspaces',
+    baseUrl: environment.baseUrl,
     specPattern: 'cypress/tests/**/*.cy.ts',
     supportFile: 'cypress/support/e2e.ts',
     defaultCommandTimeout: 30_000,

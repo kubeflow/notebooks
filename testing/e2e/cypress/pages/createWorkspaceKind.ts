@@ -15,17 +15,17 @@ class CreateWorkspaceKindPage {
     return cy.findByTestId('submit-button');
   }
 
-  uploadYamlFile(filePath: string): void {
-    cy.readFile(filePath, 'utf-8').then((content: string) => {
-      this.findFileInput().selectFile(
-        {
-          contents: Cypress.Buffer.from(content),
-          fileName: 'workspace-kind.yaml',
-          mimeType: 'application/x-yaml',
-        },
-        { force: true },
-      );
-    });
+  uploadYaml(content: string): void {
+    this.findFileInput().selectFile(
+      {
+        contents: Cypress.Buffer.from(content),
+        fileName: 'workspace-kind.yaml',
+        mimeType: 'application/x-yaml',
+      },
+      // The real <input type="file"> is visually hidden behind PatternFly's styled
+      // FileUpload dropzone, so Cypress's actionability check needs bypassing.
+      { force: true },
+    );
   }
 
   clickSubmit(): void {

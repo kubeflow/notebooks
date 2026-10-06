@@ -4,13 +4,11 @@ class WorkspacesPage {
   }
 
   selectNamespace(namespace: string): void {
-    cy.get('.kubeflow-u-namespace-select').within(() => {
-      cy.get('button').first().click();
-    });
+    cy.get('#namespace-select-toggle').click();
     cy.get('.pf-v6-c-menu__list-item').contains(namespace).click();
   }
 
-  findCreateButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+  findCreateButton(): Cypress.Chainable<JQuery<HTMLButtonElement>> {
     return cy.contains('button', 'Create workspace');
   }
 

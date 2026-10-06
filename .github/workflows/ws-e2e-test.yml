@@ -18,6 +18,7 @@ jobs:
   e2e-test:
     runs-on: ubuntu-latest
     env:
+      # Colorize `cypress run` / chrome headless logs so CI output is readable.
       TERM: xterm-256color
     defaults:
       run:
@@ -56,7 +57,10 @@ jobs:
         if: failure()
         with:
           name: e2e-test-results
+          # Videos for passing specs are deleted by the `after:spec` hook in cypress.config.ts,
+          # so only the videos/screenshots relevant to the failure are uploaded here.
           path: |
             testing/e2e/cypress/videos/
             testing/e2e/cypress/screenshots/
           retention-days: 7
+          if-no-files-found: ignore

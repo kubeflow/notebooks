@@ -6,8 +6,14 @@ interface K8sResourceParams {
   name: string;
 }
 
+interface K8sFieldCondition {
+  path: string[];
+  value: unknown;
+}
+
 interface K8sWaitParams extends K8sResourceParams {
   timeoutMs?: number;
+  condition?: K8sFieldCondition;
 }
 
 export interface K8sResource {
@@ -25,6 +31,7 @@ declare global {
       k8sGet(params: K8sResourceParams): Chainable<K8sResource>;
       k8sDelete(params: K8sResourceParams): Chainable<null>;
       k8sWaitForResource(params: K8sWaitParams): Chainable<K8sResource>;
+      k8sWaitForDeletion(params: K8sResourceParams & { timeoutMs?: number }): Chainable<null>;
     }
   }
 }
@@ -39,6 +46,12 @@ Cypress.Commands.add('k8sDelete', (params: K8sResourceParams) =>
 
 Cypress.Commands.add('k8sWaitForResource', (params: K8sWaitParams) =>
   cy.task('k8sWaitForResource', params, { timeout: (params.timeoutMs ?? 60_000) + 10_000 }),
+);
+
+Cypress.Commands.add(
+  'k8sWaitForDeletion',
+  (params: K8sResourceParams & { timeoutMs?: number }) =>
+    cy.task('k8sWaitForDeletion', params, { timeout: (params.timeoutMs ?? 60_000) + 10_000 }),
 );
 
 export {};

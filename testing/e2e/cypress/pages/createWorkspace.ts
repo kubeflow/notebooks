@@ -17,7 +17,7 @@ class CreateWorkspacePage {
 
   // Step 1: Kind selection
   selectKind(kindName: string): void {
-    cy.get(`#${kindName.replace(/ /g, '-')}`).click();
+    cy.findByTestId(`kind-card-${kindName}`).click();
   }
 
   // Step 2: Image selection — selects the first visible card
@@ -32,7 +32,15 @@ class CreateWorkspacePage {
 
   // Step 4: Properties
   typeName(name: string): void {
-    cy.findByTestId('workspace-name').clear().type(name);
+    cy.findByTestId('workspace-display-name').clear().type(name);
+  }
+
+  // The resource name (the actual k8s object name) is auto-generated from the display name
+  // plus a random suffix unless explicitly edited here, so tests that need a deterministic,
+  // known resource name (e.g. to look up the CR afterwards) must set it explicitly.
+  setResourceName(name: string): void {
+    cy.findByTestId('workspace-resource-name-edit').click();
+    cy.findByTestId('workspace-resource-name-input').clear().type(name);
   }
 
   attachHomeVolume(pvcName: string): void {

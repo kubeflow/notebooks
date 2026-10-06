@@ -1,12 +1,10 @@
 import * as k8s from '@kubernetes/client-node';
 import * as fs from 'fs';
-import * as path from 'path';
+import { environment } from '../environment';
+import { controllerSampleYaml } from './paths';
+import { isConflictError, isNotFoundError } from './k8sErrors';
 
-const E2E_NAMESPACE = 'e2e-test';
-const CONTROLLER_SAMPLES = path.resolve(
-  __dirname,
-  '../../../../../workspaces/controller/manifests/kustomize/samples',
-);
+const E2E_NAMESPACE = environment.namespace;
 
 function getClients() {
   const kc = new k8s.KubeConfig();
@@ -16,22 +14,6 @@ function getClients() {
     rbac: kc.makeApiClient(k8s.RbacAuthorizationV1Api),
     custom: kc.makeApiClient(k8s.CustomObjectsApi),
   };
-}
-
-function isConflictError(err: unknown): boolean {
-  if (err instanceof Error && err.message.includes('HTTP-Code: 409')) {
-    return true;
-  }
-  const httpErr = err as { statusCode?: number };
-  return httpErr.statusCode === 409;
-}
-
-function isNotFoundError(err: unknown): boolean {
-  if (err instanceof Error && err.message.includes('HTTP-Code: 404')) {
-    return true;
-  }
-  const httpErr = err as { statusCode?: number };
-  return httpErr.statusCode === 404;
 }
 
 async function createIfNotExists<T>(
@@ -71,7 +53,7 @@ async function setupE2e(): Promise<null> {
   const { core, rbac, custom } = getClients();
 
   // 1. Namespace
-  await createIfNotExists('Namespace/e2e-test', () =>
+  await createIfNotExists(`Namespace/${E2E_NAMESPACE}`, () =>
     core.createNamespace({
       body: {
         metadata: {
@@ -166,7 +148,7 @@ async function setupE2e(): Promise<null> {
         subjects: [
           {
             kind: 'User',
-            name: 'admin@e2e.test',
+            name: environment.identities.admin,
             apiGroup: 'rbac.authorization.k8s.io',
           },
         ],
@@ -188,7 +170,7 @@ async function setupE2e(): Promise<null> {
           subjects: [
             {
               kind: 'User',
-              name: 'user@e2e.test',
+              name: environment.identities.user,
               apiGroup: 'rbac.authorization.k8s.io',
             },
           ],
@@ -210,7 +192,7 @@ async function setupE2e(): Promise<null> {
         subjects: [
           {
             kind: 'User',
-            name: 'user@e2e.test',
+            name: environment.identities.user,
             apiGroup: 'rbac.authorization.k8s.io',
           },
         ],
@@ -234,12 +216,12 @@ async function setupE2e(): Promise<null> {
   );
 
   // 6. PVC
-  await createIfNotExists('PVC/home-volume', () =>
+  await createIfNotExists(`PVC/${environment.baselinePvc}`, () =>
     core.createNamespacedPersistentVolumeClaim({
       namespace: E2E_NAMESPACE,
       body: {
         metadata: {
-          name: 'home-volume',
+          name: environment.baselinePvc,
           namespace: E2E_NAMESPACE,
           labels: { 'notebooks.kubeflow.org/can-mount': 'true' },
         },
@@ -251,19 +233,19 @@ async function setupE2e(): Promise<null> {
     }),
   );
 
-  // 7. JupyterLab WorkspaceKind (from controller sample)
-  const jupyterlabYaml = fs.readFileSync(
-    path.join(CONTROLLER_SAMPLES, 'jupyterlab_v1beta1_workspacekind.yaml'),
+  // 7. Baseline WorkspaceKind (from controller sample)
+  const baselineKindYaml = fs.readFileSync(
+    controllerSampleYaml(`${environment.baselineWorkspaceKind}_v1beta1_workspacekind.yaml`),
     'utf-8',
   );
-  const jupyterlabWk = k8s.loadYaml<Record<string, unknown>>(jupyterlabYaml);
+  const baselineKind = k8s.loadYaml<Record<string, unknown>>(baselineKindYaml);
 
-  await createIfNotExists('WorkspaceKind/jupyterlab', () =>
+  await createIfNotExists(`WorkspaceKind/${environment.baselineWorkspaceKind}`, () =>
     custom.createClusterCustomObject({
       group: 'kubeflow.org',
       version: 'v1beta1',
       plural: 'workspacekinds',
-      body: jupyterlabWk,
+      body: baselineKind,
     }),
   );
 
@@ -277,12 +259,12 @@ async function teardownE2e(): Promise<null> {
 
   // Delete in reverse order; namespace deletion cascades namespaced resources
 
-  await deleteIfExists('WorkspaceKind/jupyterlab', () =>
+  await deleteIfExists(`WorkspaceKind/${environment.baselineWorkspaceKind}`, () =>
     custom.deleteClusterCustomObject({
       group: 'kubeflow.org',
       version: 'v1beta1',
       plural: 'workspacekinds',
-      name: 'jupyterlab',
+      name: environment.baselineWorkspaceKind,
     }),
   );
 
@@ -313,7 +295,7 @@ async function teardownE2e(): Promise<null> {
     rbac.deleteClusterRole({ name: 'e2e-admin' }),
   );
 
-  await deleteIfExists('Namespace/e2e-test', () =>
+  await deleteIfExists(`Namespace/${E2E_NAMESPACE}`, () =>
     core.deleteNamespace({ name: E2E_NAMESPACE }),
   );
 
@@ -321,9 +303,18 @@ async function teardownE2e(): Promise<null> {
   return null;
 }
 
+// Reads a controller sample WorkspaceKind YAML's contents. This must run as a task (Node
+// context) rather than be called directly from spec/page-object code: `controllerSampleYaml()`
+// resolves a real filesystem path via `__dirname`, which webpack shims to `/` when bundling
+// spec code for the browser, silently breaking the path if called from there.
+async function readControllerSampleYaml(fileName: string): Promise<string> {
+  return fs.readFileSync(controllerSampleYaml(fileName), 'utf-8');
+}
+
 export function registerSetupTasks(on: Cypress.PluginEvents): void {
   on('task', {
     setupE2e,
     teardownE2e,
+    readControllerSampleYaml,
   });
 }
