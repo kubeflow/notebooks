@@ -165,7 +165,7 @@ spec:
                            - this PVC must already exist in the Namespace
                            - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
                            - the mount path is defined in the WorkspaceKind under
-                             `spec.podTemplate.volumeMounts.home`
+                             `spec.podTemplate.volumeMountPaths.home`
                         example: my-home-pvc
                         maxLength: 253
                         minLength: 1

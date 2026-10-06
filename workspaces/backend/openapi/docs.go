@@ -7285,21 +7285,21 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "extraEnv": {
-                    "description": "environment variables for the main container (MUTABLE)\n - spec for EnvVar:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvar-v1-core\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "environment variables for the main container (MUTABLE)\n - spec for EnvVar:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvar-v1-core\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.EnvVar"
                     }
                 },
                 "extraVolumeMounts": {
-                    "description": "extra volume mounts for the main container (MUTABLE)\n - spec for VolumeMount:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumemount-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
+                    "description": "extra volume mounts for the main container (MUTABLE)\n - spec for VolumeMount:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.VolumeMount"
                     }
                 },
                 "livenessProbe": {
-                    "description": "the liveness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "the liveness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Probe"
@@ -7307,7 +7307,7 @@ const docTemplate = `{
                     ]
                 },
                 "readinessProbe": {
-                    "description": "the readiness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "the readiness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Probe"
@@ -7315,7 +7315,7 @@ const docTemplate = `{
                     ]
                 },
                 "securityContext": {
-                    "description": "container security context for the main container (MUTABLE)\n - spec for SecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#securitycontext-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "container security context for the main container (MUTABLE)\n - spec for SecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.SecurityContext"
@@ -7323,7 +7323,7 @@ const docTemplate = `{
                     ]
                 },
                 "startupProbe": {
-                    "description": "the startup probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "the startup probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Probe"
@@ -7378,9 +7378,12 @@ const docTemplate = `{
         },
         "v1beta1.WorkspaceKindPodSpec": {
             "type": "object",
+            "required": [
+                "mainContainer"
+            ],
             "properties": {
                 "extraVolumes": {
-                    "description": "extra volumes for Workspace Pods (MUTABLE)\n - spec for Volume:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "extra volumes for Workspace Pods (MUTABLE)\n - spec for Volume:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.Volume"
@@ -7399,7 +7402,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "securityContext": {
-                    "description": "security context for Workspace Pods (MUTABLE)\n - spec for PodSecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podsecuritycontext-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "security context for Workspace Pods (MUTABLE)\n - spec for PodSecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.PodSecurityContext"
@@ -7412,6 +7415,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "options",
+                "podSpec",
                 "ports",
                 "volumeMountPaths"
             ],

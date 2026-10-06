@@ -82,7 +82,7 @@ type WorkspacePodVolumes struct {
 	//  - this PVC must already exist in the Namespace
 	//  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
 	//  - the mount path is defined in the WorkspaceKind under
-	//    `spec.podTemplate.volumeMounts.home`
+	//    `spec.podTemplate.volumeMountPaths.home`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253

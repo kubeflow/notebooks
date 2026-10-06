@@ -267,7 +267,7 @@ spec:
 
       ## security context for Workspace Pods (MUTABLE)
       ##  - spec for PodSecurityContext:
-      ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podsecuritycontext-v1-core
+      ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core
       ##
       securityContext:
         fsGroup: 100
@@ -276,7 +276,7 @@ spec:
 
       ## extra volumes for Workspace Pods (MUTABLE)
       ##  - spec for Volume:
-      ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core
+      ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core
       ##
       extraVolumes:
         - name: "dshm"
@@ -289,7 +289,7 @@ spec:
 
         ## container SecurityContext for the main container (MUTABLE)
         ##  - spec for SecurityContext:
-        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#securitycontext-v1-core
+        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core
         ##
         securityContext:
           allowPrivilegeEscalation: false
@@ -302,28 +302,28 @@ spec:
 
         ## startup probe for the main container (MUTABLE)
         ##  - spec for Probe:
-        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
         ##
         #startupProbe:
         #  ...
 
         ## liveness probe for the main container (MUTABLE)
         ##  - spec for Probe:
-        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
         ##
         #livenessProbe:
         #  ...
 
         ## readiness probe for the main container (MUTABLE)
         ##  - spec for Probe:
-        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
         ##
         #readinessProbe:
         #  ...
 
         ## environment variables for the main container (MUTABLE)
         ##  - spec for EnvVar:
-        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvar-v1-core
+        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvar-v1-core
         ##  - the following go template functions are available:
         ##      - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
         ##
@@ -337,7 +337,7 @@ spec:
 
         ## extra volume mounts for the main container (MUTABLE)
         ##  - spec for VolumeMount:
-        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumemount-v1-core
+        ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core
         ##
         extraVolumeMounts:
 

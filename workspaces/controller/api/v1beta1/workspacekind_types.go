@@ -256,7 +256,7 @@ type WorkspaceKindPodTemplate struct {
 	// podSpec groups Pod-level fields of the Workspace Pod, mirroring the
 	// shape of `corev1.PodSpec`.
 	// +kubebuilder:validation:Optional
-	PodSpec WorkspaceKindPodSpec `json:"podSpec,omitempty"`
+	PodSpec WorkspaceKindPodSpec `json:"podSpec"`
 
 	// volume mount paths used by the controller when assembling the Workspace Pod
 	VolumeMountPaths WorkspaceKindVolumeMountPaths `json:"volumeMountPaths"`
@@ -291,13 +291,13 @@ type WorkspaceKindPodSpec struct {
 
 	// security context for Workspace Pods (MUTABLE)
 	//  - spec for PodSecurityContext:
-	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podsecuritycontext-v1-core
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core
 	// +kubebuilder:validation:Optional
 	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
 
 	// extra volumes for Workspace Pods (MUTABLE)
 	//  - spec for Volume:
-	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core
 	// +kubebuilder:validation:Optional
 	// +listType:="map"
 	// +listMapKey:="name"
@@ -306,7 +306,7 @@ type WorkspaceKindPodSpec struct {
 	// mainContainer configures the "main" user container of the Workspace Pod, mirroring
 	// the shape of `corev1.Container`.
 	// +kubebuilder:validation:Optional
-	MainContainer WorkspaceKindMainContainer `json:"mainContainer,omitempty"`
+	MainContainer WorkspaceKindMainContainer `json:"mainContainer"`
 }
 
 // WorkspaceKindMainContainer groups container-level fields that apply to the
@@ -314,31 +314,31 @@ type WorkspaceKindPodSpec struct {
 type WorkspaceKindMainContainer struct {
 	// container security context for the main container (MUTABLE)
 	//  - spec for SecurityContext:
-	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#securitycontext-v1-core
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core
 	// +kubebuilder:validation:Optional
 	SecurityContext *v1.SecurityContext `json:"securityContext,omitempty"`
 
 	// the startup probe for the main container (MUTABLE)
 	//  - spec for Probe:
-	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
 	// +kubebuilder:validation:Optional
 	StartupProbe *v1.Probe `json:"startupProbe,omitempty"`
 
 	// the liveness probe for the main container (MUTABLE)
 	//  - spec for Probe:
-	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
 	// +kubebuilder:validation:Optional
 	LivenessProbe *v1.Probe `json:"livenessProbe,omitempty"`
 
 	// the readiness probe for the main container (MUTABLE)
 	//  - spec for Probe:
-	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
 	// +kubebuilder:validation:Optional
 	ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty"`
 
 	// environment variables for the main container (MUTABLE)
 	//  - spec for EnvVar:
-	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvar-v1-core
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvar-v1-core
 	//  - the following go template functions are available:
 	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	// +kubebuilder:validation:Optional
@@ -349,7 +349,7 @@ type WorkspaceKindMainContainer struct {
 
 	// extra volume mounts for the main container (MUTABLE)
 	//  - spec for VolumeMount:
-	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumemount-v1-core
+	//    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core
 	// +kubebuilder:validation:Optional
 	// +listType:="map"
 	// +listMapKey:="mountPath"

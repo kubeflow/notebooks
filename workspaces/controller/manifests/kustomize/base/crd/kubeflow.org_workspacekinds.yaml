@@ -1982,7 +1982,7 @@ spec:
                         description: |-
                           extra volumes for Workspace Pods (MUTABLE)
                            - spec for Volume:
-                             https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core
+                             https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core
                         items:
                           description: Volume represents a named volume in a pod that
                             may be accessed by any container in the pod.
@@ -3911,7 +3911,7 @@ spec:
                             description: |-
                               environment variables for the main container (MUTABLE)
                                - spec for EnvVar:
-                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvar-v1-core
+                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvar-v1-core
                                - the following go template functions are available:
                                   - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
                             example:
@@ -4080,7 +4080,7 @@ spec:
                             description: |-
                               extra volume mounts for the main container (MUTABLE)
                                - spec for VolumeMount:
-                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumemount-v1-core
+                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core
                             items:
                               description: VolumeMount describes a mounting of a Volume
                                 within a container.
@@ -4150,7 +4150,7 @@ spec:
                             description: |-
                               the liveness probe for the main container (MUTABLE)
                                - spec for Probe:
-                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
                             properties:
                               exec:
                                 description: Exec specifies a command to execute in
@@ -4307,7 +4307,7 @@ spec:
                             description: |-
                               the readiness probe for the main container (MUTABLE)
                                - spec for Probe:
-                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
                             properties:
                               exec:
                                 description: Exec specifies a command to execute in
@@ -4464,7 +4464,7 @@ spec:
                             description: |-
                               container security context for the main container (MUTABLE)
                                - spec for SecurityContext:
-                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#securitycontext-v1-core
+                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core
                             properties:
                               allowPrivilegeEscalation:
                                 description: |-
@@ -4658,7 +4658,7 @@ spec:
                             description: |-
                               the startup probe for the main container (MUTABLE)
                                - spec for Probe:
-                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core
+                                 https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
                             properties:
                               exec:
                                 description: Exec specifies a command to execute in
@@ -4827,7 +4827,7 @@ spec:
                         description: |-
                           security context for Workspace Pods (MUTABLE)
                            - spec for PodSecurityContext:
-                             https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podsecuritycontext-v1-core
+                             https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core
                         properties:
                           appArmorProfile:
                             description: |-
