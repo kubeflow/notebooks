@@ -63,7 +63,7 @@ var (
 // to know exists. DenyMessage is therefore only ever non-empty when Hidden is false.
 type WorkspaceKindRestrictedError struct {
 	Kind        string
-	Mutation    wsMutationType
+	mutation    wsMutationType
 	Hidden      bool
 	DenyMessage string
 }
@@ -73,7 +73,7 @@ func (e *WorkspaceKindRestrictedError) Error() string {
 	if e.Hidden {
 		suffix = "is hidden"
 	}
-	msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q %s", e.Mutation, e.Kind, suffix)
+	msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q %s", e.mutation, e.Kind, suffix)
 	if !e.Hidden && e.DenyMessage != "" {
 		msg = fmt.Sprintf("%s: %s", msg, e.DenyMessage)
 	}
@@ -353,7 +353,7 @@ func (r *WorkspaceRepository) enforceWorkspaceKindFilterRules(
 	if result.APIHide {
 		return &WorkspaceKindRestrictedError{
 			Kind:     workspaceKind.Name,
-			Mutation: mutation,
+			mutation: mutation,
 			Hidden:   true,
 		}
 	}
@@ -365,7 +365,7 @@ func (r *WorkspaceRepository) enforceWorkspaceKindFilterRules(
 		}
 		return &WorkspaceKindRestrictedError{
 			Kind:        workspaceKind.Name,
-			Mutation:    mutation,
+			mutation:    mutation,
 			DenyMessage: denyMsg,
 		}
 	}
