@@ -49,4 +49,32 @@ describe('RefreshCounter', () => {
     act(() => jest.advanceTimersByTime(1000));
     expect(getCountdownText()).toBe('Refreshing in 2 seconds...');
   });
+
+  it('calls onManualRefresh only for an explicit button click, never for the automatic countdown tick', () => {
+    const onRefresh = jest.fn();
+    const onManualRefresh = jest.fn();
+    render(
+      <RefreshCounter interval={3000} onRefresh={onRefresh} onManualRefresh={onManualRefresh} />,
+    );
+
+    act(() => jest.advanceTimersByTime(3000));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(onManualRefresh).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('workspace-refresh-now'));
+    expect(onRefresh).toHaveBeenCalledTimes(2);
+    expect(onManualRefresh).toHaveBeenCalledTimes(1);
+
+    act(() => jest.advanceTimersByTime(3000));
+    expect(onRefresh).toHaveBeenCalledTimes(3);
+    expect(onManualRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not throw when the button is clicked and onManualRefresh is not provided', () => {
+    const onRefresh = jest.fn();
+    render(<RefreshCounter interval={3000} onRefresh={onRefresh} />);
+
+    expect(() => fireEvent.click(screen.getByTestId('workspace-refresh-now'))).not.toThrow();
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
 });
