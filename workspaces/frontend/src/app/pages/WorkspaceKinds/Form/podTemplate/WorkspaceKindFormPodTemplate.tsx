@@ -8,14 +8,9 @@ import {
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
-import {
-  ActivityRuleEntry,
-  WorkspaceKindPodTemplateData,
-  WorkspacesPodVolumeMountValue,
-} from '~/app/types';
+import { ActivityRuleEntry, WorkspaceKindPodTemplateData } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
-import { WorkspaceFormPropertiesVolumes } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesVolumes';
 import { WorkspaceKindFormActivityRules } from '~/app/pages/WorkspaceKinds/Form/activityRules/WorkspaceKindFormActivityRules';
 
 interface WorkspaceKindFormPodTemplateProps {
@@ -32,7 +27,6 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
   updateActivityRules,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [volumes, setVolumes] = useState<WorkspacesPodVolumeMountValue[]>([]);
 
   const toggleActivityProbeEnabled = useCallback(
     (checked: boolean) => {
@@ -47,17 +41,6 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
           activityProbe: undefined,
         });
       }
-    },
-    [podTemplate, updatePodTemplate],
-  );
-
-  const handleVolumes = useCallback(
-    (newVolumes: WorkspacesPodVolumeMountValue[]) => {
-      setVolumes(newVolumes);
-      updatePodTemplate({
-        ...podTemplate,
-        extraVolumeMounts: newVolumes,
-      });
     },
     [podTemplate, updatePodTemplate],
   );
@@ -180,22 +163,6 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
               />
             </FormGroup>
           )}
-        </FormFieldGroup>
-        <FormFieldGroup
-          aria-label="Additional Volumes"
-          header={
-            <FormFieldGroupHeader
-              titleText={{
-                text: 'Additional Volumes',
-                id: 'workspace-kind-extra-volume',
-              }}
-              titleDescription={
-                <HelperText>Configure the paths to mount additional PVCs.</HelperText>
-              }
-            />
-          }
-        >
-          <WorkspaceFormPropertiesVolumes volumes={volumes} setVolumes={handleVolumes} />
         </FormFieldGroup>
       </Form>
     </ExpandableSection>
