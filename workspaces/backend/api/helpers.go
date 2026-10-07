@@ -140,23 +140,20 @@ func (a *App) IsEOFError(err error) bool {
 	return errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)
 }
 
-// IsSemanticError checks if the error is an instance of jsonv2.SemanticError representing a
-// JSON/Go type mismatch (e.g. a JSON string where a bool is expected).
-//
-// NOTE: encoding/json/v2 also reports rejected unknown object members (see
-// jsonv2.RejectUnknownMembers) as a SemanticError wrapping jsonv2.ErrUnknownName. We deliberately
-// exclude that case here so DecodeJSON falls through to its generic "error decoding JSON" error,
-// preserving the pre-migration behavior for unknown fields (previously a plain,
-// untyped error from json.Decoder.DisallowUnknownFields).
+// IsSemanticError checks if the error is an instance of jsonv2.SemanticError, i.e. a JSON/Go type
+// mismatch (e.g. a JSON string where a bool is expected) or a rejected unknown object member (see
+// jsonv2.RejectUnknownMembers, used by DecodeJSON) — both of which FieldErrorsFromSemanticError
+// can convert into field-level errors.
 func (a *App) IsSemanticError(err error) bool {
-	if _, ok := errors.AsType[*jsonv2.SemanticError](err); !ok {
-		return false
-	}
-	return !errors.Is(err, jsonv2.ErrUnknownName)
+	_, ok := errors.AsType[*jsonv2.SemanticError](err)
+	return ok
 }
 
 // FieldErrorsFromSemanticError converts a jsonv2.SemanticError into a field.ErrorList with a
-// single entry describing the type mismatch using user-friendly type names.
+// single entry: either an "unknown field" error (for a member rejected by
+// jsonv2.RejectUnknownMembers, including one that only differs by case, since encoding/json/v2
+// matches field names case-sensitively by default), or a type-mismatch error using user-friendly
+// type names.
 //
 // root must be the Go type that the JSON request body was decoded into (i.e. the type of the
 // value passed to DecodeJSON, with any top-level pointer removed), so that the error's JSON
@@ -167,6 +164,18 @@ func FieldErrorsFromSemanticError(err error, root reflect.Type) field.ErrorList 
 		return nil
 	}
 
+	// JSONPointer always points at the rejected member name itself (e.g. "/foo/bogus"), so
+	// fieldPath is never nil here: an unknown member can only occur within a JSON object, which
+	// means there is always at least one token (the member name) to report.
+	if errors.Is(err, jsonv2.ErrUnknownName) {
+		fieldPath := JSONPointerToFieldPath(root, semanticError.JSONPointer)
+		return field.ErrorList{
+			field.Invalid(fieldPath, nil, "unknown field"),
+		}
+	}
+
+	// NOTE: semanticError.GoType and semanticError.JSONKind are not meaningfully populated for
+	// jsonv2.ErrUnknownName errors (handled above), so they're only read here.
 	expectedType := goTypeToJSONTypeName(semanticError.GoType)
 	actualType := jsonKindToTypeName(semanticError.JSONKind)
 	detail := fmt.Sprintf("got JSON %s, but field requires %s", actualType, expectedType)

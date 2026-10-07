@@ -43,8 +43,8 @@ var _ = Describe("Helper Functions", func() {
 				&jsonv2.SemanticError{JSONPointer: "/data/paused", JSONKind: jsontext.KindString, GoType: reflect.TypeFor[bool]()}, true),
 			Entry("wrapped SemanticError",
 				fmt.Errorf("some wrapper: %w", &jsonv2.SemanticError{JSONPointer: "/data/paused", JSONKind: jsontext.KindString, GoType: reflect.TypeFor[bool]()}), true),
-			Entry("SemanticError wrapping ErrUnknownName is not treated as a semantic error",
-				&jsonv2.SemanticError{JSONPointer: "/data/extra", Err: jsonv2.ErrUnknownName}, false),
+			Entry("SemanticError wrapping ErrUnknownName (rejected unknown member)",
+				&jsonv2.SemanticError{JSONPointer: "/data/extra", Err: jsonv2.ErrUnknownName}, true),
 			Entry("generic error",
 				fmt.Errorf("some generic error"), false),
 			Entry("MaxBytesError",
@@ -131,6 +131,27 @@ var _ = Describe("Helper Functions", func() {
 				err:         &jsonv2.SemanticError{JSONPointer: "/data/podTemplate/options/imageConfig", JSONKind: jsontext.KindTrue, GoType: reflect.TypeFor[string]()},
 				expected: field.ErrorList{
 					field.TypeInvalid(field.NewPath("data").Child("podTemplate").Child("options").Child("imageConfig"), jsonTypeBoolean, "got JSON boolean, but field requires string"),
+				},
+			},
+			{
+				description: "should convert a rejected unknown member into an 'unknown field' error",
+				err:         &jsonv2.SemanticError{JSONPointer: "/data/bogus", Err: jsonv2.ErrUnknownName},
+				expected: field.ErrorList{
+					field.Invalid(field.NewPath("data").Child("bogus"), nil, "unknown field"),
+				},
+			},
+			{
+				description: "should convert a case-mismatched field name into an 'unknown field' error",
+				err:         &jsonv2.SemanticError{JSONPointer: "/data/Paused", Err: jsonv2.ErrUnknownName},
+				expected: field.ErrorList{
+					field.Invalid(field.NewPath("data").Child("Paused"), nil, "unknown field"),
+				},
+			},
+			{
+				description: "should report an unknown member nested under a struct field using its JSON Pointer",
+				err:         &jsonv2.SemanticError{JSONPointer: "/data/podTemplate/options/extra", Err: jsonv2.ErrUnknownName},
+				expected: field.ErrorList{
+					field.Invalid(field.NewPath("data").Child("podTemplate").Child("options").Child("extra"), nil, "unknown field"),
 				},
 			},
 		}
@@ -245,14 +266,13 @@ var _ = Describe("Helper Functions", func() {
 				errorSubstring: "error decoding JSON",
 			},
 			{
-				// NOTE: encoding/json/v2 reports rejected unknown members as a *jsonv2.SemanticError
-				// wrapping jsonv2.ErrUnknownName, but IsSemanticError deliberately excludes that case
-				// (see its doc comment), so DecodeJSON falls through to the generic decode error here,
-				// matching the pre-migration behavior for unknown fields.
-				description:      "should return a generic (non-semantic) error for unknown JSON fields",
+				// encoding/json/v2 reports rejected unknown members as a *jsonv2.SemanticError
+				// wrapping jsonv2.ErrUnknownName, which IsSemanticError now treats as a semantic
+				// error (see its doc comment), so callers can report it as a field-level error via
+				// FieldErrorsFromSemanticError instead of the generic decode error.
+				description:      "should return a SemanticError for unknown JSON fields",
 				body:             `{"name": "test", "paused": true, "extraField": "surprise"}`,
-				errorTypeCheckFn: func(a *App, err error) bool { return !a.IsSemanticError(err) },
-				errorSubstring:   "unknown object member",
+				errorTypeCheckFn: (*App).IsSemanticError,
 			},
 			{
 				// encoding/json/v2 matches JSON object names to struct fields case-sensitively by
@@ -260,8 +280,7 @@ var _ = Describe("Helper Functions", func() {
 				// rejected the same way as any other unknown member.
 				description:      "should treat a case-mismatched field name as an unknown member",
 				body:             `{"name": "test", "Paused": true}`,
-				errorTypeCheckFn: func(a *App, err error) bool { return !a.IsSemanticError(err) },
-				errorSubstring:   "unknown object member",
+				errorTypeCheckFn: (*App).IsSemanticError,
 			},
 			{
 				// encoding/json/v2 rejects duplicate object member names by default (v1 silently
