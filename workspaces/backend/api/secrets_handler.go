@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/julienschmidt/httprouter"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -176,8 +177,8 @@ func (a *App) CreateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		if a.IsUnmarshalTypeError(err) {
-			fieldErrs := FieldErrorsFromUnmarshalTypeError(err)
+		if a.IsSemanticError(err) {
+			fieldErrs := FieldErrorsFromSemanticError(err, reflect.TypeFor[SecretCreateEnvelope]())
 			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
 			return
 		}
@@ -294,8 +295,8 @@ func (a *App) UpdateSecretHandler(w http.ResponseWriter, r *http.Request, ps htt
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		if a.IsUnmarshalTypeError(err) {
-			fieldErrs := FieldErrorsFromUnmarshalTypeError(err)
+		if a.IsSemanticError(err) {
+			fieldErrs := FieldErrorsFromSemanticError(err, reflect.TypeFor[SecretEnvelope]())
 			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
 			return
 		}

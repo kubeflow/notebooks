@@ -17,7 +17,8 @@ limitations under the License.
 package api
 
 import (
-	"encoding/json"
+	"encoding/json/jsontext"
+	jsonv2 "encoding/json/v2"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -31,17 +32,19 @@ import (
 
 var _ = Describe("Helper Functions", func() {
 
-	Describe("IsUnmarshalTypeError", func() {
+	Describe("IsSemanticError", func() {
 		app := &App{}
 
-		DescribeTable("should correctly identify UnmarshalTypeError",
+		DescribeTable("should correctly identify SemanticError",
 			func(err error, expected bool) {
-				Expect(app.IsUnmarshalTypeError(err)).To(Equal(expected))
+				Expect(app.IsSemanticError(err)).To(Equal(expected))
 			},
-			Entry("direct UnmarshalTypeError",
-				&json.UnmarshalTypeError{Value: "string", Type: reflect.TypeFor[bool](), Field: "data.paused"}, true),
-			Entry("wrapped UnmarshalTypeError",
-				fmt.Errorf("some wrapper: %w", &json.UnmarshalTypeError{Value: "string", Type: reflect.TypeFor[bool](), Field: "data.paused"}), true),
+			Entry("direct SemanticError",
+				&jsonv2.SemanticError{JSONPointer: "/data/paused", JSONKind: jsontext.KindString, GoType: reflect.TypeFor[bool]()}, true),
+			Entry("wrapped SemanticError",
+				fmt.Errorf("some wrapper: %w", &jsonv2.SemanticError{JSONPointer: "/data/paused", JSONKind: jsontext.KindString, GoType: reflect.TypeFor[bool]()}), true),
+			Entry("SemanticError wrapping ErrUnknownName is not treated as a semantic error",
+				&jsonv2.SemanticError{JSONPointer: "/data/extra", Err: jsonv2.ErrUnknownName}, false),
 			Entry("generic error",
 				fmt.Errorf("some generic error"), false),
 			Entry("MaxBytesError",
@@ -49,7 +52,7 @@ var _ = Describe("Helper Functions", func() {
 		)
 	})
 
-	Describe("FieldErrorsFromUnmarshalTypeError", func() {
+	Describe("FieldErrorsFromSemanticError", func() {
 
 		type testCase struct {
 			description string
@@ -57,66 +60,84 @@ var _ = Describe("Helper Functions", func() {
 			expected    field.ErrorList
 		}
 
+		// root mirrors the shape of a typical request envelope: a top-level "data" struct
+		// field containing scalars, a slice, and a map.
+		type fieldErrorsFixtureData struct {
+			Paused      bool              `json:"paused"`
+			Name        string            `json:"name"`
+			AccessModes []string          `json:"accessModes"`
+			Contents    map[string]string `json:"contents"`
+			PodTemplate struct {
+				Options struct {
+					ImageConfig string `json:"imageConfig"`
+				} `json:"options"`
+			} `json:"podTemplate"`
+		}
+		type fieldErrorsFixtureEnvelope struct {
+			Data fieldErrorsFixtureData `json:"data"`
+		}
+		root := reflect.TypeFor[fieldErrorsFixtureEnvelope]()
+
 		testCases := []testCase{
 			{
-				description: "should return nil for a non-UnmarshalTypeError",
+				description: "should return nil for a non-SemanticError",
 				err:         fmt.Errorf("some generic error"),
 				expected:    nil,
 			},
 			{
 				description: "should convert string-for-bool type mismatch",
-				err:         &json.UnmarshalTypeError{Value: "string", Type: reflect.TypeFor[bool](), Field: "data.paused"},
+				err:         &jsonv2.SemanticError{JSONPointer: "/data/paused", JSONKind: jsontext.KindString, GoType: reflect.TypeFor[bool]()},
 				expected: field.ErrorList{
-					field.TypeInvalid(field.NewPath("data").Child("paused"), "string", "got JSON string, but field requires boolean"),
+					field.TypeInvalid(field.NewPath("data").Child("paused"), jsonTypeString, "got JSON string, but field requires boolean"),
 				},
 			},
 			{
 				description: "should convert number-for-string type mismatch",
-				err:         &json.UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[string](), Field: "data.name"},
+				err:         &jsonv2.SemanticError{JSONPointer: "/data/name", JSONKind: jsontext.KindNumber, GoType: reflect.TypeFor[string]()},
 				expected: field.ErrorList{
-					field.TypeInvalid(field.NewPath("data").Child("name"), "number", "got JSON number, but field requires string"),
+					field.TypeInvalid(field.NewPath("data").Child("name"), jsonTypeNumber, "got JSON number, but field requires string"),
 				},
 			},
 			{
 				description: "should convert string-for-array type mismatch",
-				err:         &json.UnmarshalTypeError{Value: "string", Type: reflect.TypeFor[[]string](), Field: "data.accessModes"},
+				err:         &jsonv2.SemanticError{JSONPointer: "/data/accessModes", JSONKind: jsontext.KindString, GoType: reflect.TypeFor[[]string]()},
 				expected: field.ErrorList{
-					field.TypeInvalid(field.NewPath("data").Child("accessModes"), "string", "got JSON string, but field requires array"),
+					field.TypeInvalid(field.NewPath("data").Child("accessModes"), jsonTypeString, "got JSON string, but field requires array"),
 				},
 			},
 			{
-				description: "should convert string-for-object type mismatch",
-				err:         &json.UnmarshalTypeError{Value: "string", Type: reflect.TypeFor[map[string]string](), Field: "data.contents"},
+				description: "should convert string-for-object (map) type mismatch",
+				err:         &jsonv2.SemanticError{JSONPointer: "/data/contents", JSONKind: jsontext.KindString, GoType: reflect.TypeFor[map[string]string]()},
 				expected: field.ErrorList{
-					field.TypeInvalid(field.NewPath("data").Child("contents"), "string", "got JSON string, but field requires object"),
+					field.TypeInvalid(field.NewPath("data").Child("contents"), jsonTypeString, "got JSON string, but field requires object"),
 				},
 			},
 			{
-				description: "should handle empty field path (top-level type mismatch)",
-				err:         &json.UnmarshalTypeError{Value: "string", Type: reflect.TypeFor[struct{}](), Field: ""},
+				description: "should handle an empty JSON Pointer (top-level type mismatch)",
+				err:         &jsonv2.SemanticError{JSONPointer: "", JSONKind: jsontext.KindString, GoType: reflect.TypeFor[fieldErrorsFixtureEnvelope]()},
 				expected: field.ErrorList{
-					{Type: field.ErrorTypeTypeInvalid, BadValue: "string", Detail: "got JSON string, but field requires object"},
+					{Type: field.ErrorTypeTypeInvalid, BadValue: jsonTypeString, Detail: "got JSON string, but field requires object"},
 				},
 			},
 			{
-				description: "should handle pointer types by dereferencing",
-				err:         &json.UnmarshalTypeError{Value: "number", Type: reflect.TypeFor[*bool](), Field: "data.paused"},
+				description: "should dereference a pointer GoType for the expected-type message",
+				err:         &jsonv2.SemanticError{JSONPointer: "/data/paused", JSONKind: jsontext.KindNumber, GoType: reflect.TypeFor[*bool]()},
 				expected: field.ErrorList{
-					field.TypeInvalid(field.NewPath("data").Child("paused"), "number", "got JSON number, but field requires boolean"),
+					field.TypeInvalid(field.NewPath("data").Child("paused"), jsonTypeNumber, "got JSON number, but field requires boolean"),
 				},
 			},
 			{
 				description: "should handle deeply nested field paths",
-				err:         &json.UnmarshalTypeError{Value: "bool", Type: reflect.TypeFor[string](), Field: "data.podTemplate.options.imageConfig"},
+				err:         &jsonv2.SemanticError{JSONPointer: "/data/podTemplate/options/imageConfig", JSONKind: jsontext.KindTrue, GoType: reflect.TypeFor[string]()},
 				expected: field.ErrorList{
-					field.TypeInvalid(field.NewPath("data").Child("podTemplate").Child("options").Child("imageConfig"), "bool", "got JSON bool, but field requires string"),
+					field.TypeInvalid(field.NewPath("data").Child("podTemplate").Child("options").Child("imageConfig"), jsonTypeBoolean, "got JSON boolean, but field requires string"),
 				},
 			},
 		}
 
 		for _, tc := range testCases {
 			It(tc.description, func() {
-				result := FieldErrorsFromUnmarshalTypeError(tc.err)
+				result := FieldErrorsFromSemanticError(tc.err, root)
 				if tc.expected == nil {
 					Expect(result).To(BeNil())
 				} else {
@@ -124,6 +145,62 @@ var _ = Describe("Helper Functions", func() {
 				}
 			})
 		}
+	})
+
+	Describe("JSONPointerToFieldPath", func() {
+		// fixtures mirror a request body with a struct field, a nested struct, a slice of
+		// structs, and a map of structs, so each walker branch (struct/slice/map) is exercised.
+		type pathFixtureVolume struct {
+			PvcName string `json:"pvcName"`
+		}
+		type pathFixtureContent struct {
+			Base64 int `json:"base64"`
+		}
+		type pathFixturePodTemplate struct {
+			Volumes []pathFixtureVolume `json:"volumes"`
+		}
+		type pathFixtureData struct {
+			Paused      bool                          `json:"paused"`
+			PodTemplate pathFixturePodTemplate        `json:"podTemplate"`
+			Contents    map[string]pathFixtureContent `json:"contents"`
+		}
+		root := reflect.TypeFor[pathFixtureData]()
+
+		DescribeTable("should resolve JSON Pointer tokens using the destination Go type",
+			func(pointer jsontext.Pointer, expected string) {
+				path := JSONPointerToFieldPath(root, pointer)
+				if expected == "" {
+					Expect(path).To(BeNil())
+				} else {
+					Expect(path.String()).To(Equal(expected))
+				}
+			},
+			Entry("empty pointer (root value)", jsontext.Pointer(""), ""),
+			Entry("top-level struct field", jsontext.Pointer("/paused"), "paused"),
+			Entry("nested struct field", jsontext.Pointer("/podTemplate/volumes"), "podTemplate.volumes"),
+			Entry("slice index", jsontext.Pointer("/podTemplate/volumes/1/pvcName"), "podTemplate.volumes[1].pvcName"),
+			Entry("map key", jsontext.Pointer("/contents/foo/base64"), "contents[foo].base64"),
+			Entry("dotted map key is not confused with nested fields", jsontext.Pointer("/contents/tls.crt/base64"), "contents[tls.crt].base64"),
+			Entry("numeric map key is not confused with a slice index", jsontext.Pointer("/contents/1/base64"), "contents[1].base64"),
+			Entry("JSON Pointer escaping (~1 for '/') is decoded by Tokens()", jsontext.Pointer("/contents/a~1b/base64"), "contents[a/b].base64"),
+			Entry("unresolvable token falls back to a child field (defensive)", jsontext.Pointer("/doesNotExist"), "doesNotExist"),
+		)
+	})
+
+	Describe("jsonKindToTypeName", func() {
+		DescribeTable("should map jsontext.Kind to user-friendly JSON type names",
+			func(kind jsontext.Kind, expected string) {
+				Expect(jsonKindToTypeName(kind)).To(Equal(expected))
+			},
+			Entry("true", jsontext.KindTrue, jsonTypeBoolean),
+			Entry("false", jsontext.KindFalse, jsonTypeBoolean),
+			Entry("number", jsontext.KindNumber, jsonTypeNumber),
+			Entry("string", jsontext.KindString, jsonTypeString),
+			Entry("array", jsontext.KindBeginArray, jsonTypeArray),
+			Entry("object", jsontext.KindBeginObject, jsonTypeObject),
+			Entry("null", jsontext.KindNull, jsonTypeNull),
+			Entry("invalid/unknown", jsontext.KindInvalid, jsonTypeUnknown),
+		)
 	})
 
 	Describe("DecodeJSON", func() {
@@ -146,9 +223,9 @@ var _ = Describe("Helper Functions", func() {
 				body:        `{"name": "test", "paused": true}`,
 			},
 			{
-				description:      "should return an UnmarshalTypeError for type mismatches",
+				description:      "should return a SemanticError for type mismatches",
 				body:             `{"name": "test", "paused": "not-a-bool"}`,
-				errorTypeCheckFn: (*App).IsUnmarshalTypeError,
+				errorTypeCheckFn: (*App).IsSemanticError,
 			},
 			{
 				description:      "should return a MaxBytesError when the body exceeds the size limit",
@@ -168,13 +245,37 @@ var _ = Describe("Helper Functions", func() {
 				errorSubstring: "error decoding JSON",
 			},
 			{
-				// NOTE: Go's json.Decoder returns a plain *errors.errorString for unknown fields
-				// (not a typed error like *json.UnmarshalTypeError), so callers cannot use errors.As
-				// to detect this case — only string matching works.
-				// See: https://github.com/golang/go/blob/master/src/encoding/json/decode.go
-				description:    "should return a plain error for unknown JSON fields (not a typed error)",
-				body:           `{"name": "test", "paused": true, "extraField": "surprise"}`,
-				errorSubstring: "json: unknown field",
+				// NOTE: encoding/json/v2 reports rejected unknown members as a *jsonv2.SemanticError
+				// wrapping jsonv2.ErrUnknownName, but IsSemanticError deliberately excludes that case
+				// (see its doc comment), so DecodeJSON falls through to the generic decode error here,
+				// matching the pre-migration behavior for unknown fields.
+				description:      "should return a generic (non-semantic) error for unknown JSON fields",
+				body:             `{"name": "test", "paused": true, "extraField": "surprise"}`,
+				errorTypeCheckFn: func(a *App, err error) bool { return !a.IsSemanticError(err) },
+				errorSubstring:   "unknown object member",
+			},
+			{
+				// encoding/json/v2 matches JSON object names to struct fields case-sensitively by
+				// default (v1 matched case-insensitively), so a field sent with the wrong case is
+				// rejected the same way as any other unknown member.
+				description:      "should treat a case-mismatched field name as an unknown member",
+				body:             `{"name": "test", "Paused": true}`,
+				errorTypeCheckFn: func(a *App, err error) bool { return !a.IsSemanticError(err) },
+				errorSubstring:   "unknown object member",
+			},
+			{
+				// encoding/json/v2 rejects duplicate object member names by default (v1 silently
+				// kept the last one); this is an intentional, pre-GA behavior change.
+				description:    "should reject duplicate JSON object member names",
+				body:           `{"name": "test", "paused": true, "paused": false}`,
+				errorSubstring: "error decoding JSON",
+			},
+			{
+				// encoding/json/v2 rejects invalid UTF-8 in JSON strings by default (v1 silently
+				// replaced invalid bytes with U+FFFD); this is an intentional, pre-GA behavior change.
+				description:    "should reject invalid UTF-8 in a JSON string",
+				body:           "{\"name\": \"\xff\xfe\", \"paused\": true}",
+				errorSubstring: "error decoding JSON",
 			},
 		}
 

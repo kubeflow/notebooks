@@ -18,6 +18,8 @@ package api
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
+	jsonv2 "encoding/json/v2"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -309,22 +311,31 @@ var _ = Describe("Error Response Functions", func() {
 		}
 	})
 
-	Describe("failedValidationResponse with UnmarshalTypeError field errors", func() {
+	Describe("failedValidationResponse with SemanticError field errors", func() {
 		var httpStatusCodeUnprocessableEntityStr = strconv.Itoa(http.StatusUnprocessableEntity)
+
+		type responseFixtureData struct {
+			Paused bool   `json:"paused"`
+			Name   string `json:"name"`
+		}
+		type responseFixtureEnvelope struct {
+			Data responseFixtureData `json:"data"`
+		}
+		root := reflect.TypeFor[responseFixtureEnvelope]()
 
 		type testCase struct {
 			description             string
-			unmarshalErr            *json.UnmarshalTypeError
+			semanticErr             *jsonv2.SemanticError
 			expectedValidationError ValidationError
 		}
 
 		testCases := []testCase{
 			{
 				description: "should return 422 with correct structure for a type mismatch error",
-				unmarshalErr: &json.UnmarshalTypeError{
-					Value: "string",
-					Type:  reflect.TypeFor[bool](),
-					Field: "data.paused",
+				semanticErr: &jsonv2.SemanticError{
+					JSONPointer: "/data/paused",
+					JSONKind:    jsontext.KindString,
+					GoType:      reflect.TypeFor[bool](),
 				},
 				expectedValidationError: ValidationError{
 					Origin:  OriginInternal,
@@ -335,10 +346,10 @@ var _ = Describe("Error Response Functions", func() {
 			},
 			{
 				description: "should return 422 with correct structure for a number-to-string mismatch",
-				unmarshalErr: &json.UnmarshalTypeError{
-					Value: "number",
-					Type:  reflect.TypeFor[string](),
-					Field: "data.name",
+				semanticErr: &jsonv2.SemanticError{
+					JSONPointer: "/data/name",
+					JSONKind:    jsontext.KindNumber,
+					GoType:      reflect.TypeFor[string](),
 				},
 				expectedValidationError: ValidationError{
 					Origin:  OriginInternal,
@@ -351,7 +362,7 @@ var _ = Describe("Error Response Functions", func() {
 
 		for _, tc := range testCases {
 			It(tc.description, func() {
-				fieldErrs := FieldErrorsFromUnmarshalTypeError(tc.unmarshalErr)
+				fieldErrs := FieldErrorsFromSemanticError(tc.semanticErr, root)
 				app.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
 
 				Expect(w.Code).To(Equal(http.StatusUnprocessableEntity))

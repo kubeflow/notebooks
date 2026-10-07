@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/julienschmidt/httprouter"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -78,8 +79,8 @@ func (a *App) PodTemplateOptionsListValuesHandler(w http.ResponseWriter, r *http
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		if a.IsUnmarshalTypeError(err) {
-			fieldErrs := FieldErrorsFromUnmarshalTypeError(err)
+		if a.IsSemanticError(err) {
+			fieldErrs := FieldErrorsFromSemanticError(err, reflect.TypeFor[PodTemplateOptionsListValuesRequestEnvelope]())
 			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
 			return
 		}

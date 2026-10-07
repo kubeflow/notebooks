@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/julienschmidt/httprouter"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -209,8 +210,8 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		if a.IsUnmarshalTypeError(err) {
-			fieldErrs := FieldErrorsFromUnmarshalTypeError(err)
+		if a.IsSemanticError(err) {
+			fieldErrs := FieldErrorsFromSemanticError(err, reflect.TypeFor[WorkspaceCreateEnvelope]())
 			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
 			return
 		}
@@ -333,8 +334,8 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		if a.IsUnmarshalTypeError(err) {
-			fieldErrs := FieldErrorsFromUnmarshalTypeError(err)
+		if a.IsSemanticError(err) {
+			fieldErrs := FieldErrorsFromSemanticError(err, reflect.TypeFor[WorkspaceEnvelope]())
 			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
 			return
 		}

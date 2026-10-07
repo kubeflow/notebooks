@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -357,8 +358,8 @@ func (a *App) UpdateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		if a.IsUnmarshalTypeError(err) {
-			fieldErrs := FieldErrorsFromUnmarshalTypeError(err)
+		if a.IsSemanticError(err) {
+			fieldErrs := FieldErrorsFromSemanticError(err, reflect.TypeFor[WorkspaceKindEnvelope]())
 			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
 			return
 		}

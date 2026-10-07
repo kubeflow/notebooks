@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/julienschmidt/httprouter"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,8 +81,8 @@ func (a *App) PauseActionWorkspaceHandler(w http.ResponseWriter, r *http.Request
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		if a.IsUnmarshalTypeError(err) {
-			fieldErrs := FieldErrorsFromUnmarshalTypeError(err)
+		if a.IsSemanticError(err) {
+			fieldErrs := FieldErrorsFromSemanticError(err, reflect.TypeFor[WorkspaceActionPauseEnvelope]())
 			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
 			return
 		}
