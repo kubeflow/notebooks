@@ -1,0 +1,218 @@
+name: Slash Command Handler
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  handle-slash-command:
+    if: |
+      github.event.issue.pull_request == null
+      && contains('["thesuperzapper", "andyatmiami", "paulovmr", "harshad16", "thaorell", "christian-heusel", "Jefftree", "richabanker", "siyuanfoundation"]', github.event.comment.user.login)
+      && (
+          contains(github.event.comment.body, '/add-sub-issue')
+          || contains(github.event.comment.body, '/remove-sub-issue')
+          || contains(github.event.comment.body, '/add-blocked-by')
+          || contains(github.event.comment.body, '/remove-blocked-by')
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Handle slash commands
+        id: handle-commands
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const API_VERSION = '2026-03-10';
+
+            const parseIssueNumber = (input) => {
+              // Handle plain number
+              if (/^\d+$/.test(input)) {
+                return input;
+              }
+
+              // Handle #number format
+              const hashMatch = input.match(/^#(\d+)$/);
+              if (hashMatch) {
+                return hashMatch[1];
+              }
+
+              // Handle URL format
+              const urlMatch = input.match(/\/issues\/(\d+)$/);
+              if (urlMatch) {
+                return urlMatch[1];
+              }
+
+              throw new Error(`Could not parse issue number from input: '${input}'`);
+            };
+
+            const getIssue = async (owner, repo, issueNumber) => {
+              const { data } = await github.rest.issues.get({ owner, repo, issue_number: issueNumber });
+              return { id: data.id };
+            };
+
+            // Each relation defines how to add/remove it via the REST API.
+            // `idParam` is the name of the body/path parameter that carries
+            // the child issue's internal id.
+            const relations = [
+              {
+                name: 'sub-issue',
+                label: 'Sub-issues',
+                idParam: 'sub_issue_id',
+                add: 'POST /repos/{owner}/{repo}/issues/{issue_number}/sub_issues',
+                remove: 'DELETE /repos/{owner}/{repo}/issues/{issue_number}/sub_issue',
+              },
+              {
+                name: 'blocked-by',
+                label: 'Blocked-by',
+                idParam: 'issue_id',
+                add: 'POST /repos/{owner}/{repo}/issues/{issue_number}/dependencies/blocked_by',
+                remove: 'DELETE /repos/{owner}/{repo}/issues/{issue_number}/dependencies/blocked_by/{issue_id}',
+              },
+            ];
+
+            const collectOperations = async (line, relation, action, owner, repo) => {
+              const commandPrefix = `/${action}-${relation.name}`;
+              if (line !== commandPrefix && !line.startsWith(`${commandPrefix} `)) return [];
+
+              const args = line.slice(commandPrefix.length).trim().split(/\s+/).filter(Boolean);
+              const operations = [];
+
+              for (const arg of args) {
+                const childIssueNumber = parseIssueNumber(arg);
+                const childIssue = await getIssue(owner, repo, childIssueNumber);
+                operations.push({
+                  relation,
+                  action,
+                  issueNumber: childIssueNumber,
+                  id: childIssue.id,
+                });
+              }
+
+              return operations;
+            };
+
+            const performOperation = async (owner, repo, parentIssueNumber, operation) => {
+              const route = operation.action === 'add' ? operation.relation.add : operation.relation.remove;
+              await github.request(route, {
+                owner,
+                repo,
+                issue_number: parentIssueNumber,
+                [operation.relation.idParam]: operation.id,
+                headers: {
+                  'X-GitHub-Api-Version': API_VERSION,
+                },
+              });
+            };
+
+            const formatOperationsList = (operations, relation, action, heading) => {
+              const matching = operations.filter(op => op.relation.name === relation.name && op.action === action);
+              if (matching.length === 0) return [];
+
+              return [
+                `### ${heading} ${relation.label}:`,
+                ...matching.map(op => `- #${op.issueNumber}`),
+                '',
+              ];
+            };
+
+            try {
+              const { owner, repo } = context.repo;
+              const parentIssueNumber = context.payload.issue.number;
+              const commentBody = context.payload.comment.body;
+              const commentUser = context.payload.comment.user.login;
+
+              // Collect all operations first
+              const lines = commentBody.split('\n');
+              const operations = [];
+
+              for (const line of lines) {
+                for (const relation of relations) {
+                  operations.push(...await collectOperations(line, relation, 'add', owner, repo));
+                  operations.push(...await collectOperations(line, relation, 'remove', owner, repo));
+                }
+              }
+
+              if (operations.length === 0) {
+                return; // No valid operations found
+              }
+
+              for (const operation of operations) {
+                await performOperation(owner, repo, parentIssueNumber, operation);
+              }
+
+              const successBodyParts = [
+                ':white_check_mark: **GitHub Action Succeeded**',
+                '',
+                `The following operations requested by @${commentUser} have been completed on issue #${parentIssueNumber}:`,
+                '',
+              ];
+
+              for (const relation of relations) {
+                successBodyParts.push(...formatOperationsList(operations, relation, 'add', 'Added'));
+                successBodyParts.push(...formatOperationsList(operations, relation, 'remove', 'Removed'));
+              }
+
+              // Post success comment
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: parentIssueNumber,
+                body: successBodyParts.join('\n'),
+              });
+
+            } catch (error) {
+              core.setOutput('error_message', error.message);
+              core.setFailed(error.message);
+            }
+
+      - name: Post error comment if failure
+        if: failure()
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          ERROR_MESSAGE: ${{ steps.handle-commands.outputs.error_message }}
+        with:
+          script: |
+            try {
+              const commentUrl = context.payload.comment.html_url;
+              const runId = context.runId;
+              const { owner, repo } = context.repo;
+              const errorMessage = process.env.ERROR_MESSAGE || '';
+
+              const errorBodyParts = [
+                ':x: **GitHub Action Failed**',
+                '',
+                `The workflow encountered an error while processing [your comment](${commentUrl}) to manage issue relationships.`,
+                '',
+                `:point_right: [View the run](https://github.com/${owner}/${repo}/actions/runs/${runId})`,
+                ''
+              ];
+
+              if (errorMessage && errorMessage !== '') {
+                errorBodyParts.push(
+                  '<details>',
+                  '<summary>Error details</summary>',
+                  '',
+                  '```',
+                  errorMessage,
+                  '```',
+                  '',
+                  '</details>',
+                  ''
+                );
+              }
+
+              errorBodyParts.push('Please check the logs and try again, or open a bug report if the issue persists.');
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: context.payload.issue.number,
+                body: errorBodyParts.join('\n')
+              });
+            } catch (error) {
+              core.setFailed(`Failed to post error comment: ${error.message}`);
+            }
