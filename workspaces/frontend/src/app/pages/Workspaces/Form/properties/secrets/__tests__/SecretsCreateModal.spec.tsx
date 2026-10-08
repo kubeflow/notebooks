@@ -3,8 +3,11 @@ import '@testing-library/jest-dom';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import useSecret, { SecretDetails } from '~/app/hooks/useSecret';
-import { SecretsCreateModal } from '~/app/pages/Workspaces/Form/properties/secrets/SecretsCreateModal';
 import { buildMockSecret } from '~/shared/mock/mockBuilder';
+import { SecretsCreateModal } from '~/app/pages/Workspaces/Form/properties/secrets/SecretsCreateModal';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { NotebookApis } from '~/shared/api/notebookApi';
+import { SecretsSecretListItem } from '~/generated/data-contracts';
 
 const mockCreateSecret = jest.fn();
 
@@ -35,7 +38,15 @@ const mockSecretLoad = (loadError?: Error) =>
   mockUseSecret.mockReturnValue([EMPTY_SECRET, false, loadError, jest.fn()]);
 
 const renderModal = (props: Partial<React.ComponentProps<typeof SecretsCreateModal>> = {}) =>
-  render(<SecretsCreateModal isOpen setIsOpen={jest.fn()} existingSecretNames={[]} {...props} />);
+  render(
+    <SecretsCreateModal
+      isOpen
+      setIsOpen={jest.fn()}
+      existingSecretNames={[]}
+      namespace="default"
+      {...props}
+    />,
+  );
 
 const fillKeyValuePair = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.type(screen.getByTestId('key-input'), 'username');
@@ -146,5 +157,106 @@ describe('SecretsCreateModal errors', () => {
     expect(mockCreateSecret).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('error-alert')).toHaveTextContent('Failed to load secret contents');
     expect(screen.getByTestId('error-alert')).not.toHaveTextContent('secret already exists');
+  });
+});
+
+const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
+
+const secretToEdit: SecretsSecretListItem = {
+  name: 'db-credentials',
+  canMount: true,
+  canUpdate: true,
+  audit: { createdAt: '', createdBy: '', updatedAt: '', updatedBy: '', deletedAt: '' },
+};
+
+describe('SecretsCreateModal', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseSecret.mockReturnValue([
+      { keyValuePairs: [], immutable: false, type: 'Opaque' },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+  });
+
+  it('creates the secret in the namespace passed by the workspace form, not a global namespace selector', async () => {
+    const user = userEvent.setup();
+    const createSecret = jest.fn().mockResolvedValue({});
+    mockUseNotebookAPI.mockReturnValue({
+      api: { secrets: { createSecret } } as unknown as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+
+    render(<SecretsCreateModal isOpen setIsOpen={jest.fn()} namespace="workspace-namespace" />);
+
+    await user.type(screen.getByTestId('secret-name-input'), 'my-secret');
+    await user.type(screen.getByTestId('key-input'), 'API_KEY');
+    await user.type(screen.getByTestId('value-input'), 'super-secret-value');
+    await user.click(screen.getByTestId('secret-modal-submit-button'));
+
+    expect(createSecret).toHaveBeenCalledWith(
+      'workspace-namespace',
+      expect.objectContaining({ data: expect.objectContaining({ name: 'my-secret' }) }),
+    );
+  });
+
+  it('fetches the secret to edit using the namespace passed by the workspace form', () => {
+    mockUseNotebookAPI.mockReturnValue({
+      api: {} as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+
+    render(
+      <SecretsCreateModal
+        isOpen
+        setIsOpen={jest.fn()}
+        namespace="workspace-namespace"
+        secretToEdit={secretToEdit}
+      />,
+    );
+
+    expect(useSecret).toHaveBeenCalledWith(
+      expect.objectContaining({ namespace: 'workspace-namespace', secretName: 'db-credentials' }),
+    );
+  });
+
+  it('updates the secret in the namespace passed by the workspace form, not a global namespace selector', async () => {
+    const user = userEvent.setup();
+    const updateSecret = jest.fn().mockResolvedValue({});
+    mockUseNotebookAPI.mockReturnValue({
+      api: { secrets: { updateSecret } } as unknown as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+    mockUseSecret.mockReturnValue([
+      {
+        keyValuePairs: [{ key: 'API_KEY', value: 'old-value' }],
+        immutable: false,
+        type: 'Opaque',
+      },
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    render(
+      <SecretsCreateModal
+        isOpen
+        setIsOpen={jest.fn()}
+        namespace="workspace-namespace"
+        secretToEdit={secretToEdit}
+      />,
+    );
+
+    await user.click(screen.getByTestId('secret-modal-submit-button'));
+
+    expect(updateSecret).toHaveBeenCalledWith(
+      'workspace-namespace',
+      'db-credentials',
+      expect.objectContaining({ data: expect.any(Object) }),
+    );
   });
 });

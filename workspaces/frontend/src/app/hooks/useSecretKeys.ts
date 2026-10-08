@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 
 interface SecretKeysState {
   keys: string[];
@@ -23,9 +22,8 @@ const INITIAL_STATE: SecretKeysState = {
  * Lazily fetches and caches secret key names for display in the secrets table.
  * Keys are fetched on demand (when a row is expanded) and cached per secret name.
  */
-export const useSecretKeys = (): UseSecretKeysReturn => {
+export const useSecretKeys = (namespace: string): UseSecretKeysReturn => {
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
   const [secretKeysMap, setSecretKeysMap] = useState<Map<string, SecretKeysState>>(new Map());
   const fetchingRef = useRef<Set<string>>(new Set());
 
@@ -43,7 +41,7 @@ export const useSecretKeys = (): UseSecretKeysReturn => {
       fetchingRef.current.add(secretName);
 
       try {
-        const response = await api.secrets.getSecret(selectedNamespace, secretName);
+        const response = await api.secrets.getSecret(namespace, secretName);
         const keys = Object.keys(response.data.contents);
         setSecretKeysMap((prev) => {
           const next = new Map(prev);
@@ -60,7 +58,7 @@ export const useSecretKeys = (): UseSecretKeysReturn => {
         fetchingRef.current.delete(secretName);
       }
     },
-    [api.secrets, selectedNamespace, secretKeysMap],
+    [api.secrets, namespace, secretKeysMap],
   );
 
   return { getSecretKeysState, fetchSecretKeys };

@@ -40,6 +40,7 @@ export interface SecretsAttachModalProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onAttach: (secrets: SecretsSecretListItem[], mountPath: string, mode: number) => void;
+  namespace: string;
   mountedKeys: Set<string>;
   existingMountPaths: Set<string>;
 }
@@ -48,6 +49,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
   isOpen,
   setIsOpen,
   onAttach,
+  namespace,
   mountedKeys,
   existingMountPaths,
 }) => {
@@ -58,7 +60,7 @@ export const SecretsAttachModal: React.FC<SecretsAttachModalProps> = ({
     secretsLoaded,
     secretLoadError,
     refreshSecrets,
-  } = useSecrets();
+  } = useSecrets(namespace);
 
   // ── Form state ───────────────────────────────────────────────────────────
 

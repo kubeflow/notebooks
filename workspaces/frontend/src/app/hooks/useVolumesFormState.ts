@@ -6,7 +6,6 @@ import {
 } from '~/generated/data-contracts';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import {
   validateMountPath,
@@ -47,6 +46,7 @@ const validateForm = (
 
 interface UseVolumesFormStateArgs {
   isOpen: boolean;
+  namespace: string;
   fixedMountPath?: string;
   volumeToEdit?: WorkspacesPodVolumeMountValue;
   excludedPvcNames?: Set<string>;
@@ -93,6 +93,7 @@ interface UseVolumesFormStateResult {
 
 const useVolumesFormState = ({
   isOpen,
+  namespace,
   fixedMountPath,
   volumeToEdit,
   excludedPvcNames,
@@ -104,7 +105,6 @@ const useVolumesFormState = ({
   onVolumeEdited,
 }: UseVolumesFormStateArgs): UseVolumesFormStateResult => {
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const isEditMode = !!volumeToEdit;
 
@@ -201,7 +201,7 @@ const useVolumesFormState = ({
     setError(null);
 
     try {
-      await api.pvc.createPvc(selectedNamespace, {
+      await api.pvc.createPvc(namespace, {
         data: {
           name: pvcName,
           storageClassName,
@@ -218,7 +218,7 @@ const useVolumesFormState = ({
     }
   }, [
     api.pvc,
-    selectedNamespace,
+    namespace,
     pvcName,
     mountPath,
     mountedPaths,

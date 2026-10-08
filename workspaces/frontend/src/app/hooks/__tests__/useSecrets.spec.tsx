@@ -1,5 +1,4 @@
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import useSecrets from '~/app/hooks/useSecrets';
 import { NotebookApis } from '~/shared/api/notebookApi';
@@ -7,22 +6,12 @@ import { NotebookApis } from '~/shared/api/notebookApi';
 jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: jest.fn(),
 }));
-jest.mock('~/app/hooks/useNamespaceSelectorWrapper', () => ({
-  useNamespaceSelectorWrapper: jest.fn(),
-}));
 
 const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
-const mockUseNamespaceSelectorWrapper = useNamespaceSelectorWrapper as jest.MockedFunction<
-  typeof useNamespaceSelectorWrapper
->;
 
 describe('useSecrets', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNamespaceSelectorWrapper.mockReturnValue({
-      selectedNamespace: 'test-namespace',
-      namespacesLoaded: true,
-    } as ReturnType<typeof useNamespaceSelectorWrapper>);
   });
 
   it('returns empty list and no error when API is not yet available', () => {
@@ -32,7 +21,7 @@ describe('useSecrets', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result } = renderHook(() => useSecrets());
+    const { result } = renderHook(() => useSecrets('test-namespace'));
 
     expect(result.current.secrets).toEqual([]);
     expect(result.current.secretsLoaded).toBe(false);
@@ -40,18 +29,13 @@ describe('useSecrets', () => {
   });
 
   it('returns empty list and no error when namespace is not yet available', () => {
-    mockUseNamespaceSelectorWrapper.mockReturnValue({
-      selectedNamespace: '',
-      namespacesLoaded: false,
-    } as ReturnType<typeof useNamespaceSelectorWrapper>);
-
     mockUseNotebookAPI.mockReturnValue({
       api: {} as NotebookApis,
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     });
 
-    const { result } = renderHook(() => useSecrets());
+    const { result } = renderHook(() => useSecrets(''));
 
     expect(result.current.secrets).toEqual([]);
     expect(result.current.secretsLoaded).toBe(false);
@@ -71,7 +55,7 @@ describe('useSecrets', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result, waitForNextUpdate } = renderHook(() => useSecrets());
+    const { result, waitForNextUpdate } = renderHook(() => useSecrets('test-namespace'));
     await waitForNextUpdate();
 
     expect(listSecrets).toHaveBeenCalledWith('test-namespace');
@@ -89,7 +73,7 @@ describe('useSecrets', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result, waitForNextUpdate } = renderHook(() => useSecrets());
+    const { result, waitForNextUpdate } = renderHook(() => useSecrets('test-namespace'));
     await waitForNextUpdate();
 
     expect(result.current.secrets).toEqual([]);
@@ -106,9 +90,32 @@ describe('useSecrets', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result, waitForNextUpdate } = renderHook(() => useSecrets());
+    const { result, waitForNextUpdate } = renderHook(() => useSecrets('test-namespace'));
     await waitForNextUpdate();
 
     expect(typeof result.current.refreshSecrets).toBe('function');
+  });
+
+  it('re-fetches when the namespace prop changes, independent of any global namespace selector', async () => {
+    const listSecrets = jest.fn().mockResolvedValue({ data: [] });
+
+    mockUseNotebookAPI.mockReturnValue({
+      api: { secrets: { listSecrets } } as unknown as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+
+    const { rerender, waitForNextUpdate } = renderHook(
+      ({ namespace }: { namespace: string }) => useSecrets(namespace),
+      { initialProps: { namespace: 'workspace-namespace' } },
+    );
+    await waitForNextUpdate();
+
+    expect(listSecrets).toHaveBeenCalledWith('workspace-namespace');
+
+    rerender({ namespace: 'other-namespace' });
+    await waitForNextUpdate();
+
+    expect(listSecrets).toHaveBeenCalledWith('other-namespace');
   });
 });

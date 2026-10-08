@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { FetchStateCallbackPromise, useFetchState, NotReadyError } from 'mod-arch-core';
 import { PvcsPVCListItem } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 
 interface UsePVCsResult {
   pvcs: PvcsPVCListItem[];
@@ -11,20 +10,19 @@ interface UsePVCsResult {
   refreshPVCs: () => Promise<PvcsPVCListItem[] | undefined>;
 }
 
-const usePVCs = (): UsePVCsResult => {
+const usePVCs = (namespace: string): UsePVCsResult => {
   const { api, apiAvailable } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const call = useCallback<FetchStateCallbackPromise<PvcsPVCListItem[]>>(async () => {
     if (!apiAvailable) {
       return Promise.reject(new NotReadyError('API not yet available'));
     }
-    if (!selectedNamespace) {
+    if (!namespace) {
       return Promise.reject(new NotReadyError('Namespace not yet available'));
     }
-    const response = await api.pvc.listPvCs(selectedNamespace);
+    const response = await api.pvc.listPvCs(namespace);
     return response.data;
-  }, [api.pvc, apiAvailable, selectedNamespace]);
+  }, [api.pvc, apiAvailable, namespace]);
 
   const [pvcs, pvcsLoaded, error, refreshPVCs] = useFetchState(call, [], {
     initialPromisePurity: true,
