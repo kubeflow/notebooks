@@ -247,6 +247,37 @@ describe('Filter Images by Labels', () => {
   });
 
   describe('Extra filters', () => {
+    [
+      {
+        key: 'showHidden',
+        label: 'Show hidden',
+        tooltip: 'Also show images that were hidden by your cluster administrator.',
+      },
+      {
+        key: 'showRedirected',
+        label: 'Show redirected',
+        tooltip: 'Also show images that have a successor defined by your cluster administrator.',
+      },
+    ].forEach(({ key, label, tooltip }) => {
+      it(`should explain "${label}" on hover and focus without changing the filter`, () => {
+        cy.findByRole('button', { name: `About ${label}` }).trigger('mouseenter');
+        cy.findByRole('tooltip').should('be.visible').and('have.text', tooltip);
+        cy.findByRole('button', { name: `About ${label}` }).trigger('mouseleave');
+        cy.findByRole('tooltip').should('not.exist');
+
+        cy.findByRole('button', { name: `About ${label}` }).focus();
+        cy.findByRole('tooltip').should('be.visible').and('have.text', tooltip);
+        cy.findByRole('button', { name: `About ${label}` }).click();
+        createWorkspace.assertExtraFilterNotChecked(key);
+
+        cy.findByRole('button', { name: `About ${label}` }).blur();
+        createWorkspace.clickExtraFilter(key);
+        createWorkspace.assertExtraFilterChecked(key);
+        cy.findByRole('button', { name: `About ${label}` }).focus();
+        cy.findByRole('tooltip').should('be.visible').and('have.text', tooltip);
+      });
+    });
+
     it('should display extra filter checkboxes', () => {
       createWorkspace.findExtraFilter('showHidden').should('exist');
       createWorkspace.findExtraFilter('showRedirected').should('exist');
