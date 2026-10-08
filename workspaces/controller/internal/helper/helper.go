@@ -93,16 +93,6 @@ func CopyStatefulSetFields(desired *appsv1.StatefulSet, target *appsv1.StatefulS
 		requireUpdate = true
 	}
 
-	// copy `spec.selector`
-	//
-	// TODO: confirm if StatefulSets support updates to the selector
-	//       if not, we might need to recreate the StatefulSet
-	//
-	if !equality.Semantic.DeepEqual(target.Spec.Selector, desired.Spec.Selector) {
-		target.Spec.Selector = desired.Spec.Selector
-		requireUpdate = true
-	}
-
 	// copy `spec.template`
 	//
 	// TODO: confirm if there is a problem with doing the update at the `spec.template` level
