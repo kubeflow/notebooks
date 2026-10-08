@@ -7,6 +7,7 @@ import {
 } from '@patternfly/react-core/dist/esm/components/Card';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { css } from '@patternfly/react-styles';
 import { HiddenIconWithPopover } from '~/app/components/HiddenIconWithPopover';
 import { RedirectIconWithPopover } from '~/app/components/RedirectIconWithPopover';
 import {
@@ -46,19 +47,25 @@ export const WorkspaceFormOptionCard: React.FC<
   const cardId = option.id.replace(/ /g, '-');
   const popoverIdHidden = `hidden-${cardId}`;
   const popoverIdRedirect = `redirect-${cardId}`;
+  const popoverIdRestricted = `restricted-${cardId}`;
+  const isDenied = option.restrictions.deny === true;
+  const isRedirect = option.redirect !== undefined;
 
-  const cardClasses = [
-    option.hidden ? 'workspace-option-card--hidden' : '',
-    option.redirect ? 'workspace-option-card--redirected' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const cardClasses = css(
+    'workspace-option-card',
+    option.hidden && 'workspace-option-card--hidden',
+    isRedirect && 'workspace-option-card--redirected',
+    isDenied && 'workspace-option-card--restricted',
+  );
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Check if click originated from an icon (hidden or redirect)
-    const target = e.target as HTMLElement;
+  const handleCardClick = (event: React.MouseEvent) => {
+    if (isDenied) {
+      return;
+    }
+    // Check if click originated from an icon (hidden, redirect, or restricted)
+    const target = event.target as HTMLElement;
     const clickedIcon = target.closest(
-      '[data-testid="hidden-icon"], [data-testid="redirect-icon"]',
+      '[data-testid="hidden-icon"], [data-testid="redirect-icon"], [data-testid="restricted-icon"]',
     );
 
     // Only trigger card selection if not clicking on an icon
@@ -70,12 +77,12 @@ export const WorkspaceFormOptionCard: React.FC<
   return (
     <Card
       isCompact
-      isSelectable
-      key={option.id}
       id={cardId}
       isSelected={isSelected}
-      onClick={handleCardClick}
+      isSelectable={!isDenied}
+      isDisabled={isDenied}
       className={cardClasses}
+      onClick={handleCardClick}
     >
       <CardHeader
         selectableActions={{
@@ -106,6 +113,20 @@ export const WorkspaceFormOptionCard: React.FC<
         className="workspace-option-card__icons-container"
         data-testid={`option-card-icons-${cardId}`}
       >
+        {isDenied && (
+          <FlexItem>
+            <HiddenIconWithPopover
+              type="restricted"
+              popoverId={popoverIdRestricted}
+              activePopoverId={activePopoverId}
+              pinnedPopoverId={pinnedPopoverId}
+              onActiveChange={onActivePopoverChange}
+              onPinnedChange={onPinnedPopoverChange}
+              message={option.restrictions.denyMessage?.text}
+            />
+          </FlexItem>
+        )}
+
         {isDefault && (
           <FlexItem>
             <Label color="blue" isCompact>
@@ -116,6 +137,7 @@ export const WorkspaceFormOptionCard: React.FC<
         {option.hidden && (
           <FlexItem>
             <HiddenIconWithPopover
+              type="hidden"
               popoverId={popoverIdHidden}
               activePopoverId={activePopoverId}
               pinnedPopoverId={pinnedPopoverId}

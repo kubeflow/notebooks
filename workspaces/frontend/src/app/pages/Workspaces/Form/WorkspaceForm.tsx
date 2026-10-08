@@ -119,6 +119,9 @@ const WorkspaceForm: React.FC = () => {
   // Refs for filter control
   const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
   const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
+  // Id of a hidden pod config the user explicitly picked (e.g. via the "show hidden" filter).
+  // Used so the compatibility-cleanup effect doesn't discard a deliberate choice.
+  const userSelectedHiddenPodConfigRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!initialFormDataLoaded || mode === 'create') {
       return;
@@ -127,6 +130,23 @@ const WorkspaceForm: React.FC = () => {
     // Store original values for diff comparison
     setOriginalData(initialFormData);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
+  function resolveUsableDefault<
+    T extends { id: string; hidden?: boolean; restrictions?: { deny?: boolean } },
+  >(values: T[] | undefined, defaultId: string | undefined): string | undefined {
+    if (!values) {
+      return undefined;
+    }
+    const isUsable = (opt?: T) => !opt?.restrictions?.deny && !opt?.hidden;
+    const defaultOption = values.find((v) => v.id === defaultId);
+
+    if (defaultOption && isUsable(defaultOption)) {
+      return defaultId;
+    }
+
+    const fallback = values.find((v) => isUsable(v));
+
+    return fallback?.id;
+  }
 
   // Apply default imageConfig and podConfig from listValues when a kind is first selected.
   // Only sets defaults when the values are unset (undefined), so user selections are never overwritten.
@@ -135,10 +155,22 @@ const WorkspaceForm: React.FC = () => {
       return;
     }
     if (!data.imageConfig && allValuesData.imageConfig.default) {
-      setData('imageConfig', allValuesData.imageConfig.default);
+      const resolved = resolveUsableDefault(
+        allValuesData.imageConfig.values,
+        allValuesData.imageConfig.default,
+      );
+      if (resolved) {
+        setData('imageConfig', resolved);
+      }
     }
     if (!data.podConfig && allValuesData.podConfig.default) {
-      setData('podConfig', allValuesData.podConfig.default);
+      const resolved = resolveUsableDefault(
+        allValuesData.podConfig.values,
+        allValuesData.podConfig.default,
+      );
+      if (resolved) {
+        setData('podConfig', resolved);
+      }
     }
   }, [allValuesData, allValuesLoaded, data.kind, data.imageConfig, data.podConfig, setData]);
 
@@ -148,7 +180,12 @@ const WorkspaceForm: React.FC = () => {
       return;
     }
     const podConfigOptions = filteredValuesData.podConfig.values ?? [];
-    const isStillValid = podConfigOptions.some((pc) => pc.id === data.podConfig);
+    const current = podConfigOptions.find((pc) => pc.id === data.podConfig);
+    // denied-but-present is left alone on purpose; hidden options are cleared,
+    // unless the user explicitly selected that hidden option themselves
+    const isUserSelectedHidden =
+      !!current?.hidden && userSelectedHiddenPodConfigRef.current === current.id;
+    const isStillValid = !!current && (!current.hidden || isUserSelectedHidden);
     if (!isStillValid) {
       setData('podConfig', undefined);
     }
@@ -308,8 +345,10 @@ const WorkspaceForm: React.FC = () => {
         if (podConfig.hidden || podConfig.redirect !== undefined) {
           podConfigFilterControlRef.current?.adaptFiltersForPodConfig(podConfig);
         }
+        userSelectedHiddenPodConfigRef.current = podConfig.hidden ? podConfig.id : undefined;
         setData('podConfig', podConfig.id);
       } else {
+        userSelectedHiddenPodConfigRef.current = undefined;
         setData('podConfig', undefined);
       }
     },

@@ -1,140 +1,75 @@
-import React, { useCallback, useRef } from 'react';
+import React from 'react';
 import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { Icon } from '@patternfly/react-core/dist/esm/components/Icon';
+import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { QuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
+import { usePopoverHoverPin, UsePopoverHoverPinArgs } from '~/app/hooks/usePopoverHoverPin';
 
-interface HiddenIconWithPopoverProps {
-  popoverId: string;
-  activePopoverId: string | null;
-  pinnedPopoverId: string | null;
-  onActiveChange: (id: string | null) => void;
-  onPinnedChange: (id: string | null) => void;
+type IconWithPopoverType = 'restricted' | 'hidden';
+
+interface IconWithPopoverProps extends UsePopoverHoverPinArgs {
+  type: IconWithPopoverType;
+  message?: string;
 }
 
-export const HiddenIconWithPopover: React.FC<HiddenIconWithPopoverProps> = ({
-  popoverId,
-  activePopoverId,
-  pinnedPopoverId,
-  onActiveChange,
-  onPinnedChange,
+interface IconWithPopoverConfig {
+  headerContent: string;
+  defaultMessage: string;
+  triggerAriaLabel: string;
+  iconAriaLabel: string;
+  testId: string;
+  icon: React.ReactNode;
+  iconStatus?: 'danger';
+}
+
+const ICON_WITH_POPOVER_CONFIG: Record<IconWithPopoverType, IconWithPopoverConfig> = {
+  restricted: {
+    headerContent: 'Restricted',
+    defaultMessage: 'This option is restricted.',
+    triggerAriaLabel: 'View restricted option information',
+    iconAriaLabel: 'Restricted option information',
+    testId: 'restricted-icon',
+    icon: <ExclamationCircleIcon aria-label="Restricted option information" />,
+    iconStatus: 'danger',
+  },
+  hidden: {
+    headerContent: 'Hidden Option',
+    defaultMessage:
+      'Your administrator has hidden this option. If you are sure of your choice, you can still use it.',
+    triggerAriaLabel: 'View hidden option information',
+    iconAriaLabel: 'Hidden option information',
+    testId: 'hidden-icon',
+    icon: <QuestionCircleIcon color="grey" aria-label="Hidden option information" />,
+  },
+};
+
+export const HiddenIconWithPopover: React.FC<IconWithPopoverProps> = ({
+  type,
+  message,
+  ...popoverArgs
 }) => {
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isHoveringPopoverRef = useRef(false);
-
-  const clearHideTimeout = useCallback(() => {
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-      hideTimeoutRef.current = null;
-    }
-  }, []);
-
-  const handleClick = useCallback(
-    (e?: React.MouseEvent) => {
-      if (e) {
-        e.stopPropagation();
-      }
-      clearHideTimeout();
-      if (pinnedPopoverId === popoverId) {
-        onPinnedChange(null);
-      } else {
-        onPinnedChange(popoverId);
-        onActiveChange(null);
-      }
-    },
-    [pinnedPopoverId, popoverId, onPinnedChange, onActiveChange, clearHideTimeout],
-  );
-
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      clearHideTimeout();
-      if (pinnedPopoverId !== popoverId) {
-        onActiveChange(popoverId);
-      }
-    },
-    [pinnedPopoverId, popoverId, onActiveChange, clearHideTimeout],
-  );
-
-  const handleMouseLeave = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (pinnedPopoverId !== popoverId) {
-        // Start a 1 second timer before hiding
-        hideTimeoutRef.current = setTimeout(() => {
-          // Only hide if we're not hovering over the popover
-          if (!isHoveringPopoverRef.current) {
-            onActiveChange(null);
-          }
-        }, 1000);
-      }
-    },
-    [pinnedPopoverId, popoverId, onActiveChange],
-  );
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        e.stopPropagation();
-        handleClick();
-      }
-    },
-    [handleClick],
-  );
-
-  const popoverContentInner =
-    'Your administrator has hidden this option. If you are sure of your choice, you can still use it.';
-  const popoverContent = (
-    <div
-      onMouseEnter={() => {
-        clearHideTimeout();
-        isHoveringPopoverRef.current = true;
-      }}
-      onMouseLeave={() => {
-        isHoveringPopoverRef.current = false;
-        if (pinnedPopoverId !== popoverId) {
-          onActiveChange(null);
-        }
-      }}
-    >
-      {popoverContentInner}
-    </div>
-  );
-  const isVisible = activePopoverId === popoverId || pinnedPopoverId === popoverId;
+  const { triggerProps, contentProps, popoverProps } = usePopoverHoverPin(popoverArgs);
+  const config = ICON_WITH_POPOVER_CONFIG[type];
 
   return (
     <div className="pf-v6-u-display-inline-block">
       <Popover
-        headerContent="Hidden Option"
-        bodyContent={popoverContent}
+        id={popoverArgs.popoverId}
+        aria-label={config.iconAriaLabel}
+        headerContent={config.headerContent}
+        bodyContent={<div {...contentProps}>{message ?? config.defaultMessage}</div>}
         minWidth="18.75rem"
         maxWidth="31.25rem"
-        isVisible={isVisible}
-        shouldClose={() => {
-          clearHideTimeout();
-          isHoveringPopoverRef.current = false;
-          onPinnedChange(null);
-          onActiveChange(null);
-        }}
-        shouldOpen={() => {
-          if (!isVisible) {
-            onActiveChange(popoverId);
-          }
-        }}
+        {...popoverProps}
       >
         <span
-          role="button"
-          tabIndex={0}
-          aria-label="View hidden option information"
-          onClick={handleClick}
-          onKeyDown={handleKeyDown}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
+          {...triggerProps}
+          aria-label={config.triggerAriaLabel}
           style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
-          data-testid="hidden-icon"
+          data-testid={config.testId}
         >
-          <Icon isInline>
-            <QuestionCircleIcon color="grey" aria-label="Hidden option information" />
+          <Icon status={config.iconStatus} isInline>
+            {config.icon}
           </Icon>
         </span>
       </Popover>
