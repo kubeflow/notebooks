@@ -232,7 +232,7 @@ var _ = Describe("Workspace Controller", func() {
 			//         - even if the Workspace has a >64 character name, everything still works
 			//         - deleting the reconciled resources, and ensuring they are recreated
 			//         - updating the reconciled resources, and ensuring they are reverted
-			//         - the go templates in WorkspaceKind `spec.podTemplate.extraEnv[].value` should work properly
+			//         - the go templates in WorkspaceKind `spec.podTemplate.podSpec.mainContainer.extraEnv[].value` should work properly
 			//            - succeed for valid portID
 			//            - return empty string for invalid portID
 			//            - set Workspace to error state for invalid template format (e.g. single quote for portID string)
@@ -818,7 +818,7 @@ var _ = Describe("Workspace Controller", func() {
 			podConfigSpec = workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec
 
 			// ensure both levels start unset, so each spec only sets what it tests
-			workspaceKind.Spec.PodTemplate.SchedulerName = nil
+			workspaceKind.Spec.PodTemplate.PodSpec.SchedulerName = nil
 			podConfigSpec.SchedulerName = nil
 		})
 
@@ -833,7 +833,7 @@ var _ = Describe("Workspace Controller", func() {
 
 		It("should use the WorkspaceKind `schedulerName` when the podConfig does not set one", func() {
 			By("generating the StatefulSet")
-			workspaceKind.Spec.PodTemplate.SchedulerName = new("workspacekind-scheduler")
+			workspaceKind.Spec.PodTemplate.PodSpec.SchedulerName = new("workspacekind-scheduler")
 			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
 			Expect(err).NotTo(HaveOccurred())
 
@@ -853,7 +853,7 @@ var _ = Describe("Workspace Controller", func() {
 
 		It("should prefer the podConfig `schedulerName` over the WorkspaceKind one", func() {
 			By("generating the StatefulSet")
-			workspaceKind.Spec.PodTemplate.SchedulerName = new("workspacekind-scheduler")
+			workspaceKind.Spec.PodTemplate.PodSpec.SchedulerName = new("workspacekind-scheduler")
 			podConfigSpec.SchedulerName = new("podconfig-scheduler")
 			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
 			Expect(err).NotTo(HaveOccurred())

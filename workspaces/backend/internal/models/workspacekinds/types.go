@@ -46,7 +46,7 @@ type ClusterKindMetrics struct {
 type PodTemplate struct {
 	PodMetadata         PodMetadata         `json:"podMetadata"`
 	StatefulSetMetadata StatefulSetMetadata `json:"statefulSetMetadata"`
-	VolumeMounts        PodVolumeMounts     `json:"volumeMounts"`
+	VolumeMountPaths    PodVolumeMountPaths `json:"volumeMountPaths"`
 	ActivityProbe       *ActivityProbe      `json:"activityProbe,omitempty"`
 
 	//
@@ -65,7 +65,7 @@ type StatefulSetMetadata struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
-type PodVolumeMounts struct {
+type PodVolumeMountPaths struct {
 	Home string `json:"home"`
 }
 

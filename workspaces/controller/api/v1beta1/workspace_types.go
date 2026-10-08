@@ -82,7 +82,7 @@ type WorkspacePodVolumes struct {
 	//  - this PVC must already exist in the Namespace
 	//  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
 	//  - the mount path is defined in the WorkspaceKind under
-	//    `spec.podTemplate.volumeMounts.home`
+	//    `spec.podTemplate.volumeMountPaths.home`
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
@@ -203,7 +203,8 @@ type WorkspaceStatus struct {
 	//  - true if any `spec.podTemplate.options` have a redirect
 	//    and so will be patched on the next restart
 	//  - true if the WorkspaceKind has changed one of its common `podTemplate` fields
-	//    like `podMetadata`, `probes`, `extraEnv`, or `containerSecurityContext`
+	//    like `podMetadata`, `podSpec.mainContainer.livenessProbe`,
+	//    `podSpec.mainContainer.extraEnv`, or `podSpec.mainContainer.securityContext`
 	// +kubebuilder:default=false
 	PendingRestart bool `json:"pendingRestart"`
 

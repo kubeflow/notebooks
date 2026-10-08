@@ -95,8 +95,8 @@ func NewWorkspaceKindModelFromWorkspaceKind(cfg *config.EnvConfig, wsk *kubeflow
 				Labels:      stsLabels,
 				Annotations: stsAnnotations,
 			},
-			VolumeMounts: PodVolumeMounts{
-				Home: wsk.Spec.PodTemplate.VolumeMounts.Home,
+			VolumeMountPaths: PodVolumeMountPaths{
+				Home: wsk.Spec.PodTemplate.VolumeMountPaths.Home,
 			},
 			ActivityProbe: buildActivityProbe(wsk.Spec.PodTemplate.ActivityProbe),
 			Options:       *podTemplateOptions,

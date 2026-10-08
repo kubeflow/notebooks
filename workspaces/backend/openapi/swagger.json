@@ -7279,6 +7279,57 @@
                 }
             }
         },
+        "v1beta1.WorkspaceKindMainContainer": {
+            "type": "object",
+            "properties": {
+                "extraEnv": {
+                    "description": "environment variables for the main container (MUTABLE)\n - spec for EnvVar:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvar-v1-core\n - the following go template functions are available:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.EnvVar"
+                    }
+                },
+                "extraVolumeMounts": {
+                    "description": "extra volume mounts for the main container (MUTABLE)\n - spec for VolumeMount:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.VolumeMount"
+                    }
+                },
+                "livenessProbe": {
+                    "description": "the liveness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.Probe"
+                        }
+                    ]
+                },
+                "readinessProbe": {
+                    "description": "the readiness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.Probe"
+                        }
+                    ]
+                },
+                "securityContext": {
+                    "description": "container security context for the main container (MUTABLE)\n - spec for SecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.SecurityContext"
+                        }
+                    ]
+                },
+                "startupProbe": {
+                    "description": "the startup probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.Probe"
+                        }
+                    ]
+                }
+            }
+        },
         "v1beta1.WorkspaceKindPodMetadata": {
             "type": "object",
             "properties": {
@@ -7323,12 +7374,48 @@
                 }
             }
         },
+        "v1beta1.WorkspaceKindPodSpec": {
+            "type": "object",
+            "required": [
+                "mainContainer"
+            ],
+            "properties": {
+                "extraVolumes": {
+                    "description": "extra volumes for Workspace Pods (MUTABLE)\n - spec for Volume:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.Volume"
+                    }
+                },
+                "mainContainer": {
+                    "description": "mainContainer configures the \"main\" user container of the Workspace Pod, mirroring\nthe shape of `corev1.Container`.\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindMainContainer"
+                        }
+                    ]
+                },
+                "schedulerName": {
+                    "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the `schedulerName` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the \"default-scheduler\"\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
+                    "type": "string"
+                },
+                "securityContext": {
+                    "description": "security context for Workspace Pods (MUTABLE)\n - spec for PodSecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.PodSecurityContext"
+                        }
+                    ]
+                }
+            }
+        },
         "v1beta1.WorkspaceKindPodTemplate": {
             "type": "object",
             "required": [
                 "options",
+                "podSpec",
                 "ports",
-                "volumeMounts"
+                "volumeMountPaths"
             ],
             "properties": {
                 "activityProbe": {
@@ -7338,35 +7425,6 @@
                             "$ref": "#/definitions/v1beta1.ActivityProbe"
                         }
                     ]
-                },
-                "containerSecurityContext": {
-                    "description": "container security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1.SecurityContext"
-                        }
-                    ]
-                },
-                "extraEnv": {
-                    "description": "environment variables for Workspace Pods (MUTABLE)\n - the following go template functions are available:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.EnvVar"
-                    }
-                },
-                "extraVolumeMounts": {
-                    "description": "extra volume mounts for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.VolumeMount"
-                    }
-                },
-                "extraVolumes": {
-                    "description": "extra volumes for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.Volume"
-                    }
                 },
                 "options": {
                     "description": "options are the user-selectable fields, they determine the PodSpec of the Workspace",
@@ -7384,32 +7442,20 @@
                         }
                     ]
                 },
+                "podSpec": {
+                    "description": "podSpec groups Pod-level fields of the Workspace Pod, mirroring the\nshape of `corev1.PodSpec`.\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindPodSpec"
+                        }
+                    ]
+                },
                 "ports": {
                     "description": "port definitions which can be referenced in image config values\n- think of port definitions as the \"types\" of services which could be provided by a specific image\n- a port definition has a common id (URL path) for consistency if the listening TCP port changes\n- ports are referenced in image config values by their `id` and their definition here establishes\n  their protocol type, and default display name in the UI\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.WorkspaceKindPort"
                     }
-                },
-                "probes": {
-                    "description": "standard probes to determine Container health (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindProbes"
-                        }
-                    ]
-                },
-                "schedulerName": {
-                    "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the `schedulerName` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the \"default-scheduler\"\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
-                    "type": "string"
-                },
-                "securityContext": {
-                    "description": "security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1.PodSecurityContext"
-                        }
-                    ]
                 },
                 "serviceAccount": {
                     "description": "service account configs for Workspace Pods\n - each Workspace runs as its own ServiceAccount, which is created and owned by\n   the controller and named \"ws-{WORKSPACE_NAME}\"\n - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`\n+kubebuilder:validation:Optional",
@@ -7427,11 +7473,11 @@
                         }
                     ]
                 },
-                "volumeMounts": {
-                    "description": "volume mount paths",
+                "volumeMountPaths": {
+                    "description": "volume mount paths used by the controller when assembling the Workspace Pod",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/v1beta1.WorkspaceKindVolumeMounts"
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindVolumeMountPaths"
                         }
                     ]
                 }
@@ -7466,35 +7512,6 @@
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ImagePortProtocol"
-                        }
-                    ]
-                }
-            }
-        },
-        "v1beta1.WorkspaceKindProbes": {
-            "type": "object",
-            "properties": {
-                "livenessProbe": {
-                    "description": "the liveness probe for the main container\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1.Probe"
-                        }
-                    ]
-                },
-                "readinessProbe": {
-                    "description": "the readiness probe for the main container\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1.Probe"
-                        }
-                    ]
-                },
-                "startupProbe": {
-                    "description": "the startup probe for the main container\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1.Probe"
                         }
                     ]
                 }
@@ -7578,7 +7595,7 @@
                 }
             }
         },
-        "v1beta1.WorkspaceKindVolumeMounts": {
+        "v1beta1.WorkspaceKindVolumeMountPaths": {
             "type": "object",
             "required": [
                 "home"
@@ -7770,7 +7787,7 @@
                 "options",
                 "podMetadata",
                 "statefulSetMetadata",
-                "volumeMounts"
+                "volumeMountPaths"
             ],
             "properties": {
                 "activityProbe": {
@@ -7790,12 +7807,12 @@
                 "statefulSetMetadata": {
                     "$ref": "#/definitions/workspacekinds.StatefulSetMetadata"
                 },
-                "volumeMounts": {
-                    "$ref": "#/definitions/workspacekinds.PodVolumeMounts"
+                "volumeMountPaths": {
+                    "$ref": "#/definitions/workspacekinds.PodVolumeMountPaths"
                 }
             }
         },
-        "workspacekinds.PodVolumeMounts": {
+        "workspacekinds.PodVolumeMountPaths": {
             "type": "object",
             "required": [
                 "home"

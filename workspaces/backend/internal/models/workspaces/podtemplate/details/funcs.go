@@ -73,7 +73,7 @@ func buildHomeVolume(ws *kubefloworgv1beta1.Workspace, wsk *kubefloworgv1beta1.W
 
 	mountPath := UnknownHomeMountPath
 	if commonWorkspaces.WskExists(wsk) {
-		mountPath = wsk.Spec.PodTemplate.VolumeMounts.Home
+		mountPath = wsk.Spec.PodTemplate.VolumeMountPaths.Home
 	}
 
 	return &PodVolumeInfo{

@@ -100,9 +100,9 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
 			patch := client.MergeFrom(workspaceKind.DeepCopy())
 
-			By("failing to update the `spec.podTemplate.volumeMounts.home` field")
+			By("failing to update the `spec.podTemplate.volumeMountPaths.home` field")
 			newWorkspaceKind := workspaceKind.DeepCopy()
-			newWorkspaceKind.Spec.PodTemplate.VolumeMounts.Home = "/home/jovyan/new"
+			newWorkspaceKind.Spec.PodTemplate.VolumeMountPaths.Home = "/home/jovyan/new"
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
 		})
 
