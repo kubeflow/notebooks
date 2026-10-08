@@ -7285,21 +7285,21 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "extraEnv": {
-                    "description": "environment variables for the main container (MUTABLE)\n - spec for EnvVar:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvar-v1-core\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "environment variables for the main container (MUTABLE)\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.EnvVar"
                     }
                 },
                 "extraVolumeMounts": {
-                    "description": "extra volume mounts for the main container (MUTABLE)\n - spec for VolumeMount:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
+                    "description": "extra volume mounts for the main container (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.VolumeMount"
                     }
                 },
                 "livenessProbe": {
-                    "description": "the liveness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "the liveness probe for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Probe"
@@ -7307,7 +7307,7 @@ const docTemplate = `{
                     ]
                 },
                 "readinessProbe": {
-                    "description": "the readiness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "the readiness probe for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Probe"
@@ -7315,7 +7315,7 @@ const docTemplate = `{
                     ]
                 },
                 "securityContext": {
-                    "description": "container security context for the main container (MUTABLE)\n - spec for SecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "container security context for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.SecurityContext"
@@ -7323,7 +7323,7 @@ const docTemplate = `{
                     ]
                 },
                 "startupProbe": {
-                    "description": "the startup probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "the startup probe for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Probe"
@@ -7383,7 +7383,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "extraVolumes": {
-                    "description": "extra volumes for Workspace Pods (MUTABLE)\n - spec for Volume:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "extra volumes for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.Volume"
@@ -7398,11 +7398,11 @@ const docTemplate = `{
                     ]
                 },
                 "schedulerName": {
-                    "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the ` + "`" + `schedulerName` + "`" + ` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the \"default-scheduler\"\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
+                    "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the ` + "`" + `schedulerName` + "`" + ` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the default scheduler\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
                     "type": "string"
                 },
                 "securityContext": {
-                    "description": "security context for Workspace Pods (MUTABLE)\n - spec for PodSecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core\n+kubebuilder:validation:Optional",
+                    "description": "security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.PodSecurityContext"
