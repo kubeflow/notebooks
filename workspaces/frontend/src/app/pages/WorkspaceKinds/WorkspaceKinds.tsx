@@ -465,11 +465,13 @@ const WorkspaceKindsAdminView: React.FunctionComponent = () => {
                     </Tbody>
                   ))}
               {filteredWorkspaceKinds.length === 0 && (
-                <Tr>
-                  <Td colSpan={8} id="empty-state">
-                    <Bullseye>{emptyState}</Bullseye>
-                  </Td>
-                </Tr>
+                <Tbody>
+                  <Tr>
+                    <Td colSpan={8} id="empty-state">
+                      <Bullseye>{emptyState}</Bullseye>
+                    </Td>
+                  </Tr>
+                </Tbody>
               )}
             </Table>
             <Pagination
