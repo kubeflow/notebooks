@@ -79,6 +79,28 @@ describe('WorkspaceKinds', () => {
     expect(screen.queryByTestId('workspace-kinds-access-empty-state')).not.toBeInTheDocument();
   });
 
+  it('renders the empty state inside a table body for admin users', () => {
+    mockUseAppContext.mockReturnValue({
+      config: null,
+      user: { userId: 'admin-user', clusterAdmin: true },
+    });
+
+    mockUseWorkspaceKinds.mockReturnValue([[], true, undefined, jest.fn()]);
+    mockUseWorkspaceCountPerKind.mockReturnValue({
+      workspaceCountPerKind: {},
+      error: null,
+    });
+
+    render(
+      <MemoryRouter>
+        <WorkspaceKinds />
+      </MemoryRouter>,
+    );
+
+    const emptyState = screen.getByTestId('empty-state');
+    expect(emptyState.closest('tbody')).toBeInTheDocument();
+  });
+
   it('shows the restricted-access message when user context is not yet loaded', () => {
     mockUseAppContext.mockReturnValue({ config: null, user: null });
 
