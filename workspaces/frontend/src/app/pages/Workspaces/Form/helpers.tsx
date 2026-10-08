@@ -1,4 +1,5 @@
 import React from 'react';
+import { generate as generateRandomWords } from 'random-words';
 import { Alert, AlertVariant } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/Label';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
@@ -15,6 +16,7 @@ import {
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 
 export const MAX_WORKSPACE_NAME_LENGTH = 63;
+export const MAX_DISPLAY_NAME_LENGTH = 128;
 // 420 decimal = 0644 octal (standard file permissions)
 export const DEFAULT_MODE = 420;
 export const DEFAULT_MODE_OCTAL = DEFAULT_MODE.toString(8);
@@ -276,6 +278,10 @@ export const buildPVCSelectOptions = (
   return options;
 };
 
+// A single "."-separated segment of a Kubernetes DNS subdomain name: lowercase
+// alphanumeric characters and "-", starting and ending with an alphanumeric character.
+const DNS_LABEL_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+
 export const validateName = (name: string): string | null => {
   if (!name) {
     return 'Value is required';
@@ -296,5 +302,135 @@ export const validateName = (name: string): string | null => {
   if (!/[a-z0-9]$/.test(name)) {
     return 'Must end with an alphanumeric character';
   }
+
+  // A valid overall start/end doesn't guarantee a valid DNS subdomain: each "."-separated
+  // segment must independently start and end with an alphanumeric character too, which
+  // also rejects empty segments from consecutive dots (e.g. "foo..bar", "foo.-bar", "foo-.bar").
+  if (!name.split('.').every((label) => DNS_LABEL_REGEX.test(label))) {
+    return 'Each "."-separated segment must start and end with an alphanumeric character';
+  }
+
   return null;
+};
+
+export interface ResourceNameCriterion {
+  key: string;
+  label: string;
+  isValid: boolean;
+}
+
+/** Same rules as validateName, decomposed into individually-checkable criteria for live UI feedback. */
+export const getResourceNameCriteria = (name: string): ResourceNameCriterion[] => [
+  {
+    key: 'length',
+    label: `Must be no more than ${MAX_WORKSPACE_NAME_LENGTH} characters`,
+    isValid: name.length > 0 && name.length <= MAX_WORKSPACE_NAME_LENGTH,
+  },
+  {
+    key: 'chars',
+    label: 'Only lowercase alphanumeric characters, "-" or "." are allowed',
+    isValid: name.length > 0 && /^[a-z0-9.-]+$/.test(name),
+  },
+  {
+    key: 'start',
+    label: 'Must start with an alphanumeric character',
+    isValid: /^[a-z0-9]/.test(name),
+  },
+  {
+    key: 'end',
+    label: 'Must end with an alphanumeric character',
+    isValid: /[a-z0-9]$/.test(name),
+  },
+  {
+    key: 'segments',
+    label: 'Each "."-separated segment must start and end with an alphanumeric character',
+    isValid: name.length > 0 && name.split('.').every((label) => DNS_LABEL_REGEX.test(label)),
+  },
+];
+
+// Unicode letters/marks/numbers (any language/script) plus a curated set of
+// everyday punctuation.
+// (< > { } ` \ | ; & $ = [ ]) — nothing needs special-casing for those since
+// they simply aren't in this allowlist. Whitespace is a literal space
+// (U+0020) only — not tabs, newlines, or other Unicode spaces.
+const DISPLAY_NAME_ALLOWED_CHARS_REGEX = /^[\p{L}\p{M}\p{N}\-_.,'":?!@#%^*()~+/ ]*$/u;
+const DISPLAY_NAME_ALLOWED_CHARS_MESSAGE =
+  'Only letters (any language), numbers, spaces, and the characters - _ . , \' " : ? ! @ # % ^ * ( ) ~ + / are allowed';
+
+export const validateDisplayName = (displayName: string): string | null => {
+  if (!displayName.trim()) {
+    return 'Value is required';
+  }
+
+  if (displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+    return `Must be no more than ${MAX_DISPLAY_NAME_LENGTH} characters`;
+  }
+
+  if (!DISPLAY_NAME_ALLOWED_CHARS_REGEX.test(displayName)) {
+    return DISPLAY_NAME_ALLOWED_CHARS_MESSAGE;
+  }
+
+  return null;
+};
+
+/**
+ * Converts a display name into a lowercase, hyphen-separated slug. Accented Latin
+ * letters are transliterated to their plain-ASCII base letter via Unicode NFD
+ * decomposition (e.g. "café" becomes "cafe", not "caf") before anything else is
+ * dropped. Any remaining characters outside [0-9, a-Z, -, ., _, space] — including
+ * non-Latin scripts (e.g. Chinese, Cyrillic), symbols, and emoji — are removed
+ * rather than romanized; such display names fall back to the random word-pair
+ * generator in generateResourceNameBase. Everything is lower-cased, spaces and
+ * underscores become dashes, and leading/trailing "-" or "." are trimmed so the
+ * slug is more likely to already satisfy validateName's start/end rule.
+ */
+export const slugifyDisplayName = (displayName: string): string =>
+  displayName
+    .normalize('NFD') // Decompose accented Latin letters into base letter + combining mark
+    .replace(/[\u0300-\u036f]/g, '') // Strip the combining marks, leaving the plain base letter
+    .replace(/[^0-9a-zA-Z\-._ ]/g, '') // Drop anything else: non-Latin scripts, symbols, emoji
+    .toLowerCase()
+    .replace(/[ _]/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '');
+
+const RESOURCE_NAME_HASH_LENGTH = 4;
+const RESOURCE_NAME_HASH_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+export const generateRandomHash = (length = RESOURCE_NAME_HASH_LENGTH): string => {
+  let hash = '';
+  for (let i = 0; i < length; i += 1) {
+    hash += RESOURCE_NAME_HASH_CHARS[Math.floor(Math.random() * RESOURCE_NAME_HASH_CHARS.length)];
+  }
+  return hash;
+};
+
+const RANDOM_WORD_MIN_LENGTH = 5;
+const RANDOM_WORD_MAX_LENGTH = 7;
+
+/**
+ * Returns a domain-friendly base name derived from the display name when it converts into
+ * a valid resource name, otherwise falls back to a random "<word>-<word>" base
+ * (e.g. when the display name has no alphanumeric characters at all, like an emoji-only name).
+ */
+export const generateResourceNameBase = (displayName: string): string => {
+  const slug = slugifyDisplayName(displayName);
+  if (slug && validateName(slug) === null) {
+    return slug;
+  }
+
+  const [word1, word2] = generateRandomWords({
+    exactly: 2,
+    minLength: RANDOM_WORD_MIN_LENGTH,
+    maxLength: RANDOM_WORD_MAX_LENGTH,
+  }) as string[];
+
+  return `${word1}-${word2}`;
+};
+
+export const generateResourceName = (displayName: string): string => {
+  const base = generateResourceNameBase(displayName);
+  const hash = generateRandomHash();
+  const maxBaseLength = MAX_WORKSPACE_NAME_LENGTH - hash.length - 1;
+  const truncatedBase = base.slice(0, maxBaseLength).replace(/-+$/, '');
+  return `${truncatedBase}-${hash}`;
 };

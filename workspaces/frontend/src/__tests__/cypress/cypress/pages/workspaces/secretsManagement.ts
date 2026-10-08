@@ -1,3 +1,5 @@
+import { assertSecretModalErrorInFooter } from '~/__tests__/cypress/cypress/pages/components/secretModalFooter';
+
 // Page object model for Secrets Management
 
 class SecretsManagementPage {
@@ -118,6 +120,18 @@ class SecretsModal {
 
   findKeyInput() {
     return this.find().findAllByTestId('key-input');
+  }
+
+  typeKey(index: number, key: string) {
+    return this.findKeyInput().eq(index).clear().type(key);
+  }
+
+  findErrorAlert() {
+    return this.find().findByTestId('error-alert');
+  }
+
+  assertErrorAlertInFooter() {
+    return assertSecretModalErrorInFooter(this.findErrorAlert());
   }
 
   assertModalVisible() {

@@ -7,7 +7,8 @@ import { WorkspaceFormProperties } from '~/app/types';
 
 describe('WorkspaceFormSummaryPanel', () => {
   const defaultProperties: WorkspaceFormProperties = {
-    workspaceName: '',
+    displayName: '',
+    name: '',
     homeVolume: undefined,
     volumes: [],
     secrets: [],

@@ -50,7 +50,7 @@ import { LoadError } from '~/app/components/LoadError';
 import { submitFormData } from '~/app/pages/Workspaces/Form/submitHelper';
 import { WorkspaceFormSummaryPanel } from '~/app/pages/Workspaces/Form/WorkspaceFormSummaryPanel';
 import { WorkspaceFormRedirectConfirmModal } from '~/app/pages/Workspaces/Form/WorkspaceFormRedirectConfirmModal';
-import { validateName } from './helpers';
+import { generateResourceName, validateDisplayName, validateName } from './helpers';
 
 enum WorkspaceFormSteps {
   KindSelection,
@@ -112,10 +112,16 @@ const WorkspaceForm: React.FC = () => {
   // Store original values for edit mode diff view
   const [originalData, setOriginalData] = useState<WorkspaceFormData | undefined>(undefined);
 
-  const [workspaceNameError, setWorkspaceNameError] = useState<string | null>(null);
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
+  const [resourceNameError, setResourceNameError] = useState<string | null>(null);
+  const [isResourceNameEditing, setIsResourceNameEditing] = useState(false);
+  const [isResourceNameManuallyEdited, setIsResourceNameManuallyEdited] = useState(false);
   // Refs for filter control
   const imageFilterControlRef = useRef<ImageSelectionFilterHandle>(null);
   const podConfigFilterControlRef = useRef<PodConfigSelectionFilterHandle>(null);
+  // Id of a hidden pod config the user explicitly picked (e.g. via the "show hidden" filter).
+  // Used so the compatibility-cleanup effect doesn't discard a deliberate choice.
+  const userSelectedHiddenPodConfigRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!initialFormDataLoaded || mode === 'create') {
       return;
@@ -124,6 +130,23 @@ const WorkspaceForm: React.FC = () => {
     // Store original values for diff comparison
     setOriginalData(initialFormData);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
+  function resolveUsableDefault<
+    T extends { id: string; hidden?: boolean; restrictions?: { deny?: boolean } },
+  >(values: T[] | undefined, defaultId: string | undefined): string | undefined {
+    if (!values) {
+      return undefined;
+    }
+    const isUsable = (opt?: T) => !opt?.restrictions?.deny && !opt?.hidden;
+    const defaultOption = values.find((v) => v.id === defaultId);
+
+    if (defaultOption && isUsable(defaultOption)) {
+      return defaultId;
+    }
+
+    const fallback = values.find((v) => isUsable(v));
+
+    return fallback?.id;
+  }
 
   // Apply default imageConfig and podConfig from listValues when a kind is first selected.
   // Only sets defaults when the values are unset (undefined), so user selections are never overwritten.
@@ -132,10 +155,22 @@ const WorkspaceForm: React.FC = () => {
       return;
     }
     if (!data.imageConfig && allValuesData.imageConfig.default) {
-      setData('imageConfig', allValuesData.imageConfig.default);
+      const resolved = resolveUsableDefault(
+        allValuesData.imageConfig.values,
+        allValuesData.imageConfig.default,
+      );
+      if (resolved) {
+        setData('imageConfig', resolved);
+      }
     }
     if (!data.podConfig && allValuesData.podConfig.default) {
-      setData('podConfig', allValuesData.podConfig.default);
+      const resolved = resolveUsableDefault(
+        allValuesData.podConfig.values,
+        allValuesData.podConfig.default,
+      );
+      if (resolved) {
+        setData('podConfig', resolved);
+      }
     }
   }, [allValuesData, allValuesLoaded, data.kind, data.imageConfig, data.podConfig, setData]);
 
@@ -145,7 +180,12 @@ const WorkspaceForm: React.FC = () => {
       return;
     }
     const podConfigOptions = filteredValuesData.podConfig.values ?? [];
-    const isStillValid = podConfigOptions.some((pc) => pc.id === data.podConfig);
+    const current = podConfigOptions.find((pc) => pc.id === data.podConfig);
+    // denied-but-present is left alone on purpose; hidden options are cleared,
+    // unless the user explicitly selected that hidden option themselves
+    const isUserSelectedHidden =
+      !!current?.hidden && userSelectedHiddenPodConfigRef.current === current.id;
+    const isStillValid = !!current && (!current.hidden || isUserSelectedHidden);
     if (!isStillValid) {
       setData('podConfig', undefined);
     }
@@ -153,11 +193,38 @@ const WorkspaceForm: React.FC = () => {
 
   const onDisplayNameChange = useCallback(
     (value: string) => {
-      setWorkspaceNameError(validateName(value));
-      setData('properties', { ...data.properties, workspaceName: value });
+      setDisplayNameError(validateDisplayName(value));
+      // The resource name is immutable once a workspace exists, so it must never be
+      // re-derived from display name edits in update mode.
+      if (mode === 'update' || isResourceNameManuallyEdited) {
+        setData('properties', { ...data.properties, displayName: value });
+        return;
+      }
+      if (!value.trim()) {
+        setResourceNameError(null);
+        setData('properties', { ...data.properties, displayName: value, name: '' });
+        return;
+      }
+      const generatedName = generateResourceName(value);
+      setResourceNameError(validateName(generatedName));
+      setData('properties', { ...data.properties, displayName: value, name: generatedName });
+    },
+    [setData, data.properties, isResourceNameManuallyEdited, mode],
+  );
+
+  const onStartResourceNameEdit = useCallback(() => {
+    setIsResourceNameEditing(true);
+  }, []);
+
+  const onResourceNameChange = useCallback(
+    (value: string) => {
+      setResourceNameError(validateName(value));
+      setIsResourceNameManuallyEdited(true);
+      setData('properties', { ...data.properties, name: value });
     },
     [setData, data.properties],
   );
+
   const getStepVariant = useCallback(
     (step: WorkspaceFormSteps) => {
       if (step > currentStep) {
@@ -182,8 +249,10 @@ const WorkspaceForm: React.FC = () => {
           return !!data.podConfig;
         case WorkspaceFormSteps.Properties:
           return (
-            !!data.properties.workspaceName.trim() &&
-            !workspaceNameError &&
+            !!data.properties.displayName.trim() &&
+            !displayNameError &&
+            !!data.properties.name.trim() &&
+            !resourceNameError &&
             !!data.properties.homeVolume
           );
         case WorkspaceFormSteps.Summary:
@@ -191,8 +260,10 @@ const WorkspaceForm: React.FC = () => {
             !!data.kind &&
             !!data.imageConfig &&
             !!data.podConfig &&
-            !!data.properties.workspaceName.trim() &&
-            !workspaceNameError &&
+            !!data.properties.displayName.trim() &&
+            !displayNameError &&
+            !!data.properties.name.trim() &&
+            !resourceNameError &&
             !!data.properties.homeVolume
           );
         default:
@@ -203,9 +274,11 @@ const WorkspaceForm: React.FC = () => {
       data.kind,
       data.imageConfig,
       data.podConfig,
-      data.properties.workspaceName,
+      data.properties.displayName,
+      data.properties.name,
       data.properties.homeVolume,
-      workspaceNameError,
+      displayNameError,
+      resourceNameError,
     ],
   );
 
@@ -243,6 +316,10 @@ const WorkspaceForm: React.FC = () => {
       if (mode === 'create') {
         resetData();
         setData('kind', kind);
+        setDisplayNameError(null);
+        setResourceNameError(null);
+        setIsResourceNameEditing(false);
+        setIsResourceNameManuallyEdited(false);
       }
     },
     [mode, resetData, setData],
@@ -268,8 +345,10 @@ const WorkspaceForm: React.FC = () => {
         if (podConfig.hidden || podConfig.redirect !== undefined) {
           podConfigFilterControlRef.current?.adaptFiltersForPodConfig(podConfig);
         }
+        userSelectedHiddenPodConfigRef.current = podConfig.hidden ? podConfig.id : undefined;
         setData('podConfig', podConfig.id);
       } else {
+        userSelectedHiddenPodConfigRef.current = undefined;
         setData('podConfig', undefined);
       }
     },
@@ -345,7 +424,7 @@ const WorkspaceForm: React.FC = () => {
       await submitFormData({ mode, data: preparedData, api, namespace });
       navigate('workspaces');
       notification.success(
-        `Workspace '${data.properties.workspaceName}' ${mode === 'create' ? 'created' : 'updated'} successfully`,
+        `Workspace '${data.properties.displayName || data.properties.name}' ${mode === 'create' ? 'created' : 'updated'} successfully`,
       );
     } catch (err) {
       setError(extractErrorMessage(err));
@@ -553,8 +632,12 @@ const WorkspaceForm: React.FC = () => {
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMounts.home}
-                        workspaceNameError={workspaceNameError}
-                        onWorkspaceNameChange={onDisplayNameChange}
+                        displayNameError={displayNameError}
+                        onDisplayNameChange={onDisplayNameChange}
+                        resourceNameError={resourceNameError}
+                        isResourceNameEditing={isResourceNameEditing}
+                        onStartResourceNameEdit={onStartResourceNameEdit}
+                        onResourceNameChange={onResourceNameChange}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.Summary && (

@@ -136,6 +136,9 @@ class EditWorkspaceKind {
   }
 
   assertLogoUrlInputVisible() {
+    // Plain `.should('be.visible')` does not auto-scroll like action commands do,
+    // and this field can render below the fold once Properties is expanded.
+    this.findLogoUrlInput().scrollIntoView();
     this.findLogoUrlInput().should('be.visible');
   }
 
@@ -669,10 +672,6 @@ class EditWorkspaceKind {
     cy.contains('Pod Metadata').should('be.visible');
   }
 
-  assertAdditionalVolumesSectionVisible() {
-    cy.contains('Additional Volumes').should('be.visible');
-  }
-
   // Pod Metadata - Labels
   findLabelsSection() {
     return cy.findByTestId('labels-section').find('button');
@@ -793,171 +792,6 @@ class EditWorkspaceKind {
 
   assertAnnotationValue(index: number, value: string) {
     this.findAnnotationRow(index).find('input').eq(1).should('have.value', value);
-  }
-
-  // Additional Volumes
-  findCreateVolumeButton() {
-    return cy.findByTestId('attach-new-volume-button');
-  }
-
-  clickCreateVolume() {
-    this.findCreateVolumeButton().click();
-  }
-
-  findVolumesTable() {
-    return cy.findByTestId('volumes-table');
-  }
-
-  findVolumeRow(index: number) {
-    return this.findVolumesTable().find('tbody').eq(index).find('tr').first();
-  }
-
-  findVolumeRowKebab(index: number) {
-    return this.findVolumeRow(index).find('button[aria-label="plain kebab"]');
-  }
-
-  clickVolumeRowKebab(index: number) {
-    this.findVolumeRowKebab(index).click();
-  }
-
-  clickEditVolume(pvcName: string) {
-    cy.findByTestId(`edit-volume-${pvcName}`).click();
-  }
-
-  findDetachVolumeMenuItem() {
-    return cy.contains('[role="menuitem"]', 'Detach');
-  }
-
-  clickDetachVolume() {
-    this.findDetachVolumeMenuItem().click();
-  }
-
-  assertVolumeCount(count: number) {
-    if (count === 0) {
-      cy.findByTestId('volumes-table').should('not.exist');
-    } else {
-      this.findVolumesTable().find('tbody').should('have.length', count);
-    }
-  }
-
-  assertVolumeInTable(pvcName: string) {
-    this.findVolumesTable().contains(pvcName).should('be.visible');
-  }
-
-  assertVolumeNotInTable(pvcName: string) {
-    cy.get('body').then((body) => {
-      if (body.find('[data-testid="volumes-table"]').length > 0) {
-        this.findVolumesTable().should('not.contain.text', pvcName);
-      }
-    });
-  }
-
-  // Volume Modal
-  findVolumeModal() {
-    return cy.findByTestId('create-volume-modal');
-  }
-
-  findVolumeModalTitle() {
-    return this.findVolumeModal().find('h1');
-  }
-
-  findPvcNameInput() {
-    return cy.findByTestId('pvc-name-input');
-  }
-
-  findMountPathInput() {
-    return cy.findByTestId('mount-path-input');
-  }
-
-  clickEditMountPath() {
-    cy.findByTestId('mount-path-edit').click();
-  }
-
-  findReadOnlySwitch() {
-    return cy.findByTestId('read-only-switch');
-  }
-
-  typePvcName(name: string) {
-    this.findPvcNameInput().clear().type(name);
-  }
-
-  typeMountPath(path: string) {
-    this.clickEditMountPath();
-    this.findMountPathInput().clear().type(path);
-    cy.findByTestId('mount-path-save').click();
-  }
-
-  toggleReadOnly() {
-    this.findReadOnlySwitch().click({ force: true });
-  }
-
-  findVolumeModalSubmitButton() {
-    return cy.findByTestId('create-volume-submit-button');
-  }
-
-  findVolumeModalCancelButton() {
-    return cy.findByTestId('create-volume-cancel-button');
-  }
-
-  submitVolumeModal() {
-    this.findVolumeModalSubmitButton().click();
-  }
-
-  cancelVolumeModal() {
-    this.findVolumeModalCancelButton().click();
-  }
-
-  assertVolumeModalVisible(visible: boolean) {
-    if (visible) {
-      this.findVolumeModal().should('be.visible');
-    } else {
-      this.findVolumeModal().should('not.exist');
-    }
-  }
-
-  assertVolumeModalTitle(title: string) {
-    this.findVolumeModalTitle().should('have.text', title);
-  }
-
-  assertPvcName(name: string) {
-    this.findPvcNameInput().should('have.value', name);
-  }
-
-  assertMountPath(path: string) {
-    this.findMountPathInput().should('have.value', path);
-  }
-
-  assertReadOnlyChecked(checked: boolean) {
-    this.findReadOnlySwitch().should(checked ? 'be.checked' : 'not.be.checked');
-  }
-
-  // Detach Volume Modal
-  findDetachVolumeModal() {
-    return cy.findByTestId('detach-volume-modal');
-  }
-
-  findDetachVolumeModalConfirmButton() {
-    return this.findDetachVolumeModal().findByTestId('confirm-button');
-  }
-
-  findDetachVolumeModalCancelButton() {
-    return this.findDetachVolumeModal().findByTestId('cancel-button');
-  }
-
-  confirmDetachVolume() {
-    this.findDetachVolumeModalConfirmButton().click();
-  }
-
-  cancelDetachVolume() {
-    this.findDetachVolumeModalCancelButton().click();
-  }
-
-  assertDetachVolumeModalVisible(visible: boolean) {
-    if (visible) {
-      this.findDetachVolumeModal().should('be.visible');
-    } else {
-      this.findDetachVolumeModal().should('not.exist');
-    }
   }
 
   // Pod Config Row Expansion
