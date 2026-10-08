@@ -65,21 +65,15 @@ describe('useWorkspaceRowActions', () => {
     expect((actions[2] as MinimalAction).title).toBe('Edit');
   });
 
-  it('triggers context requests on action click', () => {
+  it('triggers the delete context request on action click', () => {
     const onActionDone = jest.fn();
-    const { result } = renderHook(
-      () =>
-        useWorkspaceRowActions([{ id: 'start' }, { id: 'stop' }, { id: 'delete', onActionDone }]),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useWorkspaceRowActions([{ id: 'delete', onActionDone }]), {
+      wrapper,
+    });
 
     const actions = result.current(workspace);
     act(() => (actions[0] as MinimalAction).onClick?.());
-    act(() => (actions[1] as MinimalAction).onClick?.());
-    act(() => (actions[2] as MinimalAction).onClick?.());
 
-    expect(contextValue.requestStartAction).toHaveBeenCalledWith({ workspace });
-    expect(contextValue.requestStopAction).toHaveBeenCalledWith({ workspace });
     expect(contextValue.requestDeleteAction).toHaveBeenCalledWith({ workspace, onActionDone });
   });
 });

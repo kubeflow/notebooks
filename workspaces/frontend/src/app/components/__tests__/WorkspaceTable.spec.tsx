@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import WorkspaceTable from '~/app/components/WorkspaceTable';
+import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
 import {
   buildMockWorkspace,
@@ -32,6 +33,25 @@ jest.mock('~/app/components/RedirectIconWithPopover', () => ({
 jest.mock('~/app/pages/Workspaces/WorkspaceConnectAction', () => ({
   WorkspaceConnectAction: () => null,
 }));
+
+jest.mock('~/app/context/WorkspaceActionsContext', () => ({
+  useWorkspaceActionsContext: jest.fn(),
+}));
+
+const requestStartAction = jest.fn();
+const requestStopAction = jest.fn();
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  jest.mocked(useWorkspaceActionsContext).mockReturnValue({
+    requestStartAction,
+    requestStopAction,
+    requestViewDetailsAction: jest.fn(),
+    requestEditAction: jest.fn(),
+    requestDeleteAction: jest.fn(),
+    isDrawerExpanded: false,
+  });
+});
 
 describe('WorkspaceTable state column', () => {
   it('renders "Unknown" when workspace.state is empty', () => {
@@ -108,6 +128,75 @@ describe('WorkspaceTable name column', () => {
     await user.click(nameLink);
 
     expect(onViewDetailsClick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('WorkspaceTable actions column', () => {
+  it('shows Start for a paused workspace and requests the start modal on click', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({
+      name: 'example-workspace',
+      state: V1Beta1WorkspaceState.WorkspaceStatePaused,
+    });
+    const refreshWorkspaces = jest.fn();
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={refreshWorkspaces}
+        rowActions={() => []}
+      />,
+    );
+
+    const actionsCell = screen.getByTestId('action-column');
+    expect(actionsCell).toContainElement(screen.getByTestId(`start${workspace.name}`));
+    expect(screen.queryByTestId(`stop${workspace.name}`)).not.toBeInTheDocument();
+    expect(screen.getByTestId(`start${workspace.name}`)).toHaveAttribute('aria-label', 'More info');
+
+    await user.click(screen.getByTestId(`start${workspace.name}`));
+    expect(requestStartAction).toHaveBeenCalledWith({ workspace, onActionDone: refreshWorkspaces });
+  });
+
+  it('shows Stop for a running workspace and requests the stop modal on click', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({
+      name: 'running-workspace',
+      state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    });
+    const refreshWorkspaces = jest.fn();
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={refreshWorkspaces}
+        rowActions={() => []}
+      />,
+    );
+
+    const actionsCell = screen.getByTestId('action-column');
+    expect(actionsCell).toContainElement(screen.getByTestId(`stop${workspace.name}`));
+    expect(screen.queryByTestId(`start${workspace.name}`)).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId(`stop${workspace.name}`));
+    expect(requestStopAction).toHaveBeenCalledWith({ workspace, onActionDone: refreshWorkspaces });
+  });
+
+  it('shows no status button for a workspace in error', () => {
+    const workspace = buildMockWorkspace({
+      name: 'error-workspace',
+      state: V1Beta1WorkspaceState.WorkspaceStateError,
+    });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    expect(screen.queryByTestId(`start${workspace.name}`)).not.toBeInTheDocument();
+    expect(screen.queryByTestId(`stop${workspace.name}`)).not.toBeInTheDocument();
   });
 });
 

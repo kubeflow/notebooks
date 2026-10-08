@@ -633,7 +633,7 @@ describe('Workspace Redirects', () => {
       navBar.selectNamespace(mockNamespace.name);
       cy.wait('@getWorkspaces');
 
-      workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+      workspaces.findStartButton(TEST_WORKSPACE_NAME).click();
       startModal.findUpdateAndStartButton().click();
 
       cy.wait('@getWorkspace');
@@ -666,7 +666,7 @@ describe('Workspace Redirects', () => {
       navBar.selectNamespace(mockNamespace.name);
       cy.wait('@getWorkspaces');
 
-      workspaces.findAction({ action: 'stop', workspaceName: TEST_WORKSPACE_NAME }).click();
+      workspaces.findStopButton(TEST_WORKSPACE_NAME).click();
       stopModal.findUpdateAndStopButton().click();
 
       cy.wait('@getWorkspace');
@@ -704,7 +704,7 @@ describe('Workspace Redirects', () => {
       navBar.selectNamespace(DEFAULT_NAMESPACE);
       cy.wait('@getWorkspaces');
 
-      workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+      workspaces.findStartButton(TEST_WORKSPACE_NAME).click();
       startModal.findUpdateAndStartButton().click();
 
       cy.wait('@getWorkspace');
