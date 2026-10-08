@@ -10,7 +10,9 @@ spec:
     podMetadata:
       labels: {}
       annotations: {}
-    volumeMounts:
+    podSpec:
+      mainContainer: {}
+    volumeMountPaths:
       home: /home/jovyan
     options:
       imageConfig:
