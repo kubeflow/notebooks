@@ -3,7 +3,7 @@ import { IActions } from '@patternfly/react-table/dist/esm/components/Table';
 import { useWorkspaceActionsContext, WorkspaceAction } from '~/app/context/WorkspaceActionsContext';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 
-export type WorkspaceRowActionId = 'viewDetails' | 'edit' | 'delete' | 'start' | 'stop';
+export type WorkspaceRowActionId = 'viewDetails' | 'edit' | 'delete';
 
 interface WorkspaceRowAction {
   id: WorkspaceRowActionId;
@@ -65,16 +65,6 @@ function buildAction(
       id,
       title: 'Delete',
       onClick: () => actionsContext.requestDeleteAction({ workspace, onActionDone }),
-    }),
-    start: () => ({
-      id,
-      title: 'Start',
-      onClick: () => actionsContext.requestStartAction({ workspace, onActionDone }),
-    }),
-    stop: () => ({
-      id,
-      title: 'Stop',
-      onClick: () => actionsContext.requestStopAction({ workspace, onActionDone }),
     }),
   };
 

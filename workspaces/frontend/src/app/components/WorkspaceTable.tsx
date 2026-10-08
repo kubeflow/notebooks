@@ -10,6 +10,8 @@ import { Timestamp } from '@patternfly/react-core/dist/esm/components/Timestamp'
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { PlayIcon } from '@patternfly/react-icons/dist/esm/icons/play-icon';
+import { StopIcon } from '@patternfly/react-icons/dist/esm/icons/stop-icon';
 import {
   PaginationVariant,
   Pagination,
@@ -62,6 +64,7 @@ import ToolbarFilter, {
   ToolbarFilterRef,
 } from '~/shared/components/ToolbarFilter';
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
+import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 
 const {
   fields: wsTableColumns,
@@ -214,6 +217,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const [perPage, setPerPage] = useState(10);
 
     const navigate = useTypedNavigate();
+    const { requestStartAction, requestStopAction } = useWorkspaceActionsContext();
     const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
 
     const toolbarFilterRef = useRef<ToolbarFilterRef<WorkspaceFilterKey> | null>(null);
@@ -465,12 +469,52 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                 data-testid="action-column"
                                 className="kubeflow-workspace-actions-cell"
                               >
-                                <ActionsColumn
-                                  items={rowActions(workspace).map((action) => ({
-                                    ...action,
-                                    'data-testid': `action-${action.id || ''}`,
-                                  }))}
-                                />
+                                <Flex
+                                  alignItems={{ default: 'alignItemsCenter' }}
+                                  gap={{ default: 'gapXs' }}
+                                >
+                                  {workspace.state ===
+                                  V1Beta1WorkspaceState.WorkspaceStateRunning ? (
+                                    <Tooltip content="Stop workspace">
+                                      <Button
+                                        variant="plain"
+                                        hasNoPadding
+                                        aria-label="More info"
+                                        icon={<StopIcon />}
+                                        data-testid={`stop${workspace.name}`}
+                                        onClick={() =>
+                                          requestStopAction({
+                                            workspace,
+                                            onActionDone: refreshWorkspaces,
+                                          })
+                                        }
+                                      />
+                                    </Tooltip>
+                                  ) : workspace.state !==
+                                    V1Beta1WorkspaceState.WorkspaceStateError ? (
+                                    <Tooltip content="Start workspace">
+                                      <Button
+                                        variant="plain"
+                                        hasNoPadding
+                                        aria-label="More info"
+                                        icon={<PlayIcon />}
+                                        data-testid={`start${workspace.name}`}
+                                        onClick={() =>
+                                          requestStartAction({
+                                            workspace,
+                                            onActionDone: refreshWorkspaces,
+                                          })
+                                        }
+                                      />
+                                    </Tooltip>
+                                  ) : null}
+                                  <ActionsColumn
+                                    items={rowActions(workspace).map((action) => ({
+                                      ...action,
+                                      'data-testid': `action-${action.id || ''}`,
+                                    }))}
+                                  />
+                                </Flex>
                               </Td>
                             );
                           }
