@@ -1,9 +1,14 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
+import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
+
+type Restrictions = {
+  deny: boolean;
+  denyMessage?: { text: string };
+};
 
 type ImageConfigOption = {
   id: string;
@@ -18,6 +23,7 @@ type ImageConfigOption = {
       level: OptionsRedirectMessageLevel;
     };
   };
+  restrictions?: Restrictions;
 };
 
 type PodConfigOption = {
@@ -26,6 +32,7 @@ type PodConfigOption = {
   description: string;
   labels?: { key: string; value: string }[];
   hidden?: boolean;
+  restrictions?: Restrictions;
 };
 
 const buildWorkspaceKindWithOptions = (overrides: {
@@ -57,7 +64,7 @@ const buildWorkspaceKindWithOptions = (overrides: {
             labels: img.labels || [],
             hidden: img.hidden || false,
             redirect: img.redirect,
-            restrictions: { deny: false },
+            restrictions: img.restrictions ?? { deny: false },
           })),
         },
         podConfig: {
@@ -68,7 +75,7 @@ const buildWorkspaceKindWithOptions = (overrides: {
             description: pc.description,
             labels: pc.labels || [],
             hidden: pc.hidden || false,
-            restrictions: { deny: false },
+            restrictions: pc.restrictions ?? { deny: false },
           })),
         },
       },
@@ -223,6 +230,65 @@ describe('Workspace Form - Option Card Display', () => {
       createWorkspace.checkExtraFilter('showRedirected');
 
       createWorkspace.assertCardHasBothIndicators('jupyterlab_scipy_180_hidden');
+    });
+  });
+
+  describe('Visual indicators for restricted (denied) options', () => {
+    const setup = () => {
+      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+        defaultImageId: 'jupyterlab_scipy_190',
+        imageOptions: [
+          {
+            id: 'jupyterlab_scipy_190',
+            displayName: 'jupyter-scipy:v1.9.0',
+            description: 'JupyterLab v1.9.0',
+          },
+          {
+            id: 'jupyterlab_scipy_200_denied',
+            displayName: 'jupyter-scipy:v2.0.0 (Denied)',
+            description: 'JupyterLab v2.0.0',
+            restrictions: { deny: true, denyMessage: { text: 'Blocked by policy.' } },
+          },
+        ],
+        defaultPodConfigId: 'tiny_cpu',
+        podConfigOptions: [{ id: 'tiny_cpu', displayName: 'Tiny CPU', description: 'Small pod' }],
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([mockWorkspaceKind]),
+      ).as('getWorkspaceKinds');
+      interceptListValues(mockWorkspaceKind);
+
+      createWorkspace.visit();
+      cy.wait('@getWorkspaceKinds');
+
+      createWorkspace.selectKind('jupyterlab');
+      createWorkspace.clickNext();
+    };
+
+    it('should show restricted styling and icon for a denied option only', () => {
+      setup();
+
+      createWorkspace.assertCardHasRestrictedIndicator('jupyterlab_scipy_200_denied');
+      createWorkspace.assertCardDoesNotHaveRestrictedIndicator('jupyterlab_scipy_190');
+    });
+
+    it('should render a denied option as disabled and unselectable', () => {
+      setup();
+
+      createWorkspace.assertCardIsDisabled('jupyterlab_scipy_200_denied');
+      createWorkspace.assertCardHasNoSelectableAction('jupyterlab_scipy_200_denied');
+      createWorkspace.assertCardIsNotSelected('jupyterlab_scipy_200_denied');
+      createWorkspace.assertCardIsSelected('jupyterlab_scipy_190');
+    });
+
+    it('should show the deny message in the popover', () => {
+      setup();
+
+      createWorkspace.findRestrictedIcon('jupyterlab_scipy_200_denied').click();
+      cy.contains('Blocked by policy.').should('be.visible');
     });
   });
 
@@ -394,7 +460,9 @@ describe('Workspace Form - Option Card Display', () => {
       createWorkspace.selectKind('jupyterlab');
       createWorkspace.clickNext();
 
-      createWorkspace.assertCardIsSelected('jupyterlab_scipy_200_hidden');
+      createWorkspace.assertCardIsSelected('jupyterlab_scipy_190');
+
+      createWorkspace.checkExtraFilter('showHidden');
       createWorkspace.assertCardHasHiddenIndicator('jupyterlab_scipy_200_hidden');
       createWorkspace.assertCardHasDefaultBadge('jupyterlab_scipy_200_hidden');
     });

@@ -87,7 +87,8 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
   finalTarget,
   cycleDetected,
 }) => {
-  const hasRedirect = redirectChain && redirectChain.length > 0;
+  const hasRedirect = Boolean(redirectChain && redirectChain.length > 0);
+  const showApplyRedirect = hasRedirect && !cycleDetected && Boolean(finalTarget);
   const typeLabel = optionTypeLabel(optionType);
   const typeTitle = optionType === 'image' ? 'Image' : 'Pod Config';
 
@@ -133,46 +134,47 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
               </StackItem>
               <StackItem>
                 <Stack hasGutter>
-                  {redirectChain.map((step, index) => {
-                    const config = getLevelConfig(step.message?.level);
-                    const LevelIcon = config.icon;
-                    return (
-                      <StackItem key={index}>
-                        <Content style={{ display: 'flex', alignItems: 'baseline' }}>
-                          <Icon status={config.iconStatus}>
-                            <LevelIcon />
-                          </Icon>
-                          <ExpandableSection
-                            toggleText={` ${step.source.displayName} → ${step.target.displayName}`}
-                          >
-                            <Stack hasGutter>
-                              {step.message && (
-                                <>
-                                  <StackItem>
-                                    <Flex
-                                      alignItems={{ default: 'alignItemsCenter' }}
-                                      spaceItems={{ default: 'spaceItemsSm' }}
-                                    >
-                                      <FlexItem>
-                                        <Label color={config.color} isCompact>
-                                          {config.text}
-                                        </Label>
-                                      </FlexItem>
-                                    </Flex>
-                                  </StackItem>
-                                  {step.message.text && (
+                  {redirectChain &&
+                    redirectChain.map((step, index) => {
+                      const config = getLevelConfig(step.message?.level);
+                      const LevelIcon = config.icon;
+                      return (
+                        <StackItem key={index}>
+                          <Content style={{ display: 'flex', alignItems: 'baseline' }}>
+                            <Icon status={config.iconStatus}>
+                              <LevelIcon />
+                            </Icon>
+                            <ExpandableSection
+                              toggleText={` ${step.source.displayName} → ${step.target.displayName}`}
+                            >
+                              <Stack hasGutter>
+                                {step.message && (
+                                  <>
                                     <StackItem>
-                                      <Content>{step.message.text}</Content>
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        spaceItems={{ default: 'spaceItemsSm' }}
+                                      >
+                                        <FlexItem>
+                                          <Label color={config.color} isCompact>
+                                            {config.text}
+                                          </Label>
+                                        </FlexItem>
+                                      </Flex>
                                     </StackItem>
-                                  )}
-                                </>
-                              )}
-                            </Stack>
-                          </ExpandableSection>
-                        </Content>
-                      </StackItem>
-                    );
-                  })}
+                                    {step.message.text && (
+                                      <StackItem>
+                                        <Content>{step.message.text}</Content>
+                                      </StackItem>
+                                    )}
+                                  </>
+                                )}
+                              </Stack>
+                            </ExpandableSection>
+                          </Content>
+                        </StackItem>
+                      );
+                    })}
                 </Stack>
               </StackItem>
               {selectedOption.hidden && (
@@ -201,7 +203,7 @@ export const WorkspaceFormRedirectConfirmModal: React.FC<
         </Stack>
       </ModalBody>
       <ModalFooter>
-        {hasRedirect && !cycleDetected && (
+        {showApplyRedirect && (
           <Button
             variant="primary"
             onClick={onApplyRedirect}
