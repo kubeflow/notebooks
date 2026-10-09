@@ -11,7 +11,11 @@ import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { ActivityRuleEntry } from '~/app/types';
 import { EditableRowsTable, KeyValueRow } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
-import { emptyActivityRule } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import {
+  buildActivityRuleMatch,
+  emptyActivityRule,
+  getActivityRuleMatchLabels,
+} from '~/app/pages/WorkspaceKinds/Form/helpers';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 
@@ -51,8 +55,12 @@ export const ActivityRuleModal: React.FC<ActivityRuleModalProps> = ({
         setSecondsSinceActive(existingRule.config.secondsSinceActive);
         setMinRunningSeconds(existingRule.config.minRunningSeconds ?? 0);
         setPauseWorkspace(existingRule.effect.pauseWorkspace);
-        setNamespaceLabels(labelsToRows(existingRule.match?.matchNamespace?.selector.matchLabels));
-        setPodConfigLabels(labelsToRows(existingRule.match?.matchPodConfig?.selector.matchLabels));
+        setNamespaceLabels(
+          labelsToRows(getActivityRuleMatchLabels(existingRule.match, 'matchNamespace')),
+        );
+        setPodConfigLabels(
+          labelsToRows(getActivityRuleMatchLabels(existingRule.match, 'matchPodConfig')),
+        );
       } else {
         const empty = emptyActivityRule();
         setSecondsSinceActive(empty.config.secondsSinceActive);
@@ -65,23 +73,16 @@ export const ActivityRuleModal: React.FC<ActivityRuleModalProps> = ({
   }, [isOpen, existingRule]);
 
   const handleSubmit = useCallback(() => {
-    const nsLabels = rowsToLabels(namespaceLabels);
-    const pcLabels = rowsToLabels(podConfigLabels);
-
-    const hasMatch = nsLabels || pcLabels;
-
     const rule: ActivityRuleEntry = {
       id: existingRule?.id ?? emptyActivityRule().id,
       config: {
         secondsSinceActive,
         minRunningSeconds: minRunningSeconds > 0 ? minRunningSeconds : undefined,
       },
-      match: hasMatch
-        ? {
-            matchNamespace: nsLabels ? { selector: { matchLabels: nsLabels } } : undefined,
-            matchPodConfig: pcLabels ? { selector: { matchLabels: pcLabels } } : undefined,
-          }
-        : undefined,
+      match: buildActivityRuleMatch({
+        namespaceLabels: rowsToLabels(namespaceLabels),
+        podConfigLabels: rowsToLabels(podConfigLabels),
+      }),
       effect: {
         pauseWorkspace,
       },

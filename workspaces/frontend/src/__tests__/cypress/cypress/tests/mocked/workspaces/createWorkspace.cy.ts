@@ -84,6 +84,8 @@ const buildMockPodConfigValue = (
   labels: [],
   hidden: false,
   restrictions: { deny: false },
+  podMetadata: { labels: {}, annotations: {} },
+  statefulSetMetadata: { labels: {}, annotations: {} },
 });
 
 const completeAllStepsToProperties = (
@@ -1731,6 +1733,8 @@ describe('Create workspace', () => {
       ],
       hidden: false,
       restrictions: { deny: false },
+      podMetadata: { labels: {}, annotations: {} },
+      statefulSetMetadata: { labels: {}, annotations: {} },
     };
 
     const bigGpuPod: OptionsPodConfigValue = {
@@ -1744,6 +1748,8 @@ describe('Create workspace', () => {
       ],
       hidden: false,
       restrictions: { deny: false },
+      podMetadata: { labels: {}, annotations: {} },
+      statefulSetMetadata: { labels: {}, annotations: {} },
     };
 
     it('should show all images and pod configs from listValues response', () => {

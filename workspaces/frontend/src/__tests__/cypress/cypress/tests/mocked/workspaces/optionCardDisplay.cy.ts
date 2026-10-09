@@ -76,6 +76,8 @@ const buildWorkspaceKindWithOptions = (overrides: {
             labels: pc.labels || [],
             hidden: pc.hidden || false,
             restrictions: pc.restrictions ?? { deny: false },
+            podMetadata: { labels: {}, annotations: {} },
+            statefulSetMetadata: { labels: {}, annotations: {} },
           })),
         },
       },

@@ -11,7 +11,7 @@ import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { ActivityRuleEntry } from '~/app/types';
-import { formatSeconds } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { formatSeconds, getActivityRuleMatchLabels } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 import { ActivityRuleModal } from './ActivityRuleModal';
 
@@ -114,13 +114,13 @@ export const WorkspaceKindFormActivityRules: React.FC<WorkspaceKindFormActivityR
                   dataLabel="Namespace Match"
                   data-testid={`activity-rule-ns-match-cell-${index}`}
                 >
-                  {formatMatchLabels(rule.match?.matchNamespace?.selector.matchLabels)}
+                  {formatMatchLabels(getActivityRuleMatchLabels(rule.match, 'matchNamespace'))}
                 </Td>
                 <Td
                   dataLabel="Pod Config Match"
                   data-testid={`activity-rule-pc-match-cell-${index}`}
                 >
-                  {formatMatchLabels(rule.match?.matchPodConfig?.selector.matchLabels)}
+                  {formatMatchLabels(getActivityRuleMatchLabels(rule.match, 'matchPodConfig'))}
                 </Td>
                 <Td dataLabel="Effect" data-testid={`activity-rule-effect-cell-${index}`}>
                   {rule.effect.pauseWorkspace ? 'Pause Workspace' : '-'}

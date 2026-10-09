@@ -130,6 +130,14 @@ const convertToFormData = (
           ...t,
         })),
         restrictions: { deny: false },
+        podMetadata: {
+          labels: v.spec.podMetadata?.labels ?? {},
+          annotations: v.spec.podMetadata?.annotations ?? {},
+        },
+        statefulSetMetadata: {
+          labels: v.spec.statefulSetMetadata?.labels ?? {},
+          annotations: v.spec.statefulSetMetadata?.annotations ?? {},
+        },
       })),
     },
     podTemplate: {
