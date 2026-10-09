@@ -1,7 +1,9 @@
 import {
+  buildActivityRuleMatch,
   getResources,
   convertFormDataToUpdate,
   formatSeconds,
+  getActivityRuleMatchLabels,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { mockPodConfig } from '~/__mocks__/mockResources';
 import { WorkspaceKindFormData, WorkspaceKindPodConfigValue, ImagePullPolicy } from '~/app/types';
@@ -9,8 +11,10 @@ import {
   WorkspacekindsWorkspaceKindUpdate,
   V1Beta1FilterRuleScope,
   V1Beta1WorkspaceKindAssetMediaType,
+  V1LabelSelectorOperator,
   V1PullPolicy,
   V1ResourceList,
+  WorkspacekindsActivityRuleMatch,
 } from '~/generated/data-contracts';
 
 const buildMockApiUpdate = (
@@ -296,7 +300,13 @@ describe('convertFormDataToUpdate', () => {
     ).affinity = {
       nodeAffinity: {
         requiredDuringSchedulingIgnoredDuringExecution: {
-          nodeSelectorTerms: [{ matchExpressions: [{ key: 'gpu', operator: 'Exists' }] }],
+          nodeSelectorTerms: [
+            {
+              matchExpressions: [
+                { key: 'gpu', operator: V1LabelSelectorOperator.LabelSelectorOpExists },
+              ],
+            },
+          ],
         },
       },
     };
@@ -486,11 +496,13 @@ describe('convertFormDataToUpdate', () => {
         {
           id: 'rule-1',
           config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
-          match: {
-            matchNamespace: {
-              selector: { matchLabels: { tier: 'development' } },
+          match: [
+            {
+              matchNamespace: {
+                selector: { matchLabels: { tier: 'development' } },
+              },
             },
-          },
+          ],
           effect: { pauseWorkspace: true },
         },
         {
@@ -506,11 +518,13 @@ describe('convertFormDataToUpdate', () => {
     expect(result.activityRules).toHaveLength(2);
     expect(result.activityRules![0]).toEqual({
       config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
-      match: {
-        matchNamespace: {
-          selector: { matchLabels: { tier: 'development' } },
+      match: [
+        {
+          matchNamespace: {
+            selector: { matchLabels: { tier: 'development' } },
+          },
         },
-      },
+      ],
       effect: { pauseWorkspace: true },
     });
     expect(result.activityRules![1]).toEqual({
@@ -564,5 +578,71 @@ describe('convertFormDataToUpdate', () => {
     const result = convertFormDataToUpdate(formData, original);
 
     expect(result.filterRules).toEqual(original.filterRules);
+  });
+});
+
+describe('getActivityRuleMatchLabels', () => {
+  it('should return undefined for an omitted match list', () => {
+    expect(getActivityRuleMatchLabels(undefined, 'matchNamespace')).toBeUndefined();
+  });
+
+  it('should return only the labels of the requested matcher', () => {
+    const match: WorkspacekindsActivityRuleMatch[] = [
+      { matchNamespace: { selector: { matchLabels: { tier: 'development' } } } },
+      { matchPodConfig: { selector: { matchLabels: { cpu: '100m' } } } },
+    ];
+    expect(getActivityRuleMatchLabels(match, 'matchNamespace')).toEqual({ tier: 'development' });
+    expect(getActivityRuleMatchLabels(match, 'matchPodConfig')).toEqual({ cpu: '100m' });
+  });
+
+  it('should merge labels across multiple conditions using the same matcher', () => {
+    const match: WorkspacekindsActivityRuleMatch[] = [
+      { matchNamespace: { selector: { matchLabels: { tier: 'development' } } } },
+      { matchNamespace: { selector: { matchLabels: { team: 'ml' } } } },
+    ];
+    expect(getActivityRuleMatchLabels(match, 'matchNamespace')).toEqual({
+      tier: 'development',
+      team: 'ml',
+    });
+  });
+
+  it('should return undefined when the matcher only uses matchExpressions', () => {
+    const match: WorkspacekindsActivityRuleMatch[] = [
+      {
+        matchPodConfig: {
+          selector: {
+            matchExpressions: [
+              { key: 'cpu', operator: V1LabelSelectorOperator.LabelSelectorOpExists },
+            ],
+          },
+        },
+      },
+    ];
+    expect(getActivityRuleMatchLabels(match, 'matchPodConfig')).toBeUndefined();
+  });
+});
+
+describe('buildActivityRuleMatch', () => {
+  it('should return undefined when no labels are given', () => {
+    expect(buildActivityRuleMatch({})).toBeUndefined();
+    expect(buildActivityRuleMatch({ namespaceLabels: {}, podConfigLabels: {} })).toBeUndefined();
+  });
+
+  it('should build one condition per matcher with labels', () => {
+    expect(
+      buildActivityRuleMatch({
+        namespaceLabels: { tier: 'development' },
+        podConfigLabels: { cpu: '100m' },
+      }),
+    ).toEqual([
+      { matchNamespace: { selector: { matchLabels: { tier: 'development' } } } },
+      { matchPodConfig: { selector: { matchLabels: { cpu: '100m' } } } },
+    ]);
+  });
+
+  it('should omit the condition for a matcher without labels', () => {
+    expect(buildActivityRuleMatch({ podConfigLabels: { cpu: '100m' } })).toEqual([
+      { matchPodConfig: { selector: { matchLabels: { cpu: '100m' } } } },
+    ]);
   });
 });
