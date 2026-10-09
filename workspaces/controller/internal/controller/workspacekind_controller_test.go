@@ -23,6 +23,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -125,18 +126,21 @@ var _ = Describe("WorkspaceKind Controller", func() {
 			}
 			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
 
-			By("only allowing one of `spec.podTemplate.activityProbe.{podExec,jupyter}` to be set")
-			newWorkspaceKind = workspaceKind.DeepCopy()
-			newWorkspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-				PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
-					Script: "#!/bin/bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
-				},
-				Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-					LastActivity: true,
-					PortId:       "jupyterlab",
-				},
-			}
-			Expect(k8sClient.Patch(ctx, newWorkspaceKind, patch)).NotTo(Succeed())
+		})
+
+		It("should require the activityProbe podExec field", func() {
+			By("getting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+			Expect(workspaceKind.Spec.PodTemplate.ActivityProbe).NotTo(BeNil())
+
+			// a raw patch is required because `podExec` is a non-pointer field,
+			// so a typed object can never omit it from the request body
+			By("failing to remove `spec.podTemplate.activityProbe.podExec`")
+			removePodExecPatch := client.RawPatch(types.MergePatchType, []byte(`{"spec":{"podTemplate":{"activityProbe":{"podExec":null}}}}`))
+			err := k8sClient.Patch(ctx, workspaceKind, removePodExecPatch)
+			Expect(apierrors.IsInvalid(err)).To(BeTrue(), "expected an Invalid error, got: %v", err)
+			Expect(err.Error()).To(ContainSubstring("spec.podTemplate.activityProbe.podExec: Required value"))
 		})
 	})
 

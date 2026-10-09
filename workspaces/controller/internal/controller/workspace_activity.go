@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"maps"
 	"time"
 
@@ -32,11 +31,6 @@ import (
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"github.com/kubeflow/notebooks/workspaces/controller/internal/helper"
-)
-
-const (
-	// defaultJupyterProbeTimeout bounds a single Jupyter probe HTTP request.
-	defaultJupyterProbeTimeout = 10 * time.Second
 )
 
 // reconcileActivity runs the activity probe (if due), evaluates the activityRules, updates
@@ -70,7 +64,6 @@ func (r *WorkspaceReconciler) reconcileActivity(
 	log logr.Logger,
 	workspace *kubefloworgv1beta1.Workspace,
 	workspaceKind *kubefloworgv1beta1.WorkspaceKind,
-	currentImageConfig *kubefloworgv1beta1.ImageConfigValue,
 	currentPodConfig *kubefloworgv1beta1.PodConfigValue,
 	pod *corev1.Pod,
 ) (ctrl.Result, bool, error) {
@@ -116,7 +109,7 @@ func (r *WorkspaceReconciler) reconcileActivity(
 	}
 
 	// execute the probe and update the activity status from its result.
-	probeResult := r.runProbe(ctx, workspace, activityProbe, currentImageConfig, pod)
+	probeResult := r.runProbe(ctx, activityProbe, pod)
 	updateActivityStatusFromProbe(workspace, probeResult)
 
 	// evaluate rules and decide whether to pause.
@@ -170,19 +163,17 @@ func timeUntilProbeDue(workspace *kubefloworgv1beta1.Workspace, now int64, minPr
 	return 0, true
 }
 
-// runProbe dispatches to the configured probe implementation (Jupyter or podExec).
+// runProbe executes the configured activity probe against the Workspace Pod.
 func (r *WorkspaceReconciler) runProbe(
 	ctx context.Context,
-	workspace *kubefloworgv1beta1.Workspace,
 	activityProbe *kubefloworgv1beta1.ActivityProbe,
-	currentImageConfig *kubefloworgv1beta1.ImageConfigValue,
 	pod *corev1.Pod,
 ) *helper.ProbeResult {
 
 	now := time.Now()
 
-	// the Pod must exist and have an IP to be probed.
-	if pod == nil || pod.Status.PodIP == "" {
+	// the Pod must exist to be probed.
+	if pod == nil {
 		return &helper.ProbeResult{
 			StartTime: now,
 			EndTime:   now,
@@ -191,48 +182,16 @@ func (r *WorkspaceReconciler) runProbe(
 		}
 	}
 
-	switch {
-	case activityProbe.Jupyter != nil:
-		port, ok := imageConfigPortForID(currentImageConfig, activityProbe.Jupyter.PortId)
-		if !ok {
-			return &helper.ProbeResult{
-				StartTime: now,
-				EndTime:   now,
-				Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-				Message:   fmt.Sprintf("%sport %q not found in imageConfig", helper.ProbeMessagePrefixJupyterFailed, activityProbe.Jupyter.PortId),
-			}
-		}
-		if r.HTTPProber == nil {
-			return &helper.ProbeResult{
-				StartTime: now,
-				EndTime:   now,
-				Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-				Message:   helper.ProbeMessagePrefixJupyterFailed + "http prober is not configured",
-			}
-		}
-		basePath := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, activityProbe.Jupyter.PortId)
-		return helper.RunJupyterProbe(ctx, r.HTTPProber, pod.Status.PodIP, port, basePath, defaultJupyterProbeTimeout)
-
-	case activityProbe.PodExec != nil:
-		if r.PodExecutor == nil {
-			return &helper.ProbeResult{
-				StartTime: now,
-				EndTime:   now,
-				Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-				Message:   helper.ProbeMessagePrefixPodExecFailed + "exec is not configured",
-			}
-		}
-		timeout := time.Duration(ptr.Deref(activityProbe.PodExec.TimeoutSeconds, kubefloworgv1beta1.DefaultPodExecTimeoutSeconds)) * time.Second
-		return helper.RunPodExecProbe(ctx, r.PodExecutor, pod.Namespace, pod.Name, activityProbe.PodExec.Script, timeout)
-
-	default:
+	if r.PodExecutor == nil {
 		return &helper.ProbeResult{
 			StartTime: now,
 			EndTime:   now,
 			Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-			Message:   helper.ProbeMessageNoTypeConfigured,
+			Message:   helper.ProbeMessagePrefixPodExecFailed + "exec is not configured",
 		}
 	}
+	timeout := time.Duration(ptr.Deref(activityProbe.PodExec.TimeoutSeconds, kubefloworgv1beta1.DefaultPodExecTimeoutSeconds)) * time.Second
+	return helper.RunPodExecProbe(ctx, r.PodExecutor, pod.Namespace, pod.Name, activityProbe.PodExec.Script, timeout)
 }
 
 // updateActivityStatusFromProbe applies a probe result to the Workspace activity status.
@@ -340,18 +299,4 @@ func (r *WorkspaceReconciler) getNamespaceLabels(ctx context.Context, namespaceN
 	result := make(map[string]string, len(ns.Labels))
 	maps.Copy(result, ns.Labels)
 	return result, nil
-}
-
-// imageConfigPortForID resolves the container port number for a given WorkspaceKind port id by
-// matching against the imageConfig ports (which carry both the port id and the port number).
-func imageConfigPortForID(imageConfig *kubefloworgv1beta1.ImageConfigValue, portID kubefloworgv1beta1.PortId) (int32, bool) {
-	if imageConfig == nil {
-		return 0, false
-	}
-	for _, p := range imageConfig.Spec.Ports {
-		if p.Id == portID {
-			return p.Port, true
-		}
-	}
-	return 0, false
 }

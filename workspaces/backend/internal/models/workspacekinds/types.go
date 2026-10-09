@@ -70,20 +70,14 @@ type PodVolumeMountPaths struct {
 }
 
 type ActivityProbe struct {
-	MinProbeIntervalSeconds int32                 `json:"minProbeIntervalSeconds"`
-	ProbeIntervalSeconds    int32                 `json:"probeIntervalSeconds"`
-	PodExec                 *ActivityProbePodExec `json:"podExec,omitempty"`
-	Jupyter                 *ActivityProbeJupyter `json:"jupyter,omitempty"`
+	MinProbeIntervalSeconds int32                `json:"minProbeIntervalSeconds"`
+	ProbeIntervalSeconds    int32                `json:"probeIntervalSeconds"`
+	PodExec                 ActivityProbePodExec `json:"podExec"`
 }
 
 type ActivityProbePodExec struct {
 	TimeoutSeconds int32 `json:"timeoutSeconds"`
 	// NOTE: Script is excluded from the WorkspaceKindListItem model for size reasons.
-}
-
-type ActivityProbeJupyter struct {
-	LastActivity bool   `json:"lastActivity"`
-	PortId       string `json:"portId"`
 }
 
 type ActivityRule struct {

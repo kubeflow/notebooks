@@ -18,10 +18,7 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"net/http"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -39,8 +36,6 @@ import (
 )
 
 const (
-	testTimestampRFC3339 = "2030-01-01T00:00:00Z"
-
 	testInitialActivityMs = int64(1000)
 	testLastActivityMs    = int64(4000)
 	testStartTimeMs       = int64(5000)
@@ -80,33 +75,6 @@ var _ = Describe("mergeReconcileResult", func() {
 	})
 })
 
-var _ = Describe("imageConfigPortForID", func() {
-	imageConfig := &kubefloworgv1beta1.ImageConfigValue{
-		Spec: kubefloworgv1beta1.ImageConfigSpec{
-			Ports: []kubefloworgv1beta1.ImagePort{
-				{Id: "jupyterlab", Port: 8888},
-				{Id: "vscode", Port: 8080},
-			},
-		},
-	}
-
-	It("should resolve a known port id", func() {
-		port, ok := imageConfigPortForID(imageConfig, "jupyterlab")
-		Expect(ok).To(BeTrue())
-		Expect(port).To(Equal(int32(8888)))
-	})
-
-	It("should return not-found for an unknown id", func() {
-		_, ok := imageConfigPortForID(imageConfig, "unknown")
-		Expect(ok).To(BeFalse())
-	})
-
-	It("should return not-found for a nil imageConfig", func() {
-		_, ok := imageConfigPortForID(nil, "jupyterlab")
-		Expect(ok).To(BeFalse())
-	})
-})
-
 var _ = Describe("updateActivityStatusFromProbe", func() {
 	var workspace *kubefloworgv1beta1.Workspace
 
@@ -126,7 +94,7 @@ var _ = Describe("updateActivityStatusFromProbe", func() {
 			StartTime:    testStartTime,
 			EndTime:      testEndTime,
 			Result:       kubefloworgv1beta1.WorkspaceProbeResultSuccess,
-			Message:      "Jupyter probe succeeded",
+			Message:      "PodExec probe succeeded",
 			LastActivity: &testLastActivityTime,
 		}
 		updateActivityStatusFromProbe(workspace, result)
@@ -183,7 +151,7 @@ var _ = Describe("updateActivityStatusFromProbe", func() {
 			StartTime: testStartTime,
 			EndTime:   testEndTime,
 			Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-			Message:   "Jupyter probe failed: HTTP 500",
+			Message:   "PodExec probe failed: unexpected exit code 1",
 		}
 		updateActivityStatusFromProbe(workspace, result)
 		Expect(workspace.Status.Activity.LastActivity).To(Equal(testInitialActivityMs))
@@ -549,17 +517,7 @@ var _ = Describe("timeUntilProbeDue", func() {
 	})
 })
 
-// fakeHTTPProber and fakePodExecutor are test doubles for the probe interfaces used by runProbe.
-
-type fakeHTTPProber struct {
-	resp *http.Response
-	err  error
-}
-
-func (f *fakeHTTPProber) Get(_ context.Context, _ string) (*http.Response, error) {
-	return f.resp, f.err
-}
-
+// fakePodExecutor is a test double for the probe interface used by runProbe.
 type fakePodExecutor struct {
 	stdout string
 	err    error
@@ -579,74 +537,24 @@ func (f *fakePodExecutor) Exec(_ context.Context, _, _, _ string, _ []string, st
 }
 
 var _ = Describe("runProbe", func() {
-	imageConfig := &kubefloworgv1beta1.ImageConfigValue{
-		Spec: kubefloworgv1beta1.ImageConfigSpec{
-			Ports: []kubefloworgv1beta1.ImagePort{{Id: "jupyterlab", Port: 8888}},
-		},
-	}
-
 	runningPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "ws-pod-0", Namespace: "team-a"},
-		Status:     corev1.PodStatus{PodIP: "10.0.0.1"},
 	}
 
-	jupyterProbe := &kubefloworgv1beta1.ActivityProbe{
-		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{LastActivity: true, PortId: "jupyterlab"},
-	}
 	podExecProbe := &kubefloworgv1beta1.ActivityProbe{
-		PodExec: &kubefloworgv1beta1.ActivityProbePodExec{Script: "#!/usr/bin/env bash\nexit 0"},
+		PodExec: kubefloworgv1beta1.ActivityProbePodExec{Script: "#!/usr/bin/env bash\nexit 0"},
 	}
 
 	It("should fail when the Pod is nil", func() {
 		r := &WorkspaceReconciler{}
-		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, jupyterProbe, imageConfig, nil)
+		result := r.runProbe(ctx, podExecProbe, nil)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
 		Expect(result.Message).To(ContainSubstring("not ready"))
-	})
-
-	It("should fail when the Pod has no IP", func() {
-		r := &WorkspaceReconciler{}
-		podNoIP := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "p", Namespace: "n"}}
-		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, jupyterProbe, imageConfig, podNoIP)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
-		Expect(result.Message).To(ContainSubstring("not ready"))
-	})
-
-	It("should run a Jupyter probe using the injected HTTPProber", func() {
-		r := &WorkspaceReconciler{
-			HTTPProber: &fakeHTTPProber{
-				resp: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(fmt.Sprintf(`{"last_activity":%q}`, testTimestampRFC3339))),
-					Header:     make(http.Header),
-				},
-			},
-		}
-		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, jupyterProbe, imageConfig, runningPod)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
-		Expect(result.LastActivity).ToNot(BeNil())
-	})
-
-	It("should fail a Jupyter probe when the port id is not in the imageConfig", func() {
-		r := &WorkspaceReconciler{HTTPProber: &fakeHTTPProber{}}
-		badProbe := &kubefloworgv1beta1.ActivityProbe{
-			Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{LastActivity: true, PortId: "does-not-exist"},
-		}
-		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, badProbe, imageConfig, runningPod)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
-		Expect(result.Message).To(ContainSubstring("not found in imageConfig"))
-	})
-
-	It("should fail a Jupyter probe when no http prober is configured", func() {
-		r := &WorkspaceReconciler{} // HTTPProber is nil
-		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, jupyterProbe, imageConfig, runningPod)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
-		Expect(result.Message).To(ContainSubstring("http prober is not configured"))
 	})
 
 	It("should fail a podExec probe when no executor is configured", func() {
 		r := &WorkspaceReconciler{} // PodExecutor is nil
-		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, podExecProbe, imageConfig, runningPod)
+		result := r.runProbe(ctx, podExecProbe, runningPod)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
 		Expect(result.Message).To(ContainSubstring("exec is not configured"))
 	})
@@ -655,7 +563,7 @@ var _ = Describe("runProbe", func() {
 		r := &WorkspaceReconciler{
 			PodExecutor: &fakePodExecutor{stdout: `{"has_activity": true}`},
 		}
-		result := r.runProbe(ctx, &kubefloworgv1beta1.Workspace{}, podExecProbe, imageConfig, runningPod)
+		result := r.runProbe(ctx, podExecProbe, runningPod)
 		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
 		Expect(result.LastActivity).ToNot(BeNil())
 	})

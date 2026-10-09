@@ -20,9 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -41,26 +38,6 @@ var (
 	testTimeRFC3339, _     = time.Parse(time.RFC3339, testTimestampRFC3339)
 	testTimeRFC3339Nano, _ = time.Parse(time.RFC3339Nano, testTimestampRFC3339Nano)
 )
-
-// fakeHTTPProber is a test double for HTTPProber.
-type fakeHTTPProber struct {
-	resp        *http.Response
-	err         error
-	capturedURL string
-}
-
-func (f *fakeHTTPProber) Get(_ context.Context, url string) (*http.Response, error) {
-	f.capturedURL = url
-	return f.resp, f.err
-}
-
-func newHTTPResponse(status int, body string) *http.Response {
-	return &http.Response{
-		StatusCode: status,
-		Body:       io.NopCloser(strings.NewReader(body)),
-		Header:     make(http.Header),
-	}
-}
 
 // fakeExitError implements the exit-code interface used by exitCodeFromError.
 type fakeExitError struct {
@@ -90,12 +67,6 @@ func (f *fakePodExecutor) Exec(_ context.Context, _, _, _ string, _ []string, st
 	return nil
 }
 
-type errorReader struct{}
-
-func (e *errorReader) Read(_ []byte) (int, error) {
-	return 0, fmt.Errorf("read body error")
-}
-
 var _ = Describe("ProbeResult", func() {
 	It("should report Succeeded correctly", func() {
 		resSuccess := &ProbeResult{Result: kubefloworgv1beta1.WorkspaceProbeResultSuccess}
@@ -103,105 +74,6 @@ var _ = Describe("ProbeResult", func() {
 
 		resFailure := &ProbeResult{Result: kubefloworgv1beta1.WorkspaceProbeResultFailure}
 		Expect(resFailure.Succeeded()).To(BeFalse())
-	})
-})
-
-var _ = Describe("DefaultHTTPProber", func() {
-	It("should perform an HTTP GET request", func() {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprintf(w, `{"last_activity":%q}`, testTimestampRFC3339)
-		}))
-		defer server.Close()
-
-		prober := &DefaultHTTPProber{Client: server.Client()}
-		resp, err := prober.Get(context.Background(), server.URL)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		_ = resp.Body.Close()
-	})
-
-	It("should return error when URL is invalid", func() {
-		prober := &DefaultHTTPProber{Client: http.DefaultClient}
-		_, err := prober.Get(context.Background(), "http://127.0.0.1:0\x7f")
-		Expect(err).To(HaveOccurred())
-	})
-})
-
-var _ = Describe("RunJupyterProbe", func() {
-	ctx := context.Background()
-
-	It("should succeed and extract last_activity", func() {
-		prober := &fakeHTTPProber{
-			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": %q}`, testTimestampRFC3339)),
-		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultSuccess))
-		Expect(result.LastActivity).ToNot(BeNil())
-		Expect(*result.LastActivity).To(Equal(testTimeRFC3339))
-	})
-
-	It("should report timeout when deadline is exceeded", func() {
-		prober := &fakeHTTPProber{err: context.DeadlineExceeded}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultTimeout))
-		Expect(result.Message).To(ContainSubstring("timeout after 1000ms"))
-	})
-
-	It("should fail when reading response body fails", func() {
-		prober := &fakeHTTPProber{
-			resp: &http.Response{
-				StatusCode: http.StatusOK,
-				Body:       io.NopCloser(&errorReader{}),
-				Header:     make(http.Header),
-			},
-		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
-		Expect(result.Message).To(ContainSubstring("unable to read response body"))
-	})
-
-	It("should fail on a non-2xx status code", func() {
-		prober := &fakeHTTPProber{
-			resp: newHTTPResponse(http.StatusInternalServerError, ``),
-		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
-		Expect(result.LastActivity).To(BeNil())
-		Expect(result.Message).To(ContainSubstring("HTTP 500"))
-	})
-
-	It("should fail on a connection error", func() {
-		prober := &fakeHTTPProber{err: fmt.Errorf("connection refused")}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
-		Expect(result.LastActivity).To(BeNil())
-	})
-
-	It("should fail on an invalid JSON body", func() {
-		prober := &fakeHTTPProber{
-			resp: newHTTPResponse(http.StatusOK, `not json`),
-		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
-		Expect(result.Message).To(ContainSubstring("invalid response body"))
-	})
-
-	It("should fail on an invalid last_activity timestamp", func() {
-		prober := &fakeHTTPProber{
-			resp: newHTTPResponse(http.StatusOK, `{"last_activity": "not-a-date"}`),
-		}
-		result := RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "", time.Second)
-		Expect(result.Result).To(Equal(kubefloworgv1beta1.WorkspaceProbeResultFailure))
-		Expect(result.LastActivity).To(BeNil())
-	})
-
-	It("should respect the basePath", func() {
-		prober := &fakeHTTPProber{
-			resp: newHTTPResponse(http.StatusOK, fmt.Sprintf(`{"last_activity": %q}`, testTimestampRFC3339)),
-		}
-		_ = RunJupyterProbe(ctx, prober, "10.0.0.1", 8888, "/my/base/path/", time.Second)
-		Expect(prober.capturedURL).To(Equal("http://10.0.0.1:8888/my/base/path/api/status"))
 	})
 })
 

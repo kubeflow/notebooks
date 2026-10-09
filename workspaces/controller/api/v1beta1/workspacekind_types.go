@@ -419,7 +419,6 @@ type WorkspaceKindClusterRole struct {
 
 // ActivityProbe defines how to detect recent user activity in a Workspace
 //
-// +kubebuilder:validation:XValidation:message="must specify exactly one of 'podExec' or 'jupyter'",rule="!(has(self.podExec) && has(self.jupyter)) && (has(self.podExec) || has(self.jupyter))"
 // +kubebuilder:validation:XValidation:message="minProbeIntervalSeconds must be less than or equal to probeIntervalSeconds",rule="self.minProbeIntervalSeconds <= self.probeIntervalSeconds"
 type ActivityProbe struct {
 	// the minimum duration in seconds that must elapse between two consecutive probes.
@@ -447,12 +446,8 @@ type ActivityProbe struct {
 	ProbeIntervalSeconds *int32 `json:"probeIntervalSeconds,omitempty"`
 
 	// a script-based probe executed in the Pod
-	// +kubebuilder:validation:Optional
-	PodExec *ActivityProbePodExec `json:"podExec,omitempty"`
-
-	// a Jupyter-specific API probe
-	// +kubebuilder:validation:Optional
-	Jupyter *ActivityProbeJupyter `json:"jupyter,omitempty"`
+	//  - this is currently the only supported probe type, so it is required
+	PodExec ActivityProbePodExec `json:"podExec"`
 }
 
 // ActivityProbePodExec defines a script-based activity probe executed via the Kubernetes exec API
@@ -486,18 +481,6 @@ type ActivityProbePodExec struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=2048
 	Script string `json:"script"`
-}
-
-// ActivityProbeJupyter defines a Jupyter-specific probe that polls the /api/status endpoint
-//
-// +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
-type ActivityProbeJupyter struct {
-	// if the Jupyter-specific probe is enabled
-	// +kubebuilder:example=true
-	LastActivity bool `json:"lastActivity"`
-
-	// the port to probe, referencing a port defined in spec.podTemplate.ports
-	PortId PortId `json:"portId"`
 }
 
 type WorkspaceKindVolumeMountPaths struct {

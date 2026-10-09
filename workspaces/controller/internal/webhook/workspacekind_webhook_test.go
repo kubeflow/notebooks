@@ -226,23 +226,8 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
-				description:   "should reject creation with invalid port reference in Jupyter probe",
-				workspaceKind: NewExampleWorkspaceKindWithInvalidJupyterPort("wsk-webhook-create--invalid-jupyter-port"),
-				shouldSucceed: false,
-			},
-			{
-				description:   "should reject creation with both exec and Jupyter probes specified",
-				workspaceKind: NewExampleWorkspaceKindWithBothProbeTypes("wsk-webhook-create--both-probe-types"),
-				shouldSucceed: false,
-			},
-			{
 				description:   "should reject creation if minProbeIntervalSeconds > probeIntervalSeconds",
 				workspaceKind: NewExampleWorkspaceKindWithInvalidProbeIntervals("wsk-webhook-create--invalid-probe-intervals"),
-				shouldSucceed: false,
-			},
-			{
-				description:   "should reject creation if jupyter.lastActivity is false",
-				workspaceKind: NewExampleWorkspaceKindWithJupyterLastActivityFalse("wsk-webhook-create--jupyter-last-activity-false"),
 				shouldSucceed: false,
 			},
 			{

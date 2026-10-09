@@ -253,7 +253,7 @@ spec:
                         description: |-
                           a human-readable message about the probe result
                            - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-                        example: Jupyter probe succeeded
+                        example: PodExec probe succeeded
                         type: string
                       result:
                         description: the result of the last probe execution
