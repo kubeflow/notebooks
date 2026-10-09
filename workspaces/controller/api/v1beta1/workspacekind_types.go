@@ -61,8 +61,8 @@ type WorkspaceKindSpec struct {
 
 	// activityRules defines the policies for handling inactivity in Workspaces of this WorkspaceKind (MUTABLE).
 	// Rules are evaluated sequentially from top to bottom (first-match-wins semantics) independently for each
-	// configured effect type (e.g., pauseWorkspace). A rule with a nil or empty 'match' is treated as a catch-all
-	// rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
+	// configured effect type (e.g., pauseWorkspace). A rule with an omitted or empty 'match' list is treated as a
+	// catch-all rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
 	// +kubebuilder:validation:Optional
 	// +listType:="atomic"
 	ActivityRules []ActivityRule `json:"activityRules,omitempty"`
@@ -81,9 +81,11 @@ type ActivityRule struct {
 	// the configuration for this rule
 	Config ActivityRuleConfig `json:"config"`
 
-	// the conditions under which this rule applies
+	// the conditions which must ALL be satisfied for the rule to apply
+	//  - an omitted or empty list makes this a catch-all rule that matches all Workspaces
 	// +kubebuilder:validation:Optional
-	Match *ActivityRuleMatch `json:"match,omitempty"`
+	// +listType:="atomic"
+	Match []ActivityRuleMatch `json:"match,omitempty"`
 
 	// the action to take when the rule matches and its conditions are met
 	Effect ActivityRuleEffect `json:"effect"`
@@ -104,28 +106,25 @@ type ActivityRuleConfig struct {
 	MinRunningSeconds *int32 `json:"minRunningSeconds,omitempty"`
 }
 
-// ActivityRuleMatch defines the conditions under which an ActivityRule applies.
-// If both matchNamespace and matchPodConfig are specified, they are combined with AND semantics (both must match).
-// If both are unspecified (or the Match block is omitted entirely), it acts as a catch-all rule that matches all Workspaces.
+// ActivityRuleMatch defines a single match condition for an ActivityRule
+//
+// +kubebuilder:validation:XValidation:message="must specify exactly one of 'matchNamespace' or 'matchPodConfig'",rule="(has(self.matchNamespace) ? 1 : 0) + (has(self.matchPodConfig) ? 1 : 0) == 1"
 type ActivityRuleMatch struct {
-	// filters Workspaces by namespace labels
+	// filters Workspaces by the labels of their namespace
 	// +kubebuilder:validation:Optional
-	MatchNamespace *NamespaceMatch `json:"matchNamespace,omitempty"`
+	MatchNamespace *ActivityRuleSelector `json:"matchNamespace,omitempty"`
 
-	// filters Workspaces by the PodConfig option they are using
+	// filters Workspaces by the labels of the PodConfig option they are using
 	// +kubebuilder:validation:Optional
-	MatchPodConfig *PodConfigMatch `json:"matchPodConfig,omitempty"`
+	MatchPodConfig *ActivityRuleSelector `json:"matchPodConfig,omitempty"`
 }
 
-// NamespaceMatch filters Workspaces by namespace labels
-type NamespaceMatch struct {
-	// the standard Kubernetes label selector to match namespace labels
-	Selector metav1.LabelSelector `json:"selector"`
-}
-
-// PodConfigMatch filters Workspaces by the PodConfig option they are using
-type PodConfigMatch struct {
-	// the standard Kubernetes label selector to match podConfig labels
+// ActivityRuleSelector wraps a standard Kubernetes label selector for use in activity rule match conditions
+//
+// +kubebuilder:validation:XValidation:message="selector must specify at least one of 'matchLabels' or 'matchExpressions'",rule="(has(self.selector.matchLabels) && size(self.selector.matchLabels) > 0) || (has(self.selector.matchExpressions) && size(self.selector.matchExpressions) > 0)"
+type ActivityRuleSelector struct {
+	// a standard Kubernetes label selector
+	//  - must not be empty, use an empty 'match' list for a catch-all rule
 	Selector metav1.LabelSelector `json:"selector"`
 }
 
@@ -868,8 +867,11 @@ type FilterRuleMatch struct {
 }
 
 // FilterRuleSelector wraps a standard Kubernetes label selector for use in filter rule match conditions
+//
+// +kubebuilder:validation:XValidation:message="selector must specify at least one of 'matchLabels' or 'matchExpressions'",rule="(has(self.selector.matchLabels) && size(self.selector.matchLabels) > 0) || (has(self.selector.matchExpressions) && size(self.selector.matchExpressions) > 0)"
 type FilterRuleSelector struct {
 	// a standard Kubernetes label selector
+	//  - must not be empty
 	Selector metav1.LabelSelector `json:"selector"`
 }
 
