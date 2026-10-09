@@ -937,6 +937,47 @@ var _ = Describe("Workspaces Handler", func() {
 			))
 		})
 
+		It("rejects Workspace create with 422 when the WorkspaceKind does not exist", func() {
+			missingWorkspaceKindName := "wsk-fr-non-existent"
+
+			workspaceCreate := &models.WorkspaceCreate{
+				Name: "ws-missing-wsk",
+				Kind: missingWorkspaceKindName,
+				PodTemplate: models.PodTemplateMutate{
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyJSON, err := json.Marshal(WorkspaceCreateEnvelope{Data: workspaceCreate})
+			Expect(err).NotTo(HaveOccurred())
+
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameFR, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{{Key: constants.NamespacePathParam, Value: namespaceNameFR}}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			var errEnv ErrorEnvelope
+			Expect(json.Unmarshal(rr.Body.Bytes(), &errEnv)).To(Succeed())
+			Expect(errEnv.Error.Cause.ValidationErrors).To(HaveLen(1))
+			Expect(errEnv.Error.Cause.ValidationErrors).To(ContainElement(
+				MatchFields(IgnoreExtras, Fields{
+					"Field":   Equal("spec.kind"),
+					"Message": ContainSubstring(`workspace kind "` + missingWorkspaceKindName + `" not found`),
+				}),
+			))
+		})
+
 		It("successfully creates Workspace when no filter rules deny the options", func() {
 			workspaceCreate := &models.WorkspaceCreate{
 				Name: "ws-allowed",

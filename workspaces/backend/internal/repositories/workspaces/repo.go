@@ -63,7 +63,7 @@ var (
 // to know exists. DenyMessage is therefore only ever non-empty when Hidden is false.
 type WorkspaceKindRestrictedError struct {
 	Kind        string
-	Mutation    wsMutationType
+	mutation    wsMutationType
 	Hidden      bool
 	DenyMessage string
 }
@@ -73,7 +73,7 @@ func (e *WorkspaceKindRestrictedError) Error() string {
 	if e.Hidden {
 		suffix = "is hidden"
 	}
-	msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q %s", e.Mutation, e.Kind, suffix)
+	msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q %s", e.mutation, e.Kind, suffix)
 	if !e.Hidden && e.DenyMessage != "" {
 		msg = fmt.Sprintf("%s: %s", msg, e.DenyMessage)
 	}
@@ -175,11 +175,18 @@ func (r *WorkspaceRepository) getWorkspaceModels(ctx context.Context, listOption
 
 func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.Info, workspaceCreate *models.WorkspaceCreate, namespace string) (*models.WorkspaceCreate, error) {
 	// get the WorkspaceKind referenced by this Workspace - required to evaluate its
-	// filterRules below. Any failure here (including the WorkspaceKind not existing)
-	// is a hard failure (root 500): we cannot evaluate filterRules without it, and a
-	// create request should always reference a real WorkspaceKind.
+	// filterRules below. A WorkspaceKind which does not exist is bad user input, so we
+	// reject the request (422) with a field error on `spec.kind`. Any other failure is
+	// a hard failure (root 500): we cannot evaluate filterRules without the WorkspaceKind.
+	workspaceKindName := workspaceCreate.Kind
+	workspaceKindNameField := field.NewPath("spec", "kind")
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: workspaceCreate.Kind}, workspaceKind); err != nil {
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
+		if apierrors.IsNotFound(err) {
+			errDetail := fmt.Sprintf("workspace kind %q not found", workspaceKindName)
+			valErrs := field.ErrorList{field.Invalid(workspaceKindNameField, workspaceKindName, errDetail)}
+			return nil, helper.NewInternalValidationError(valErrs)
+		}
 		return nil, err
 	}
 
@@ -346,7 +353,7 @@ func (r *WorkspaceRepository) enforceWorkspaceKindFilterRules(
 	if result.APIHide {
 		return &WorkspaceKindRestrictedError{
 			Kind:     workspaceKind.Name,
-			Mutation: mutation,
+			mutation: mutation,
 			Hidden:   true,
 		}
 	}
@@ -358,7 +365,7 @@ func (r *WorkspaceRepository) enforceWorkspaceKindFilterRules(
 		}
 		return &WorkspaceKindRestrictedError{
 			Kind:        workspaceKind.Name,
-			Mutation:    mutation,
+			mutation:    mutation,
 			DenyMessage: denyMsg,
 		}
 	}
