@@ -582,7 +582,7 @@ const WorkspaceForm: React.FC = () => {
                       />
                     </StackItem>
                   )}
-                  <StackItem isFilled>
+                  <StackItem isFilled className="workspace-form__step-content">
                     {currentStep === WorkspaceFormSteps.KindSelection && (
                       <WorkspaceFormKindSelection
                         mode={mode}

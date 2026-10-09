@@ -79,11 +79,13 @@ html:not(.mui-theme) .pf-v6-c-card.summary-card--clickable:hover {
   overflow: hidden;
 }
 
-.workspace-form__full-height-parent,
-.pf-v6-l-stack > .pf-v6-l-stack__item.pf-m-fill {
-  min-height: 0;
+/* Container for the form step content */
+.workspace-form__step-content {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* The outer Flex column (DrawerContentBody child) */
@@ -104,19 +106,18 @@ html:not(.mui-theme) .pf-v6-c-card.summary-card--clickable:hover {
 
 /* The Split layout that holds the sidebar + card grid */
 .workspace-form__full-height > .pf-v6-l-split {
-  flex: 1 1 auto;
+  height: 100%;
   min-height: 0;
   align-items: stretch;
-  overflow: hidden;
 }
 
 /* The sidebar SplitItem itself: scrolls within its bounded height */
 .workspace-form__filter-sidebar {
   display: flex;
   flex-direction: column;
-  min-height: 200px;
+  height: 100%;
+  min-height: 0;
   min-width: 200px;
-  max-height: 100%;
   overflow-y: auto;
 }
 
