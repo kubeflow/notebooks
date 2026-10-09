@@ -7,7 +7,6 @@ updates:
   ########################
 
   # - package-ecosystem: "gomod"
-  #   target-branch: "notebooks-v2"
   #   open-pull-requests-limit: 5
   #   cooldown:
   #     default-days: 7
@@ -39,7 +38,6 @@ updates:
   #         - "github.com/onsi/*"
 
   - package-ecosystem: "npm"
-    target-branch: "notebooks-v2"
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
@@ -69,7 +67,6 @@ updates:
           - "mod-arch-*"
 
   - package-ecosystem: "github-actions"
-    target-branch: "notebooks-v2"
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
@@ -147,24 +144,6 @@ updates:
 
   - package-ecosystem: "github-actions"
     target-branch: "notebooks-v1"
-    open-pull-requests-limit: 5
-    cooldown:
-      default-days: 7
-    directory: "/"
-    schedule:
-      interval: "daily"
-    commit-message:
-      prefix: "chore"
-    groups:
-      docker-actions:
-        patterns:
-          - "docker/*"
-
-  ########################
-  # -->     main     <-- #
-  ########################
-
-  - package-ecosystem: "github-actions"
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
