@@ -24,7 +24,7 @@ class WorkspaceKinds {
   }
 
   findWorkspaceKindsTableRows() {
-    return this.findWorkspaceKindsTable().find('tbody tr');
+    return this.findWorkspaceKindsTable().find('tbody tr[data-testid^="workspace-kind-row-"]');
   }
 
   findWorkspaceKindTableRow(workspaceKindName: string) {
