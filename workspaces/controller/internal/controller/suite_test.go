@@ -254,9 +254,8 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
 					MinProbeIntervalSeconds: new(int32(300)),
 					ProbeIntervalSeconds:    new(int32(3600)),
-					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-						LastActivity: true,
-						PortId:       "jupyterlab",
+					PodExec: kubefloworgv1beta1.ActivityProbePodExec{
+						Script: "#!/usr/bin/env bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 					},
 				},
 				VolumeMountPaths: kubefloworgv1beta1.WorkspaceKindVolumeMountPaths{

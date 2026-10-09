@@ -111,27 +111,13 @@ func buildActivityProbe(probe *kubefloworgv1beta1.ActivityProbe) *ActivityProbe 
 		return nil
 	}
 
-	var podExec *ActivityProbePodExec
-	if probe.PodExec != nil {
-		// NOTE: Script is excluded from ActivityProbePodExec in the WSK list for size reasons.
-		podExec = &ActivityProbePodExec{
-			TimeoutSeconds: ptr.Deref(probe.PodExec.TimeoutSeconds, kubefloworgv1beta1.DefaultPodExecTimeoutSeconds),
-		}
-	}
-
-	var jupyter *ActivityProbeJupyter
-	if probe.Jupyter != nil {
-		jupyter = &ActivityProbeJupyter{
-			LastActivity: probe.Jupyter.LastActivity,
-			PortId:       string(probe.Jupyter.PortId),
-		}
-	}
-
 	return &ActivityProbe{
 		MinProbeIntervalSeconds: ptr.Deref(probe.MinProbeIntervalSeconds, kubefloworgv1beta1.DefaultMinProbeIntervalSeconds),
 		ProbeIntervalSeconds:    ptr.Deref(probe.ProbeIntervalSeconds, kubefloworgv1beta1.DefaultProbeIntervalSeconds),
-		PodExec:                 podExec,
-		Jupyter:                 jupyter,
+		// NOTE: Script is excluded from ActivityProbePodExec in the WSK list for size reasons.
+		PodExec: ActivityProbePodExec{
+			TimeoutSeconds: ptr.Deref(probe.PodExec.TimeoutSeconds, kubefloworgv1beta1.DefaultPodExecTimeoutSeconds),
+		},
 	}
 }
 

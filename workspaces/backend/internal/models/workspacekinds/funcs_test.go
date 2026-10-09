@@ -97,7 +97,7 @@ var _ = Describe("buildActivityProbe", func() {
 
 	It("converts a PodExec probe with default intervals", func() {
 		crdProbe := &kubefloworgv1beta1.ActivityProbe{
-			PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
+			PodExec: kubefloworgv1beta1.ActivityProbePodExec{
 				TimeoutSeconds: &testPodExecTimeoutSeconds,
 				Script:         "#!/bin/bash\necho active",
 			},
@@ -107,18 +107,15 @@ var _ = Describe("buildActivityProbe", func() {
 		Expect(apiProbe).NotTo(BeNil())
 		Expect(apiProbe.MinProbeIntervalSeconds).To(Equal(kubefloworgv1beta1.DefaultMinProbeIntervalSeconds))
 		Expect(apiProbe.ProbeIntervalSeconds).To(Equal(kubefloworgv1beta1.DefaultProbeIntervalSeconds))
-		Expect(apiProbe.PodExec).NotTo(BeNil())
 		Expect(apiProbe.PodExec.TimeoutSeconds).To(Equal(testPodExecTimeoutSeconds))
-		Expect(apiProbe.Jupyter).To(BeNil())
 	})
 
-	It("converts a Jupyter probe with custom intervals", func() {
+	It("converts a PodExec probe with custom intervals", func() {
 		crdProbe := &kubefloworgv1beta1.ActivityProbe{
 			MinProbeIntervalSeconds: &testMinProbeIntervalSeconds,
 			ProbeIntervalSeconds:    &testProbeIntervalSeconds,
-			Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-				LastActivity: true,
-				PortId:       "jupyterlab",
+			PodExec: kubefloworgv1beta1.ActivityProbePodExec{
+				Script: "#!/bin/bash\necho active",
 			},
 		}
 
@@ -126,10 +123,7 @@ var _ = Describe("buildActivityProbe", func() {
 		Expect(apiProbe).NotTo(BeNil())
 		Expect(apiProbe.MinProbeIntervalSeconds).To(Equal(testMinProbeIntervalSeconds))
 		Expect(apiProbe.ProbeIntervalSeconds).To(Equal(testProbeIntervalSeconds))
-		Expect(apiProbe.Jupyter).NotTo(BeNil())
-		Expect(apiProbe.Jupyter.LastActivity).To(BeTrue())
-		Expect(apiProbe.Jupyter.PortId).To(Equal("jupyterlab"))
-		Expect(apiProbe.PodExec).To(BeNil())
+		Expect(apiProbe.PodExec.TimeoutSeconds).To(Equal(kubefloworgv1beta1.DefaultPodExecTimeoutSeconds))
 	})
 })
 
