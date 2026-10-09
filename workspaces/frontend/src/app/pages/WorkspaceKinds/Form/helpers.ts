@@ -267,7 +267,7 @@ export const formatSeconds = (seconds: number): string => {
     const minutes = Math.round((seconds / 60) * 4) / 4;
     return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
   }
-  return `${seconds}s`;
+  return `${seconds} second${seconds !== 1 ? 's' : ''}`;
 };
 
 const convertRedirectToApi = (

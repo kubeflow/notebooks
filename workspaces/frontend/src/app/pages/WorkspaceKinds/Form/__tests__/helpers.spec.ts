@@ -443,11 +443,11 @@ describe('convertFormDataToUpdate', () => {
     expect(result.podTemplate.volumeMountPaths).toEqual({ home: '/home/jovyan' });
   });
 
-  it('should format seconds below 60 as raw seconds', () => {
-    expect(formatSeconds(0)).toBe('0s');
-    expect(formatSeconds(1)).toBe('1s');
-    expect(formatSeconds(15)).toBe('15s');
-    expect(formatSeconds(59)).toBe('59s');
+  it('should format seconds below 60 as whole seconds', () => {
+    expect(formatSeconds(0)).toBe('0 seconds');
+    expect(formatSeconds(1)).toBe('1 second');
+    expect(formatSeconds(15)).toBe('15 seconds');
+    expect(formatSeconds(59)).toBe('59 seconds');
   });
 
   it('should format exact minutes', () => {

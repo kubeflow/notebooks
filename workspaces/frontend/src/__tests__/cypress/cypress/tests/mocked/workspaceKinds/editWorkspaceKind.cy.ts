@@ -1030,12 +1030,12 @@ describe('Edit workspace kind', () => {
         editWorkspaceKind.assertActivityRulePodConfigMatchCell(0, 'cpu=100m');
         editWorkspaceKind.assertActivityRuleEffectCell(0, 'Pause Workspace');
         editWorkspaceKind.assertActivityRuleTimeoutCell(1, '1 day');
-        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '-');
+        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '0 seconds');
         editWorkspaceKind.assertActivityRuleNamespaceMatchCell(1, '-');
         editWorkspaceKind.assertActivityRulePodConfigMatchCell(1, '-');
         editWorkspaceKind.assertActivityRuleEffectCell(0, 'Pause Workspace');
         editWorkspaceKind.assertActivityRuleTimeoutCell(1, '1 day');
-        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '-');
+        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '0 seconds');
         editWorkspaceKind.assertActivityRuleEffectCell(1, 'Pause Workspace');
       });
 

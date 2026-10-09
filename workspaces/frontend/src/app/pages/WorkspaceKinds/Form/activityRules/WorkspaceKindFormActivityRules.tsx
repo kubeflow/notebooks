@@ -106,9 +106,7 @@ export const WorkspaceKindFormActivityRules: React.FC<WorkspaceKindFormActivityR
                   dataLabel="Min Running Time"
                   data-testid={`activity-rule-min-running-cell-${index}`}
                 >
-                  {rule.config.minRunningSeconds
-                    ? formatSeconds(rule.config.minRunningSeconds)
-                    : '-'}
+                  {formatSeconds(rule.config.minRunningSeconds ?? 0)}
                 </Td>
                 <Td
                   dataLabel="Namespace Match"
@@ -163,12 +161,14 @@ export const WorkspaceKindFormActivityRules: React.FC<WorkspaceKindFormActivityR
         Add Rule
       </Button>
 
-      <ActivityRuleModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        onSubmit={handleModalSubmit}
-        existingRule={editIndex !== null ? activityRules[editIndex] : null}
-      />
+      {isModalOpen && (
+        <ActivityRuleModal
+          key={editIndex !== null ? activityRules[editIndex].id : 'new'}
+          onClose={handleModalClose}
+          onSubmit={handleModalSubmit}
+          existingRule={editIndex !== null ? activityRules[editIndex] : null}
+        />
+      )}
     </FormFieldGroup>
   );
 };

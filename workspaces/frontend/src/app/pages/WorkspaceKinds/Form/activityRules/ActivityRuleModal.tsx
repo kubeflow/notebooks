@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import {
   Modal,
@@ -20,7 +20,6 @@ import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupW
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 
 interface ActivityRuleModalProps {
-  isOpen: boolean;
   onClose: () => void;
   onSubmit: (rule: ActivityRuleEntry) => void;
   existingRule: ActivityRuleEntry | null;
@@ -38,43 +37,28 @@ const rowsToLabels = (rows: KeyValueRow[]): Record<string, string> | undefined =
 };
 
 export const ActivityRuleModal: React.FC<ActivityRuleModalProps> = ({
-  isOpen,
   onClose,
   onSubmit,
   existingRule,
 }) => {
-  const [secondsSinceActive, setSecondsSinceActive] = useState(3600);
-  const [minRunningSeconds, setMinRunningSeconds] = useState(0);
-  const [pauseWorkspace, setPauseWorkspace] = useState(true);
-  const [namespaceLabels, setNamespaceLabels] = useState<KeyValueRow[]>([]);
-  const [podConfigLabels, setPodConfigLabels] = useState<KeyValueRow[]>([]);
-
-  useEffect(() => {
-    if (isOpen) {
-      if (existingRule) {
-        setSecondsSinceActive(existingRule.config.secondsSinceActive);
-        setMinRunningSeconds(existingRule.config.minRunningSeconds ?? 0);
-        setPauseWorkspace(existingRule.effect.pauseWorkspace);
-        setNamespaceLabels(
-          labelsToRows(getActivityRuleMatchLabels(existingRule.match, 'matchNamespace')),
-        );
-        setPodConfigLabels(
-          labelsToRows(getActivityRuleMatchLabels(existingRule.match, 'matchPodConfig')),
-        );
-      } else {
-        const empty = emptyActivityRule();
-        setSecondsSinceActive(empty.config.secondsSinceActive);
-        setMinRunningSeconds(empty.config.minRunningSeconds ?? 0);
-        setPauseWorkspace(empty.effect.pauseWorkspace);
-        setNamespaceLabels([]);
-        setPodConfigLabels([]);
-      }
-    }
-  }, [isOpen, existingRule]);
+  const [initialRule] = useState(() => existingRule ?? emptyActivityRule());
+  const [secondsSinceActive, setSecondsSinceActive] = useState(
+    initialRule.config.secondsSinceActive,
+  );
+  const [minRunningSeconds, setMinRunningSeconds] = useState(
+    initialRule.config.minRunningSeconds ?? 0,
+  );
+  const [pauseWorkspace, setPauseWorkspace] = useState(initialRule.effect.pauseWorkspace);
+  const [namespaceLabels, setNamespaceLabels] = useState<KeyValueRow[]>(() =>
+    labelsToRows(getActivityRuleMatchLabels(initialRule.match, 'matchNamespace')),
+  );
+  const [podConfigLabels, setPodConfigLabels] = useState<KeyValueRow[]>(() =>
+    labelsToRows(getActivityRuleMatchLabels(initialRule.match, 'matchPodConfig')),
+  );
 
   const handleSubmit = useCallback(() => {
     const rule: ActivityRuleEntry = {
-      id: existingRule?.id ?? emptyActivityRule().id,
+      id: initialRule.id,
       config: {
         secondsSinceActive,
         minRunningSeconds: minRunningSeconds > 0 ? minRunningSeconds : undefined,
@@ -89,7 +73,7 @@ export const ActivityRuleModal: React.FC<ActivityRuleModalProps> = ({
     };
     onSubmit(rule);
   }, [
-    existingRule,
+    initialRule,
     secondsSinceActive,
     minRunningSeconds,
     pauseWorkspace,
@@ -100,7 +84,7 @@ export const ActivityRuleModal: React.FC<ActivityRuleModalProps> = ({
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
       variant="large"
       data-testid="activity-rule-modal"
