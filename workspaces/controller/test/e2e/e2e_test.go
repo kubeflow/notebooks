@@ -780,10 +780,10 @@ var _ = Describe("controller", Ordered, func() {
 			// - secondsSinceActive=16 is the minimum allowed by the CRD validation
 			// - minRunningSeconds=60 ensures the Workspace stays Running long enough for the
 			//   test to observe its Running state and status before pausing triggers
-			// - an empty match makes this a catch-all rule that applies to all Workspaces
+			// - an empty match list makes this a catch-all rule that applies to all Workspaces
 			rulesPatch := `[` +
 				`{"op":"replace","path":"/spec/activityRules","value":[` +
-				`{"config":{"secondsSinceActive":16,"minRunningSeconds":60},"match":{},"effect":{"pauseWorkspace":true}}` +
+				`{"config":{"secondsSinceActive":16,"minRunningSeconds":60},"match":[],"effect":{"pauseWorkspace":true}}` +
 				`]}]`
 			patchRules := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", activityWorkspaceKindName,
@@ -958,9 +958,9 @@ var _ = Describe("controller", Ordered, func() {
 			// - second rule: catch-all with pauseWorkspace: true
 			rulesPatch := `[` +
 				`{"op":"replace","path":"/spec/activityRules","value":[` +
-				`{"config":{"secondsSinceActive":16},"match":{"matchNamespace":` +
-				`{"selector":{"matchLabels":{"exempt":"true"}}}},"effect":{"pauseWorkspace":false}},` +
-				`{"config":{"secondsSinceActive":16},"match":{},"effect":{"pauseWorkspace":true}}` +
+				`{"config":{"secondsSinceActive":16},"match":[{"matchNamespace":` +
+				`{"selector":{"matchLabels":{"exempt":"true"}}}}],"effect":{"pauseWorkspace":false}},` +
+				`{"config":{"secondsSinceActive":16},"match":[],"effect":{"pauseWorkspace":true}}` +
 				`]}]`
 			patchRules := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", exemptionWorkspaceKindName,
@@ -1085,7 +1085,7 @@ var _ = Describe("controller", Ordered, func() {
 			By("overriding the activityRules with a single fast catch-all pause rule")
 			rulesPatch := `[` +
 				`{"op":"replace","path":"/spec/activityRules","value":[` +
-				`{"config":{"secondsSinceActive":16,"minRunningSeconds":0},"match":{},"effect":{"pauseWorkspace":true}}` +
+				`{"config":{"secondsSinceActive":16,"minRunningSeconds":0},"match":[],"effect":{"pauseWorkspace":true}}` +
 				`]}]`
 			patchRules := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", failingProbeWorkspaceKindName,
@@ -1180,7 +1180,7 @@ var _ = Describe("controller", Ordered, func() {
 			By("overriding activityRules with secondsSinceActive=16 and minRunningSeconds=15")
 			rulesPatch := `[` +
 				`{"op":"replace","path":"/spec/activityRules","value":[` +
-				`{"config":{"secondsSinceActive":16,"minRunningSeconds":15},"match":{},"effect":{"pauseWorkspace":true}}` +
+				`{"config":{"secondsSinceActive":16,"minRunningSeconds":15},"match":[],"effect":{"pauseWorkspace":true}}` +
 				`]}]`
 			patchRules := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", staleWorkspaceKindName,
@@ -1312,7 +1312,7 @@ var _ = Describe("controller", Ordered, func() {
 			// - minRunningSeconds=15
 			rulesPatch := `[` +
 				`{"op":"replace","path":"/spec/activityRules","value":[` +
-				`{"config":{"secondsSinceActive":16,"minRunningSeconds":15},"match":{},"effect":{"pauseWorkspace":true}}` +
+				`{"config":{"secondsSinceActive":16,"minRunningSeconds":15},"match":[],"effect":{"pauseWorkspace":true}}` +
 				`]}]`
 			patchRules := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", hasActivityFalseWorkspaceKindName,

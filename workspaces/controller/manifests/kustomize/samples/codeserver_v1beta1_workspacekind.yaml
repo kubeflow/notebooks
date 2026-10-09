@@ -40,7 +40,7 @@ spec:
   activityRules:
     - config:
         secondsSinceActive: 7200
-      match: {}
+      match: []
       effect:
         pauseWorkspace: true
 

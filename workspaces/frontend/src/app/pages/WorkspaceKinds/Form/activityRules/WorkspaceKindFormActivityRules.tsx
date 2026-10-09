@@ -11,7 +11,7 @@ import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { ActivityRuleEntry } from '~/app/types';
-import { formatSeconds } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { formatSeconds, getActivityRuleMatchLabels } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 import { ActivityRuleModal } from './ActivityRuleModal';
 
@@ -106,21 +106,19 @@ export const WorkspaceKindFormActivityRules: React.FC<WorkspaceKindFormActivityR
                   dataLabel="Min Running Time"
                   data-testid={`activity-rule-min-running-cell-${index}`}
                 >
-                  {rule.config.minRunningSeconds
-                    ? formatSeconds(rule.config.minRunningSeconds)
-                    : '-'}
+                  {formatSeconds(rule.config.minRunningSeconds ?? 0)}
                 </Td>
                 <Td
                   dataLabel="Namespace Match"
                   data-testid={`activity-rule-ns-match-cell-${index}`}
                 >
-                  {formatMatchLabels(rule.match?.matchNamespace?.selector.matchLabels)}
+                  {formatMatchLabels(getActivityRuleMatchLabels(rule.match, 'matchNamespace'))}
                 </Td>
                 <Td
                   dataLabel="Pod Config Match"
                   data-testid={`activity-rule-pc-match-cell-${index}`}
                 >
-                  {formatMatchLabels(rule.match?.matchPodConfig?.selector.matchLabels)}
+                  {formatMatchLabels(getActivityRuleMatchLabels(rule.match, 'matchPodConfig'))}
                 </Td>
                 <Td dataLabel="Effect" data-testid={`activity-rule-effect-cell-${index}`}>
                   {rule.effect.pauseWorkspace ? 'Pause Workspace' : '-'}
@@ -163,12 +161,14 @@ export const WorkspaceKindFormActivityRules: React.FC<WorkspaceKindFormActivityR
         Add Rule
       </Button>
 
-      <ActivityRuleModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        onSubmit={handleModalSubmit}
-        existingRule={editIndex !== null ? activityRules[editIndex] : null}
-      />
+      {isModalOpen && (
+        <ActivityRuleModal
+          key={editIndex !== null ? activityRules[editIndex].id : 'new'}
+          onClose={handleModalClose}
+          onSubmit={handleModalSubmit}
+          existingRule={editIndex !== null ? activityRules[editIndex] : null}
+        />
+      )}
     </FormFieldGroup>
   );
 };

@@ -15,6 +15,7 @@ import {
   V1ResourceList,
   V1Toleration,
   V1TolerationOperator,
+  WorkspacekindsActivityRuleMatch,
   WorkspacekindsWorkspaceKindUpdate,
 } from '~/generated/data-contracts';
 import { PodResourceEntry } from './podConfig/WorkspaceKindFormResource';
@@ -217,6 +218,42 @@ export const emptyActivityRule = (): ActivityRuleEntry => ({
   },
 });
 
+type ActivityRuleMatcherKey = keyof WorkspacekindsActivityRuleMatch;
+
+/**
+ * Merges the matchLabels of every condition using the given matcher. Conditions are ANDed,
+ * so merging preserves their meaning; matchExpressions are not represented.
+ */
+export const getActivityRuleMatchLabels = (
+  match: WorkspacekindsActivityRuleMatch[] | undefined,
+  matcher: ActivityRuleMatcherKey,
+): Record<string, string> | undefined => {
+  const merged = (match ?? []).reduce<Record<string, string>>(
+    (acc, condition) => ({ ...acc, ...condition[matcher]?.selector.matchLabels }),
+    {},
+  );
+  return Object.keys(merged).length > 0 ? merged : undefined;
+};
+
+/**
+ * Builds an activity rule match list with at most one condition per matcher.
+ * Returns undefined when no labels are given, making the rule a catch-all.
+ */
+export const buildActivityRuleMatch = (labels: {
+  namespaceLabels?: Record<string, string>;
+  podConfigLabels?: Record<string, string>;
+}): WorkspacekindsActivityRuleMatch[] | undefined => {
+  const { namespaceLabels, podConfigLabels } = labels;
+  const match: WorkspacekindsActivityRuleMatch[] = [];
+  if (namespaceLabels && Object.keys(namespaceLabels).length > 0) {
+    match.push({ matchNamespace: { selector: { matchLabels: namespaceLabels } } });
+  }
+  if (podConfigLabels && Object.keys(podConfigLabels).length > 0) {
+    match.push({ matchPodConfig: { selector: { matchLabels: podConfigLabels } } });
+  }
+  return match.length > 0 ? match : undefined;
+};
+
 export const formatSeconds = (seconds: number): string => {
   if (seconds >= 86400) {
     const days = Math.round((seconds / 86400) * 4) / 4;
@@ -230,7 +267,7 @@ export const formatSeconds = (seconds: number): string => {
     const minutes = Math.round((seconds / 60) * 4) / 4;
     return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
   }
-  return `${seconds}s`;
+  return `${seconds} second${seconds !== 1 ? 's' : ''}`;
 };
 
 const convertRedirectToApi = (

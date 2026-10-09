@@ -51,12 +51,11 @@
           ]
         },
         "match": {
-          "description": "the conditions under which this rule applies\n+kubebuilder:validation:Optional",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1beta1.ActivityRuleMatch"
-            }
-          ]
+          "description": "the conditions which must ALL be satisfied for the rule to apply\n - an omitted or empty list makes this a catch-all rule that matches all Workspaces\n+kubebuilder:validation:Optional\n+listType:=\"atomic\"",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/v1beta1.ActivityRuleMatch"
+          }
         }
       }
     },
@@ -87,29 +86,29 @@
       "type": "object",
       "properties": {
         "matchNamespace": {
-          "description": "filters Workspaces by namespace labels\n+kubebuilder:validation:Optional",
+          "description": "filters Workspaces by the labels of their namespace\n+kubebuilder:validation:Optional",
           "allOf": [
             {
-              "$ref": "#/$defs/v1beta1.NamespaceMatch"
+              "$ref": "#/$defs/v1beta1.ActivityRuleSelector"
             }
           ]
         },
         "matchPodConfig": {
-          "description": "filters Workspaces by the PodConfig option they are using\n+kubebuilder:validation:Optional",
+          "description": "filters Workspaces by the labels of the PodConfig option they are using\n+kubebuilder:validation:Optional",
           "allOf": [
             {
-              "$ref": "#/$defs/v1beta1.PodConfigMatch"
+              "$ref": "#/$defs/v1beta1.ActivityRuleSelector"
             }
           ]
         }
       }
     },
-    "v1beta1.NamespaceMatch": {
+    "v1beta1.ActivityRuleSelector": {
       "type": "object",
       "required": ["selector"],
       "properties": {
         "selector": {
-          "description": "the standard Kubernetes label selector to match namespace labels",
+          "description": "a standard Kubernetes label selector\n - must not be empty, use an empty 'match' list for a catch-all rule",
           "allOf": [
             {
               "$ref": "#/$defs/v1.LabelSelector"
@@ -171,20 +170,6 @@
         "LabelSelectorOpExists",
         "LabelSelectorOpDoesNotExist"
       ]
-    },
-    "v1beta1.PodConfigMatch": {
-      "type": "object",
-      "required": ["selector"],
-      "properties": {
-        "selector": {
-          "description": "the standard Kubernetes label selector to match podConfig labels",
-          "allOf": [
-            {
-              "$ref": "#/$defs/v1.LabelSelector"
-            }
-          ]
-        }
-      }
     },
     "v1beta1.FilterRule": {
       "type": "object",
@@ -311,7 +296,7 @@
       "required": ["selector"],
       "properties": {
         "selector": {
-          "description": "a standard Kubernetes label selector",
+          "description": "a standard Kubernetes label selector\n - must not be empty",
           "allOf": [
             {
               "$ref": "#/$defs/v1.LabelSelector"
@@ -1147,7 +1132,7 @@
       "required": ["mainContainer"],
       "properties": {
         "extraVolumes": {
-          "description": "extra volumes for Workspace Pods (MUTABLE)\n - spec for Volume:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+          "description": "extra volumes for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
           "type": "array",
           "items": {
             "$ref": "#/$defs/v1.Volume"
@@ -1162,11 +1147,11 @@
           ]
         },
         "schedulerName": {
-          "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the `schedulerName` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the \"default-scheduler\"\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
+          "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the `schedulerName` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the default scheduler\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
           "type": "string"
         },
         "securityContext": {
-          "description": "security context for Workspace Pods (MUTABLE)\n - spec for PodSecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core\n+kubebuilder:validation:Optional",
+          "description": "security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
           "allOf": [
             {
               "$ref": "#/$defs/v1.PodSecurityContext"
@@ -2842,21 +2827,21 @@
       "type": "object",
       "properties": {
         "extraEnv": {
-          "description": "environment variables for the main container (MUTABLE)\n - spec for EnvVar:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvar-v1-core\n - the following go template functions are available:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+          "description": "environment variables for the main container (MUTABLE)\n - the following go template functions are available:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
           "type": "array",
           "items": {
             "$ref": "#/$defs/v1.EnvVar"
           }
         },
         "extraVolumeMounts": {
-          "description": "extra volume mounts for the main container (MUTABLE)\n - spec for VolumeMount:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
+          "description": "extra volume mounts for the main container (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
           "type": "array",
           "items": {
             "$ref": "#/$defs/v1.VolumeMount"
           }
         },
         "livenessProbe": {
-          "description": "the liveness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
+          "description": "the liveness probe for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
           "allOf": [
             {
               "$ref": "#/$defs/v1.Probe"
@@ -2864,7 +2849,7 @@
           ]
         },
         "readinessProbe": {
-          "description": "the readiness probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
+          "description": "the readiness probe for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
           "allOf": [
             {
               "$ref": "#/$defs/v1.Probe"
@@ -2872,7 +2857,7 @@
           ]
         },
         "securityContext": {
-          "description": "container security context for the main container (MUTABLE)\n - spec for SecurityContext:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core\n+kubebuilder:validation:Optional",
+          "description": "container security context for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
           "allOf": [
             {
               "$ref": "#/$defs/v1.SecurityContext"
@@ -2880,7 +2865,7 @@
           ]
         },
         "startupProbe": {
-          "description": "the startup probe for the main container (MUTABLE)\n - spec for Probe:\n   https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core\n+kubebuilder:validation:Optional",
+          "description": "the startup probe for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
           "allOf": [
             {
               "$ref": "#/$defs/v1.Probe"

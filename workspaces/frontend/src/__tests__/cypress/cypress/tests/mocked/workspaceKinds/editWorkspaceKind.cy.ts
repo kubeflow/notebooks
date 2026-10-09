@@ -998,11 +998,18 @@ describe('Edit workspace kind', () => {
           activityRules: [
             {
               config: { secondsSinceActive: 3600, minRunningSeconds: 300 },
-              match: {
-                matchNamespace: {
-                  selector: { matchLabels: { tier: 'development' } },
+              match: [
+                {
+                  matchNamespace: {
+                    selector: { matchLabels: { tier: 'development' } },
+                  },
                 },
-              },
+                {
+                  matchPodConfig: {
+                    selector: { matchLabels: { cpu: '100m' } },
+                  },
+                },
+              ],
               effect: { pauseWorkspace: true },
             },
             {
@@ -1019,9 +1026,16 @@ describe('Edit workspace kind', () => {
         editWorkspaceKind.assertActivityRuleRowCount(2);
         editWorkspaceKind.assertActivityRuleTimeoutCell(0, '1 hour');
         editWorkspaceKind.assertActivityRuleMinRunningCell(0, '5 minutes');
+        editWorkspaceKind.assertActivityRuleNamespaceMatchCell(0, 'tier=development');
+        editWorkspaceKind.assertActivityRulePodConfigMatchCell(0, 'cpu=100m');
         editWorkspaceKind.assertActivityRuleEffectCell(0, 'Pause Workspace');
         editWorkspaceKind.assertActivityRuleTimeoutCell(1, '1 day');
-        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '-');
+        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '0 seconds');
+        editWorkspaceKind.assertActivityRuleNamespaceMatchCell(1, '-');
+        editWorkspaceKind.assertActivityRulePodConfigMatchCell(1, '-');
+        editWorkspaceKind.assertActivityRuleEffectCell(0, 'Pause Workspace');
+        editWorkspaceKind.assertActivityRuleTimeoutCell(1, '1 day');
+        editWorkspaceKind.assertActivityRuleMinRunningCell(1, '0 seconds');
         editWorkspaceKind.assertActivityRuleEffectCell(1, 'Pause Workspace');
       });
 

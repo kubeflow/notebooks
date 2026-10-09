@@ -69,7 +69,7 @@ describe('WorkspaceKindFormActivityRules', () => {
     expect(screen.getByTestId('activity-rule-timeout-cell-0')).toHaveTextContent('1 hour');
   });
 
-  it('displays formatted min running time or dash', () => {
+  it('displays formatted min running time, defaulting to 0 seconds when unset', () => {
     const rules = [
       makeRule({ id: 'rule-1', config: { secondsSinceActive: 3600, minRunningSeconds: 300 } }),
       makeRule({ id: 'rule-2', config: { secondsSinceActive: 7200 } }),
@@ -81,7 +81,7 @@ describe('WorkspaceKindFormActivityRules', () => {
       />,
     );
     expect(screen.getByTestId('activity-rule-min-running-cell-0')).toHaveTextContent('5 minutes');
-    expect(screen.getByTestId('activity-rule-min-running-cell-1')).toHaveTextContent('-');
+    expect(screen.getByTestId('activity-rule-min-running-cell-1')).toHaveTextContent('0 seconds');
   });
 
   it('displays Pause Workspace for pauseWorkspace effect', () => {
@@ -134,5 +134,28 @@ describe('WorkspaceKindFormActivityRules', () => {
     );
     await user.click(screen.getByTestId('add-activity-rule-button'));
     expect(screen.getByTestId('activity-rule-modal')).toBeInTheDocument();
+  });
+
+  it('seeds the edit modal from the selected rule when switching between rules', async () => {
+    const user = userEvent.setup();
+    const rules = [
+      makeRule({ id: 'rule-1', config: { secondsSinceActive: 7200, minRunningSeconds: 300 } }),
+      makeRule({ id: 'rule-2', config: { secondsSinceActive: 259200 } }),
+    ];
+    render(
+      <WorkspaceKindFormActivityRules
+        activityRules={rules}
+        updateActivityRules={updateActivityRules}
+      />,
+    );
+
+    await user.click(screen.getByTestId('activity-rule-edit-0'));
+    expect(screen.getByLabelText('seconds-since-active')).toHaveValue(2);
+    expect(screen.getByLabelText('min-running-seconds')).toHaveValue(5);
+    await user.click(screen.getByTestId('activity-rule-modal-cancel-button'));
+
+    await user.click(screen.getByTestId('activity-rule-edit-1'));
+    expect(screen.getByLabelText('seconds-since-active')).toHaveValue(3);
+    expect(screen.getByLabelText('min-running-seconds')).toHaveValue(0);
   });
 });

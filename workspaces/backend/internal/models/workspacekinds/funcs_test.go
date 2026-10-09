@@ -146,15 +146,19 @@ var _ = Describe("buildActivityRules", func() {
 					SecondsSinceActive: testRuleSecondsSinceActive,
 					MinRunningSeconds:  &testRuleMinRunningSeconds,
 				},
-				Match: &kubefloworgv1beta1.ActivityRuleMatch{
-					MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-						Selector: metav1.LabelSelector{
-							MatchLabels: map[string]string{"tier": "dev"},
+				Match: []kubefloworgv1beta1.ActivityRuleMatch{
+					{
+						MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+							Selector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"tier": "dev"},
+							},
 						},
 					},
-					MatchPodConfig: &kubefloworgv1beta1.PodConfigMatch{
-						Selector: metav1.LabelSelector{
-							MatchLabels: map[string]string{"gpu": "true"},
+					{
+						MatchPodConfig: &kubefloworgv1beta1.ActivityRuleSelector{
+							Selector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"gpu": "true"},
+							},
 						},
 					},
 				},
@@ -177,18 +181,20 @@ var _ = Describe("buildActivityRules", func() {
 
 		Expect(apiRules[0].Config.SecondsSinceActive).To(Equal(testRuleSecondsSinceActive))
 		Expect(apiRules[0].Config.MinRunningSeconds).To(Equal(testRuleMinRunningSeconds))
-		Expect(apiRules[0].Match).NotTo(BeNil())
-		Expect(apiRules[0].Match.MatchNamespace).NotTo(BeNil())
-		Expect(apiRules[0].Match.MatchNamespace.Selector.MatchLabels).To(HaveKeyWithValue("tier", "dev"))
-		Expect(apiRules[0].Match.MatchPodConfig).NotTo(BeNil())
-		Expect(apiRules[0].Match.MatchPodConfig.Selector.MatchLabels).To(HaveKeyWithValue("gpu", "true"))
+		Expect(apiRules[0].Match).To(HaveLen(2))
+		Expect(apiRules[0].Match[0].MatchNamespace).NotTo(BeNil())
+		Expect(apiRules[0].Match[0].MatchNamespace.Selector.MatchLabels).To(HaveKeyWithValue("tier", "dev"))
+		Expect(apiRules[0].Match[0].MatchPodConfig).To(BeNil())
+		Expect(apiRules[0].Match[1].MatchNamespace).To(BeNil())
+		Expect(apiRules[0].Match[1].MatchPodConfig).NotTo(BeNil())
+		Expect(apiRules[0].Match[1].MatchPodConfig.Selector.MatchLabels).To(HaveKeyWithValue("gpu", "true"))
 		Expect(apiRules[0].Effect.PauseWorkspace).To(BeTrue())
 
 		// Verify deep copy of label selector maps
-		apiRules[0].Match.MatchNamespace.Selector.MatchLabels["tier"] = "mutated"
-		Expect(crdRules[0].Match.MatchNamespace.Selector.MatchLabels["tier"]).To(Equal("dev"))
-		apiRules[0].Match.MatchPodConfig.Selector.MatchLabels["gpu"] = "false"
-		Expect(crdRules[0].Match.MatchPodConfig.Selector.MatchLabels["gpu"]).To(Equal("true"))
+		apiRules[0].Match[0].MatchNamespace.Selector.MatchLabels["tier"] = "mutated"
+		Expect(crdRules[0].Match[0].MatchNamespace.Selector.MatchLabels["tier"]).To(Equal("dev"))
+		apiRules[0].Match[1].MatchPodConfig.Selector.MatchLabels["gpu"] = "false"
+		Expect(crdRules[0].Match[1].MatchPodConfig.Selector.MatchLabels["gpu"]).To(Equal("true"))
 
 		Expect(apiRules[1].Config.SecondsSinceActive).To(Equal(testRuleSecondsSinceActiveMax))
 		Expect(apiRules[1].Config.MinRunningSeconds).To(Equal(int32(0)))
