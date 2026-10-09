@@ -940,6 +940,28 @@ func NewExampleWorkspaceKindWithFilterRuleNoMatchCondition(name string) *kubeflo
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithFilterRuleEmptySelector returns a WorkspaceKind whose filter rule has a
+// match condition with an empty label selector, which is rejected by the CRD validation rule.
+func NewExampleWorkspaceKindWithFilterRuleEmptySelector(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{},
+					},
+				},
+			},
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspaceKindWithFilterRuleEmptyEffect returns a WorkspaceKind whose filter rule sets
 // neither effect.ui nor effect.api, which is rejected by the CRD validation rule.
 func NewExampleWorkspaceKindWithFilterRuleEmptyEffect(name string) *kubefloworgv1beta1.WorkspaceKind {

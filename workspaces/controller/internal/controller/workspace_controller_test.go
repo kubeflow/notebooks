@@ -285,7 +285,7 @@ var _ = Describe("Workspace Controller", func() {
 						SecondsSinceActive: 16,
 						MinRunningSeconds:  new(int32(0)),
 					},
-					Match:  &kubefloworgv1beta1.ActivityRuleMatch{},
+					Match:  []kubefloworgv1beta1.ActivityRuleMatch{},
 					Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: new(true)},
 				},
 			}

@@ -896,18 +896,19 @@ func validateActivityRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) ([]*
 		rulePath := activityRulesPath.Index(i)
 
 		// selectors validation
-		if rule.Match != nil {
-			matchPath := rulePath.Child("match")
-			if rule.Match.MatchNamespace != nil {
-				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchNamespace.Selector, v1validation.LabelSelectorValidationOptions{}, matchPath.Child("matchNamespace", "selector"))...)
+		matchPath := rulePath.Child("match")
+		for j, match := range rule.Match {
+			conditionPath := matchPath.Index(j)
+			if match.MatchNamespace != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchNamespace.Selector, v1validation.LabelSelectorValidationOptions{}, conditionPath.Child("matchNamespace", "selector"))...)
 			}
-			if rule.Match.MatchPodConfig != nil {
-				errs = append(errs, v1validation.ValidateLabelSelector(&rule.Match.MatchPodConfig.Selector, v1validation.LabelSelectorValidationOptions{}, matchPath.Child("matchPodConfig", "selector"))...)
+			if match.MatchPodConfig != nil {
+				errs = append(errs, v1validation.ValidateLabelSelector(&match.MatchPodConfig.Selector, v1validation.LabelSelectorValidationOptions{}, conditionPath.Child("matchPodConfig", "selector"))...)
 			}
 		}
 
 		// check empty match / catch-all
-		isEmpty := isMatchEmpty(rule.Match)
+		isEmpty := len(rule.Match) == 0
 
 		// check pauseWorkspace effect
 		isPauseWorkspaceEffect := rule.Effect.PauseWorkspace != nil
@@ -946,11 +947,4 @@ func validateActivityRules(workspaceKind *kubefloworgv1beta1.WorkspaceKind) ([]*
 	}
 
 	return errs, warnings
-}
-
-func isMatchEmpty(match *kubefloworgv1beta1.ActivityRuleMatch) bool {
-	if match == nil {
-		return true
-	}
-	return match.MatchNamespace == nil && match.MatchPodConfig == nil
 }

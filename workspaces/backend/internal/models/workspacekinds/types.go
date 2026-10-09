@@ -87,9 +87,9 @@ type ActivityProbeJupyter struct {
 }
 
 type ActivityRule struct {
-	Config ActivityRuleConfig `json:"config"`
-	Match  *ActivityRuleMatch `json:"match,omitempty"`
-	Effect ActivityRuleEffect `json:"effect"`
+	Config ActivityRuleConfig  `json:"config"`
+	Match  []ActivityRuleMatch `json:"match,omitempty"`
+	Effect ActivityRuleEffect  `json:"effect"`
 }
 
 type ActivityRuleConfig struct {
@@ -98,15 +98,11 @@ type ActivityRuleConfig struct {
 }
 
 type ActivityRuleMatch struct {
-	MatchNamespace *MatchNamespace `json:"matchNamespace,omitempty"`
-	MatchPodConfig *MatchPodConfig `json:"matchPodConfig,omitempty"`
+	MatchNamespace *ActivityRuleSelector `json:"matchNamespace,omitempty"`
+	MatchPodConfig *ActivityRuleSelector `json:"matchPodConfig,omitempty"`
 }
 
-type MatchNamespace struct {
-	Selector metav1.LabelSelector `json:"selector"`
-}
-
-type MatchPodConfig struct {
+type ActivityRuleSelector struct {
 	Selector metav1.LabelSelector `json:"selector"`
 }
 
