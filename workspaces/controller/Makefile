@@ -73,7 +73,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 # - CERT_MANAGER_INSTALL_SKIP=true
 # - ISTIO_INSTALL_SKIP=true
 .PHONY: test-e2e
-test-e2e: manifests generate fmt vet istioctl ## Run the e2e tests. Expected an isolated environment using Kind.
+test-e2e: manifests generate fmt vet istioctl ginkgo ## Run the e2e tests. Expected an isolated environment using Kind.
 	@command -v kind >/dev/null 2>&1 || { \
 		echo "Kind is not installed. Please install Kind manually."; \
 		exit 1; \
@@ -83,7 +83,7 @@ test-e2e: manifests generate fmt vet istioctl ## Run the e2e tests. Expected an 
 		exit 1; \
 	}
 
-	go test ./test/e2e/ -v -ginkgo.v
+	$(GINKGO) -p ./test/e2e/
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
@@ -155,12 +155,14 @@ CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 ISTIOCTL ?= $(LOCALBIN)/istioctl
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+GINKGO ?= $(LOCALBIN)/ginkgo
 
 ## Tool Versions
 CONTROLLER_TOOLS_VERSION ?= v0.20.1
 ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3
 GOLANGCI_LINT_VERSION ?= v2.13.2
+GINKGO_VERSION ?= v2.32.1
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
@@ -182,3 +184,9 @@ $(ISTIOCTL): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+.PHONY: ginkgo
+ginkgo: $(GINKGO) ## Download ginkgo locally if necessary.
+$(GINKGO): $(LOCALBIN)
+	$(call go-install-tool,$(GINKGO),github.com/onsi/ginkgo/v2/ginkgo,$(GINKGO_VERSION))
+	
