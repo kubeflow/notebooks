@@ -18,17 +18,16 @@ package e2e
 
 import (
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"os"
 	"os/exec"
-	"testing"
 	"path/filepath"
-	corev1 "k8s.io/api/core/v1"
+	"testing"
 
 	"github.com/kubeflow/notebooks/workspaces/controller/test/utils"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	
 )
 
 var (
@@ -62,7 +61,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// -------------------------------------------------------------
 	// Function 1: Runs ONLY on Worker 1 (Node 1) - Global Cluster Setup
 	// -------------------------------------------------------------
-	
 
 	By("building the controller image")
 	cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", controllerImage))
@@ -173,15 +171,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// -------------------------------------------------------------
 	// Function 2: Runs on ALL workers - Per-Worker Namespace Setup
 	// -------------------------------------------------------------
-	projectDir, _ := utils.GetProjectDir()
-	workerNs := fmt.Sprintf("workspace-test-%d", GinkgoParallelProcess())
+	var err error
+	projectDir, err = utils.GetProjectDir()
+	Expect(err).NotTo(HaveOccurred())
+	workspaceNamespace = fmt.Sprintf("workspace-test-%d", GinkgoParallelProcess())
+	workerNs := workspaceNamespace
 
 	By(fmt.Sprintf("creating the workspace namespace for worker %d: %s", GinkgoParallelProcess(), workerNs))
 	cmd := exec.Command("kubectl", "create", "ns", workerNs)
 	_, _ = utils.Run(cmd)
 
 	By(fmt.Sprintf("labeling workspace namespace %s for Istio injection", workerNs))
-	err := utils.LabelNamespaceForIstioInjection(workerNs)
+	err = utils.LabelNamespaceForIstioInjection(workerNs)
 	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	By(fmt.Sprintf("creating common workspace resources in %s", workerNs))
@@ -202,7 +203,7 @@ var _ = SynchronizedAfterSuite(func() {
 	cmd := exec.Command("kubectl", "delete", "ns", workerNs)
 	_, _ = utils.Run(cmd)
 }, func() {
-	
+
 	// Function 2: Runs ONLY on Worker 1 - Global Cluster Teardown
 
 	By("deleting the controller")
