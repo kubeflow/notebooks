@@ -85,6 +85,7 @@ export const WorkspaceFormOptionCard: React.FC<
       onClick={handleCardClick}
     >
       <CardHeader
+        hasWrap
         selectableActions={{
           selectableActionId: `selectable-actions-item-${cardId}`,
           selectableActionAriaLabelledby: option.displayName.replace(/ /g, '-'),
