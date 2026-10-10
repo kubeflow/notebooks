@@ -40,10 +40,10 @@ const (
 	controllerImage     = "ghcr.io/kubeflow/notebooks/workspaces-controller:latest"
 
 	// workspace configs
-	workspaceNamespace = "workspace-test"
-	workspaceName      = "jupyterlab-workspace"
-	workspacePortInt   = 8888
-	workspacePortId    = "jupyterlab"
+
+	workspaceName    = "jupyterlab-workspace"
+	workspacePortInt = 8888
+	workspacePortId  = "jupyterlab"
 
 	// workspacekind configs
 	workspaceKindName = "jupyterlab"
@@ -100,146 +100,12 @@ const (
 )
 
 var (
-	projectDir = ""
+	projectDir         = ""
+	workspaceNamespace string
 )
+var _ = Describe("controller", func() {
 
-var _ = Describe("controller", Ordered, func() {
-
-	BeforeAll(func() {
-		projectDir, _ = utils.GetProjectDir()
-
-		By("creating the controller namespace")
-		cmd := exec.Command("kubectl", "create", "ns", controllerNamespace)
-		_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
-
-		By("creating the workspace namespace")
-		cmd = exec.Command("kubectl", "create", "ns", workspaceNamespace)
-		_, _ = utils.Run(cmd) // ignore errors because namespace may already exist
-
-		By("labeling namespaces for Istio injection")
-		err := utils.LabelNamespaceForIstioInjection(controllerNamespace)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		err = utils.LabelNamespaceForIstioInjection(workspaceNamespace)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		By("creating common workspace resources")
-		cmd = exec.Command("kubectl", "apply",
-			"-k", filepath.Join(projectDir, "manifests/kustomize/samples/common"),
-			"-n", workspaceNamespace,
-		)
-		_, err = utils.Run(cmd)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		By("installing CRDs")
-		cmd = exec.Command("make", "install")
-		_, err = utils.Run(cmd)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		By("deploying the workspaces-controller")
-		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", controllerImage))
-		_, err = utils.Run(cmd)
-		ExpectWithOffset(1, err).NotTo(HaveOccurred())
-
-		By("waiting for the webhook certificate to be ready")
-		waitForWebhookCert := func(g Gomega) {
-			// First check if cert-manager has processed the Certificate resource
-			cmd := exec.Command("kubectl", "wait", "certificate",
-				"workspaces-serving-cert",
-				"-n", controllerNamespace,
-				"--for=condition=Ready",
-				fmt.Sprintf("--timeout=%s", timeout),
-			)
-			_, err := utils.Run(cmd)
-			g.Expect(err).NotTo(HaveOccurred(), "Certificate resource not ready")
-
-			// Also verify the secret was created
-			cmd = exec.Command("kubectl", "get", "secret",
-				"webhook-server-cert",
-				"-n", controllerNamespace,
-			)
-			_, err = utils.Run(cmd)
-			g.Expect(err).NotTo(HaveOccurred(), "webhook-server-cert secret not found")
-		}
-		Eventually(waitForWebhookCert, timeout, interval).Should(Succeed())
-
-		By("validating that the workspaces-controller pod is running as expected")
-		var controllerPodName string
-		verifyControllerUp := func(g Gomega) {
-			// Get controller pod name
-			cmd := exec.Command("kubectl", "get", "pods",
-				"-l", "app.kubernetes.io/component=controller-manager",
-				"-n", controllerNamespace,
-				"-o", "go-template={{ range .items }}"+
-					"{{ if not .metadata.deletionTimestamp }}"+
-					"{{ .metadata.name }}"+
-					"{{ \"\\n\" }}{{ end }}{{ end }}",
-			)
-			podOutput, err := utils.Run(cmd)
-			g.Expect(err).NotTo(HaveOccurred(), "failed to get workspaces-controller pod")
-
-			// Ensure only 1 controller pod is running
-			podNames := utils.GetNonEmptyLines(podOutput)
-			g.Expect(podNames).To(HaveLen(1), "expected 1 controller pod running")
-			controllerPodName = podNames[0]
-			g.Expect(controllerPodName).To(ContainSubstring("workspaces-controller"))
-
-			// Validate controller pod status
-			cmd = exec.Command("kubectl", "get", "pods",
-				controllerPodName,
-				"-n", controllerNamespace,
-				"-o", "jsonpath={.status.phase}",
-			)
-			statusPhase, err := utils.Run(cmd)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(statusPhase).To(BeEquivalentTo(corev1.PodRunning), "Incorrect workspaces-controller pod phase")
-		}
-		Eventually(verifyControllerUp, timeout, interval).Should(Succeed())
-
-	})
-
-	AfterAll(func() {
-		By("deleting sample Workspace")
-		cmd := exec.Command("kubectl", "delete", "-f",
-			filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspace.yaml"),
-			"-n", workspaceNamespace,
-			"--wait",
-			fmt.Sprintf("--timeout=%s", timeout),
-		)
-		_, _ = utils.Run(cmd)
-
-		By("deleting sample WorkspaceKind")
-		cmd = exec.Command("kubectl", "delete",
-			"-f", filepath.Join(projectDir, "manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml"),
-		)
-		_, _ = utils.Run(cmd)
-
-		By("deleting common workspace resources")
-		cmd = exec.Command("kubectl", "delete",
-			"-k", filepath.Join(projectDir, "manifests/kustomize/samples/common"),
-			"-n", workspaceNamespace,
-		)
-		_, _ = utils.Run(cmd)
-
-		By("deleting the controller")
-		cmd = exec.Command("make", "undeploy")
-		_, _ = utils.Run(cmd)
-
-		By("deleting controller namespace")
-		cmd = exec.Command("kubectl", "delete", "ns", controllerNamespace)
-		_, _ = utils.Run(cmd)
-
-		By("deleting workspace namespace")
-		cmd = exec.Command("kubectl", "delete", "ns", workspaceNamespace)
-		_, _ = utils.Run(cmd)
-
-		By("deleting CRDs")
-		cmd = exec.Command("make", "uninstall")
-		_, _ = utils.Run(cmd)
-
-	})
-
-	Context("Operator", func() {
+	Context("Operator", Ordered, func() {
 
 		It("should run successfully", func() {
 
@@ -669,74 +535,20 @@ var _ = Describe("controller", Ordered, func() {
 
 	Context("Activity Rules", func() {
 
-		AfterAll(func() {
-			By("deleting the activity Workspace")
-			cmd := exec.Command("kubectl", "delete", "workspace", activityWorkspaceName,
-				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
-				fmt.Sprintf("--timeout=%s", timeout),
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the activity WorkspaceKind")
-			cmd = exec.Command("kubectl", "delete", "workspacekind", activityWorkspaceKindName,
-				"--ignore-not-found=true",
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the exemption Workspace")
-			cmd = exec.Command("kubectl", "delete", "workspace", exemptionWorkspaceName,
-				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
-				fmt.Sprintf("--timeout=%s", timeout),
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the exemption WorkspaceKind")
-			cmd = exec.Command("kubectl", "delete", "workspacekind", exemptionWorkspaceKindName,
-				"--ignore-not-found=true",
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the failing probe Workspace")
-			cmd = exec.Command("kubectl", "delete", "workspace", failingProbeWorkspaceName,
-				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
-				fmt.Sprintf("--timeout=%s", timeout),
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the failing probe WorkspaceKind")
-			cmd = exec.Command("kubectl", "delete", "workspacekind", failingProbeWorkspaceKindName,
-				"--ignore-not-found=true",
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the stale activity Workspace")
-			cmd = exec.Command("kubectl", "delete", "workspace", staleWorkspaceName,
-				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
-				fmt.Sprintf("--timeout=%s", timeout),
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the stale activity WorkspaceKind")
-			cmd = exec.Command("kubectl", "delete", "workspacekind", staleWorkspaceKindName,
-				"--ignore-not-found=true",
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the has_activity: false Workspace")
-			cmd = exec.Command("kubectl", "delete", "workspace", hasActivityFalseWorkspaceName,
-				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
-				fmt.Sprintf("--timeout=%s", timeout),
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the has_activity: false WorkspaceKind")
-			cmd = exec.Command("kubectl", "delete", "workspacekind", hasActivityFalseWorkspaceKindName,
-				"--ignore-not-found=true",
-			)
-			_, _ = utils.Run(cmd)
-		})
-
 		It("should automatically pause an inactive Workspace", func() {
+			DeferCleanup(func() {
+				By("deleting the activity Workspace")
+				cmd := exec.Command("kubectl", "delete", "workspace", activityWorkspaceName,
+					"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
+					fmt.Sprintf("--timeout=%s", timeout),
+				)
+				_, _ = utils.Run(cmd)
+				By("deleting the activity WorkspaceKind")
+				cmd = exec.Command("kubectl", "delete", "workspacekind", activityWorkspaceKindName,
+					"--ignore-not-found=true",
+				)
+				_, _ = utils.Run(cmd)
+			})
 
 			By("creating an activity-rules-enabled WorkspaceKind (podExec probe reporting inactivity)")
 			// derive a dedicated WorkspaceKind from the sample so we get valid imageConfig/podConfig/ports,
@@ -783,7 +595,7 @@ var _ = Describe("controller", Ordered, func() {
 			// - an empty match makes this a catch-all rule that applies to all Workspaces
 			rulesPatch := `[` +
 				`{"op":"replace","path":"/spec/activityRules","value":[` +
-				`{"config":{"secondsSinceActive":16,"minRunningSeconds":60},"match":{},"effect":{"pauseWorkspace":true}}` +
+				`{"config":{"secondsSinceActive":16,"minRunningSeconds":15},"match":{},"effect":{"pauseWorkspace":true}}` +
 				`]}]`
 			patchRules := func() error {
 				cmd := exec.Command("kubectl", "patch", "workspacekind", activityWorkspaceKindName,
@@ -919,6 +731,22 @@ var _ = Describe("controller", Ordered, func() {
 		})
 
 		It("should NOT pause a Workspace that matches an exemption rule (pauseWorkspace: false)", func() {
+			DeferCleanup(func() {
+				By("deleting the exemption Workspace")
+				cmd := exec.Command("kubectl", "delete", "workspace", exemptionWorkspaceName,
+					"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
+					fmt.Sprintf("--timeout=%s", timeout),
+				)
+				_, _ = utils.Run(cmd)
+				By("deleting the exemption WorkspaceKind")
+				cmd = exec.Command("kubectl", "delete", "workspacekind", exemptionWorkspaceKindName,
+					"--ignore-not-found=true",
+				)
+				_, _ = utils.Run(cmd)
+				By("cleaning up the exemption workspace labels")
+				cmd = exec.Command("kubectl", "label", "ns", workspaceNamespace, "exempt-", "--ignore-not-found=true")
+				_, _ = utils.Run(cmd)
+			})
 
 			By("creating an activity-rules-enabled WorkspaceKind with an exemption rule matching namespace labels")
 			// derive a dedicated WorkspaceKind from the sample
@@ -1050,6 +878,19 @@ var _ = Describe("controller", Ordered, func() {
 		})
 
 		It("should NOT pause a Workspace when the activity probe fails", func() {
+			DeferCleanup(func() {
+				By("deleting the failing probe Workspace")
+				cmd := exec.Command("kubectl", "delete", "workspace", failingProbeWorkspaceName,
+					"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
+					fmt.Sprintf("--timeout=%s", timeout),
+				)
+				_, _ = utils.Run(cmd)
+				By("deleting the failing probe WorkspaceKind")
+				cmd = exec.Command("kubectl", "delete", "workspacekind", failingProbeWorkspaceKindName,
+					"--ignore-not-found=true",
+				)
+				_, _ = utils.Run(cmd)
+			})
 
 			By("creating a WorkspaceKind with a failing podExec activity probe")
 			failingWorkspaceKindYAML, err := utils.RenderActivityWorkspaceKind(
@@ -1144,6 +985,19 @@ var _ = Describe("controller", Ordered, func() {
 		})
 
 		It("should NOT pause a Workspace when eligibleAfter arrives before the next probe is due", func() {
+			DeferCleanup(func() {
+				By("deleting the stale activity Workspace")
+				cmd := exec.Command("kubectl", "delete", "workspace", staleWorkspaceName,
+					"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
+					fmt.Sprintf("--timeout=%s", timeout),
+				)
+				_, _ = utils.Run(cmd)
+				By("deleting the stale activity WorkspaceKind")
+				cmd = exec.Command("kubectl", "delete", "workspacekind", staleWorkspaceKindName,
+					"--ignore-not-found=true",
+				)
+				_, _ = utils.Run(cmd)
+			})
 
 			By("creating a WorkspaceKind with probeInterval=30s and minRunningSeconds=15s")
 			staleWorkspaceKindYAML, err := utils.RenderActivityWorkspaceKind(
@@ -1271,6 +1125,19 @@ var _ = Describe("controller", Ordered, func() {
 		})
 
 		It("should automatically pause an inactive Workspace when podExec probe reports has_activity: false", func() {
+			DeferCleanup(func() {
+				By("deleting the has_activity: false Workspace")
+				cmd := exec.Command("kubectl", "delete", "workspace", hasActivityFalseWorkspaceName,
+					"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
+					fmt.Sprintf("--timeout=%s", timeout),
+				)
+				_, _ = utils.Run(cmd)
+				By("deleting the has_activity: false WorkspaceKind")
+				cmd = exec.Command("kubectl", "delete", "workspacekind", hasActivityFalseWorkspaceKindName,
+					"--ignore-not-found=true",
+				)
+				_, _ = utils.Run(cmd)
+			})
 
 			By("creating an activity-rules-enabled WorkspaceKind (podExec probe reporting has_activity: false)")
 			hasActivityFalseWorkspaceKindYAML, err := utils.RenderActivityWorkspaceKind(
@@ -1437,22 +1304,20 @@ var _ = Describe("controller", Ordered, func() {
 
 	Context("Activity Probes", func() {
 
-		AfterAll(func() {
-			By("deleting the probe Workspace")
-			cmd := exec.Command("kubectl", "delete", "workspace", probeWorkspaceName,
-				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
-				fmt.Sprintf("--timeout=%s", timeout),
-			)
-			_, _ = utils.Run(cmd)
-
-			By("deleting the probe WorkspaceKind")
-			cmd = exec.Command("kubectl", "delete", "workspacekind", probeWorkspaceKindName,
-				"--ignore-not-found=true",
-			)
-			_, _ = utils.Run(cmd)
-		})
-
 		It("should update activity status using Jupyter probe", func() {
+			DeferCleanup(func() {
+				By("deleting the probe Workspace")
+				cmd := exec.Command("kubectl", "delete", "workspace", probeWorkspaceName,
+					"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
+					fmt.Sprintf("--timeout=%s", timeout),
+				)
+				_, _ = utils.Run(cmd)
+				By("deleting the probe WorkspaceKind")
+				cmd = exec.Command("kubectl", "delete", "workspacekind", probeWorkspaceKindName,
+					"--ignore-not-found=true",
+				)
+				_, _ = utils.Run(cmd)
+			})
 			By("creating a WorkspaceKind with short Jupyter probe intervals")
 			// We use a very short probe interval to verify the status updates quickly.
 			kindYAML, err := utils.RenderActivityWorkspaceKind(
