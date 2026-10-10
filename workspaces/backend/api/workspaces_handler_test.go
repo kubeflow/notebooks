@@ -1930,6 +1930,68 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Delete(ctx, createdWorkspace)).To(Succeed())
 		})
 
+		It("should return 422 when creating a Workspace in a non-existent namespace", func() {
+			missingNamespace := "non-existent-namespace"
+
+			By("defining a WorkspaceCreate model")
+			workspaceCreate := &models.WorkspaceCreate{
+				Name:   "workspace-missing-namespace",
+				Kind:   workspaceKindName,
+				Paused: false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Volumes: models.PodVolumesMutate{
+						Data: []models.PodVolumeMount{},
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyEnvelope := WorkspaceCreateEnvelope{Data: workspaceCreate}
+
+			By("marshaling the WorkspaceCreate model to JSON")
+			bodyEnvelopeJSON, err := json.Marshal(bodyEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("creating an HTTP request to create the Workspace")
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, missingNamespace, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyEnvelopeJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+
+			By("setting the auth headers")
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceHandler")
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   constants.NamespacePathParam,
+					Value: missingNamespace,
+				},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("decoding the error response")
+			var response ErrorEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verifying the validation error points at the namespace path parameter")
+			Expect(response.Error.Cause.ValidationErrors).To(HaveLen(1))
+			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.NamespacePathParam))
+		})
+
 		It("should update a Workspace successfully", func() {
 
 			By("creating a Workspace via the API")
