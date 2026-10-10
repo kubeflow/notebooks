@@ -266,7 +266,7 @@ type WorkspaceActivityLastProbe struct {
 	// a human-readable message about the probe result
 	//  - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
 	// +kubebuilder:default=""
-	// +kubebuilder:example="Jupyter probe succeeded"
+	// +kubebuilder:example="PodExec probe succeeded"
 	Message string `json:"message"`
 }
 

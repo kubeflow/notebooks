@@ -124,7 +124,7 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, workspaceKi
 
 	// validate the activity probe
 	activityProbePath := field.NewPath("spec", "podTemplate", "activityProbe")
-	allErrs = append(allErrs, validateActivityProbe(workspaceKind.Spec.PodTemplate.ActivityProbe, activityProbePath, podTemplatePortsIdMap)...)
+	allErrs = append(allErrs, validateActivityProbe(workspaceKind.Spec.PodTemplate.ActivityProbe, activityProbePath)...)
 
 	// validate default options
 	allErrs = append(allErrs, validateDefaultImageConfig(workspaceKind, imageConfigIdMap)...)
@@ -205,10 +205,10 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 		podTemplatePortsIdMap[port.Id] = port
 	}
 
-	// validate activity probe if probe or ports changed
-	if shouldValidateAllImageConfigValues || !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, oldWorkspaceKind.Spec.PodTemplate.ActivityProbe) {
+	// validate activity probe if probe changed
+	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, oldWorkspaceKind.Spec.PodTemplate.ActivityProbe) {
 		activityProbePath := field.NewPath("spec", "podTemplate", "activityProbe")
-		allErrs = append(allErrs, validateActivityProbe(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, activityProbePath, podTemplatePortsIdMap)...)
+		allErrs = append(allErrs, validateActivityProbe(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, activityProbePath)...)
 	}
 
 	// validate activity rules if rules or probe changed
@@ -832,40 +832,30 @@ func validatePodConfigRedirects(podConfigIdMap map[string]kubefloworgv1beta1.Pod
 }
 
 // validateActivityProbe validates the activityProbe in a WorkspaceKind
-func validateActivityProbe(activityProbe *kubefloworgv1beta1.ActivityProbe, path *field.Path, podTemplatePortsIdMap map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort) []*field.Error {
+func validateActivityProbe(activityProbe *kubefloworgv1beta1.ActivityProbe, path *field.Path) []*field.Error {
 	var errs []*field.Error
 
 	if activityProbe == nil {
 		return errs
 	}
 
-	// validate podExec if specified
-	if activityProbe.PodExec != nil {
-		script := activityProbe.PodExec.Script
-		// Extract the first line to validate the shebang.
-		// We use strings.IndexAny with "\r\n" instead of just "\n" to handle Windows-style line endings.
-		shebangLine := script
-		if idx := strings.IndexAny(script, "\r\n"); idx != -1 {
-			shebangLine = script[:idx]
-		}
-		if !shebangRegex.MatchString(shebangLine) {
-			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "script shebang is invalid (e.g., '#!/bin/bash')"))
-		} else if len(shebangLine) > 255 {
-			// According to `execve(2)` man page (https://man7.org/linux/man-pages/man2/execve.2.html):
-			// "The kernel imposes a maximum length on the text following the "#!" characters...
-			// On Linux, the limit is 127 characters before Linux 5.1, and 255 characters since Linux 5.1."
-			// This is defined by `BINPRM_BUF_SIZE` (256 bytes, including null terminator) in the Linux kernel `<linux/binfmts.h>`.
-			// However the "#!" counts towards the overall limit, contrary to what the wording in the manpage seems to imply.
-			errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "shebang line exceeds the 255 character limit"))
-		}
+	// validate podExec
+	script := activityProbe.PodExec.Script
+	// Extract the first line to validate the shebang.
+	// We use strings.IndexAny with "\r\n" instead of just "\n" to handle Windows-style line endings.
+	shebangLine := script
+	if idx := strings.IndexAny(script, "\r\n"); idx != -1 {
+		shebangLine = script[:idx]
 	}
-
-	// validate jupyter if specified
-	if activityProbe.Jupyter != nil {
-		portId := activityProbe.Jupyter.PortId
-		if _, exists := podTemplatePortsIdMap[portId]; !exists {
-			errs = append(errs, field.Invalid(path.Child("jupyter", "portId"), portId, "must reference a valid port defined in spec.podTemplate.ports"))
-		}
+	if !shebangRegex.MatchString(shebangLine) {
+		errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "script shebang is invalid (e.g., '#!/bin/bash')"))
+	} else if len(shebangLine) > 255 {
+		// According to `execve(2)` man page (https://man7.org/linux/man-pages/man2/execve.2.html):
+		// "The kernel imposes a maximum length on the text following the "#!" characters...
+		// On Linux, the limit is 127 characters before Linux 5.1, and 255 characters since Linux 5.1."
+		// This is defined by `BINPRM_BUF_SIZE` (256 bytes, including null terminator) in the Linux kernel `<linux/binfmts.h>`.
+		// However the "#!" counts towards the overall limit, contrary to what the wording in the manpage seems to imply.
+		errs = append(errs, field.Invalid(path.Child("podExec", "script"), script, "shebang line exceeds the 255 character limit"))
 	}
 
 	return errs

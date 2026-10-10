@@ -6509,21 +6509,16 @@ const docTemplate = `{
         },
         "v1beta1.ActivityProbe": {
             "type": "object",
+            "required": [
+                "podExec"
+            ],
             "properties": {
-                "jupyter": {
-                    "description": "a Jupyter-specific API probe\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.ActivityProbeJupyter"
-                        }
-                    ]
-                },
                 "minProbeIntervalSeconds": {
                     "description": "the minimum duration in seconds that must elapse between two consecutive probes.\n- Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).\n- Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 },
                 "podExec": {
-                    "description": "a script-based probe executed in the Pod\n+kubebuilder:validation:Optional",
+                    "description": "a script-based probe executed in the Pod\n - this is currently the only supported probe type, so it is required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ActivityProbePodExec"
@@ -6533,23 +6528,6 @@ const docTemplate = `{
                 "probeIntervalSeconds": {
                     "description": "the desired interval in seconds between successful probes.\n - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n - Determines the freshness of workspace activity status used by activity rules.\n - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still\n   inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose\n   user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,\n   so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible\n   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,\n   at the cost of more frequent probing.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
                     "type": "integer"
-                }
-            }
-        },
-        "v1beta1.ActivityProbeJupyter": {
-            "type": "object",
-            "required": [
-                "lastActivity",
-                "portId"
-            ],
-            "properties": {
-                "lastActivity": {
-                    "description": "if the Jupyter-specific probe is enabled\n+kubebuilder:example=true",
-                    "type": "boolean"
-                },
-                "portId": {
-                    "description": "the port to probe, referencing a port defined in spec.podTemplate.ports",
-                    "type": "string"
                 }
             }
         },
@@ -7632,12 +7610,10 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "minProbeIntervalSeconds",
+                "podExec",
                 "probeIntervalSeconds"
             ],
             "properties": {
-                "jupyter": {
-                    "$ref": "#/definitions/workspacekinds.ActivityProbeJupyter"
-                },
                 "minProbeIntervalSeconds": {
                     "type": "integer"
                 },
@@ -7646,21 +7622,6 @@ const docTemplate = `{
                 },
                 "probeIntervalSeconds": {
                     "type": "integer"
-                }
-            }
-        },
-        "workspacekinds.ActivityProbeJupyter": {
-            "type": "object",
-            "required": [
-                "lastActivity",
-                "portId"
-            ],
-            "properties": {
-                "lastActivity": {
-                    "type": "boolean"
-                },
-                "portId": {
-                    "type": "string"
                 }
             }
         },

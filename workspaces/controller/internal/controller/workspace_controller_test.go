@@ -274,7 +274,7 @@ var _ = Describe("Workspace Controller", func() {
 			workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
 				MinProbeIntervalSeconds: new(int32(1)),
 				ProbeIntervalSeconds:    new(int32(10)),
-				PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
+				PodExec: kubefloworgv1beta1.ActivityProbePodExec{
 					TimeoutSeconds: new(int32(30)),
 					Script:         "exit 0",
 				},
@@ -379,7 +379,6 @@ var _ = Describe("Workspace Controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, pod)).To(Succeed())
 			pod.Status.Phase = corev1.PodRunning
-			pod.Status.PodIP = "10.0.0.1"
 			pod.Status.Conditions = []corev1.PodCondition{
 				{Type: corev1.PodReady, Status: corev1.ConditionTrue},
 				{Type: corev1.PodScheduled, Status: corev1.ConditionTrue},

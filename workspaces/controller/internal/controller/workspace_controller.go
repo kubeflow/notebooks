@@ -117,10 +117,6 @@ type WorkspaceReconciler struct {
 	// PodExecutor executes activity probe scripts inside Workspace Pods.
 	// If nil, podExec probes fail with a failure probe result indicating exec is not configured.
 	PodExecutor helper.PodExecutor
-
-	// HTTPProber performs HTTP requests for Jupyter activity probes.
-	// If nil, jupyter probes fail with a failure probe result indicating http prober is not configured.
-	HTTPProber helper.HTTPProber
 }
 
 // +kubebuilder:rbac:groups=kubeflow.org,resources=workspaces,verbs=create;delete;get;list;patch;update;watch
@@ -589,7 +585,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	//  - this may run an activity probe, update `status.activity`, and pause the Workspace
 	//  - it returns a requeue result used to schedule the next probe (unless a more urgent
 	//    requeue was already requested by the status generation above)
-	activityResult, paused, err := r.reconcileActivity(ctx, log, workspace, workspaceKind, currentImageConfig, currentPodConfig, pod)
+	activityResult, paused, err := r.reconcileActivity(ctx, log, workspace, workspaceKind, currentPodConfig, pod)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

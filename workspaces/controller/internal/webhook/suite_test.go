@@ -202,9 +202,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
 					MinProbeIntervalSeconds: new(int32(300)),
 					ProbeIntervalSeconds:    new(int32(3600)),
-					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-						LastActivity: true,
-						PortId:       "jupyterlab",
+					PodExec: kubefloworgv1beta1.ActivityProbePodExec{
+						Script: "#!/usr/bin/env bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 					},
 				},
 				VolumeMountPaths: kubefloworgv1beta1.WorkspaceKindVolumeMountPaths{
@@ -705,7 +704,7 @@ func NewExampleWorkspaceKindWithInvalidRequestHeadersValue(name string) *kubeflo
 func NewExampleWorkspaceKindWithExecScript(name string, script string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
+		PodExec: kubefloworgv1beta1.ActivityProbePodExec{
 			Script: script,
 		},
 	}
@@ -717,54 +716,14 @@ func NewExampleWorkspaceKindWithInvalidExecShebang(name string) *kubefloworgv1be
 	return NewExampleWorkspaceKindWithExecScript(name, "echo '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"")
 }
 
-// NewExampleWorkspaceKindWithInvalidJupyterPort returns a WorkspaceKind with a jupyter portId that is invalid.
-func NewExampleWorkspaceKindWithInvalidJupyterPort(name string) *kubefloworgv1beta1.WorkspaceKind {
-	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: true,
-			PortId:       "invalid-port",
-		},
-	}
-	return workspaceKind
-}
-
-// NewExampleWorkspaceKindWithBothProbeTypes returns a WorkspaceKind with both podExec and jupyter probe types set.
-func NewExampleWorkspaceKindWithBothProbeTypes(name string) *kubefloworgv1beta1.WorkspaceKind {
-	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
-			Script: "#!/bin/bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
-		},
-		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: true,
-			PortId:       "jupyterlab",
-		},
-	}
-	return workspaceKind
-}
-
 // NewExampleWorkspaceKindWithInvalidProbeIntervals returns a WorkspaceKind with minProbeIntervalSeconds > probeIntervalSeconds.
 func NewExampleWorkspaceKindWithInvalidProbeIntervals(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
 		MinProbeIntervalSeconds: new(int32(100)),
 		ProbeIntervalSeconds:    new(int32(50)),
-		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: true,
-			PortId:       "jupyterlab",
-		},
-	}
-	return workspaceKind
-}
-
-// NewExampleWorkspaceKindWithJupyterLastActivityFalse returns a WorkspaceKind with Jupyter activityProbe where lastActivity is false.
-func NewExampleWorkspaceKindWithJupyterLastActivityFalse(name string) *kubefloworgv1beta1.WorkspaceKind {
-	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: false,
-			PortId:       "jupyterlab",
+		PodExec: kubefloworgv1beta1.ActivityProbePodExec{
+			Script: "#!/bin/bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 		},
 	}
 	return workspaceKind
