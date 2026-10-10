@@ -27,6 +27,21 @@ check-tilt:
 		exit 1; \
 	fi
 
+# Check if helm is installed (only required for the ENABLE_FAKE_GPU path).
+# Hard-fail when ENABLE_FAKE_GPU=true, otherwise warn and continue so the
+# default `make tilt-up` does not require helm.
+.PHONY: check-helm
+check-helm:
+	@if ! command -v helm >/dev/null 2>&1; then \
+		if [ "$$ENABLE_FAKE_GPU" = "true" ]; then \
+			echo "ERROR: helm is required for ENABLE_FAKE_GPU=true. Please install helm first:"; \
+			echo "  https://helm.sh/docs/intro/install/"; \
+			exit 1; \
+		else \
+			echo "WARNING: helm is not installed; ENABLE_FAKE_GPU will be unavailable."; \
+		fi; \
+	fi
+
 # Ensure kind cluster exists and context is set before running tilt
 .PHONY: setup-kind
 setup-kind:
@@ -60,9 +75,15 @@ setup-metrics-server:
 	@echo "Setting up metrics-server..."
 	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-metrics-server.sh
 
+# Install the fake-gpu-operator to simulate GPUs (optional, gated by ENABLE_FAKE_GPU)
+.PHONY: setup-fake-gpu-operator
+setup-fake-gpu-operator:
+	@echo "Setting up fake-gpu-operator..."
+	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-fake-gpu-operator.sh
+
 # Run tilt up with kind cluster, cert-manager, and Istio setup
 .PHONY: tilt-up
-tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus setup-metrics-server
+tilt-up: kustomize check-tilt check-helm setup-kind setup-istio setup-prometheus setup-metrics-server setup-fake-gpu-operator
 	@echo "Starting Tilt..."
 	@tilt up
 
