@@ -17,6 +17,10 @@ KUSTOMIZE_VERSION ?= v5.5.0
 # (e.g., KIND_EXPERIMENTAL_PROVIDER=podman for podman support)
 export KIND_EXPERIMENTAL_PROVIDER
 
+# Export ENABLE_REGISTRY to honor it if set in user's environment
+# (opt-in local container registry via ctlptl, see setup-kind.sh)
+export ENABLE_REGISTRY
+
 # Check if tilt is installed
 .PHONY: check-tilt
 check-tilt:
@@ -27,12 +31,27 @@ check-tilt:
 		exit 1; \
 	fi
 
+# Check if ctlptl is installed (only required when ENABLE_REGISTRY=true)
+.PHONY: check-ctlptl
+check-ctlptl:
+	@if [ "$$ENABLE_REGISTRY" = "true" ]; then \
+		if ! command -v ctlptl >/dev/null 2>&1; then \
+			echo "ERROR: ctlptl is not installed, but ENABLE_REGISTRY=true requires it."; \
+			echo "  brew install tilt-dev/tap/ctlptl  # macOS/Linux (Homebrew)"; \
+			echo "  or visit: https://github.com/tilt-dev/ctlptl#how-do-i-install-it"; \
+			exit 1; \
+		fi; \
+	fi
+
 # Ensure kind cluster exists and context is set before running tilt
 .PHONY: setup-kind
-setup-kind:
+setup-kind: check-ctlptl
 	@echo "Setting up Kind cluster..."
 	@if [ -n "$$KIND_EXPERIMENTAL_PROVIDER" ]; then \
 		echo "Using KIND_EXPERIMENTAL_PROVIDER=$$KIND_EXPERIMENTAL_PROVIDER"; \
+	fi
+	@if [ "$$ENABLE_REGISTRY" = "true" ]; then \
+		echo "Using ENABLE_REGISTRY=true (local registry via ctlptl)"; \
 	fi
 	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-kind.sh
 
@@ -65,6 +84,17 @@ setup-metrics-server:
 tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus setup-metrics-server
 	@echo "Starting Tilt..."
 	@tilt up
+
+# Run tilt-up with every optional ENABLE_* feature flag turned on (frontend,
+# dashboard, prometheus, metrics-server, and the local registry). Useful for
+# exercising the full environment in one go, e.g. before a release.
+.PHONY: tilt-up-all
+tilt-up-all: export ENABLE_FRONTEND = true
+tilt-up-all: export ENABLE_DASHBOARD = true
+tilt-up-all: export ENABLE_PROMETHEUS = true
+tilt-up-all: export ENABLE_METRICS_SERVER = true
+tilt-up-all: export ENABLE_REGISTRY = true
+tilt-up-all: tilt-up
 
 # Stop Tilt
 .PHONY: tilt-down
