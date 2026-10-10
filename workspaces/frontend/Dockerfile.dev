@@ -9,6 +9,12 @@
 
 FROM node:24-slim
 
+# Pin npm to the version declared in package.json's `engines.npm`, as root, before
+# dropping to the non-root user below (global npm dirs aren't writable by uid 1000).
+COPY package.json /tmp/package.json
+RUN npm install -g npm@"$(node -p "require('/tmp/package.json').engines.npm")" \
+  && rm /tmp/package.json
+
 # Create app directory with correct ownership, then switch to non-root user
 RUN mkdir /app && chown 1000:1000 /app
 USER 1000:1000
