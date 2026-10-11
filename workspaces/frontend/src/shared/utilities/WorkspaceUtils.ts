@@ -221,3 +221,10 @@ export const extractPackageLabels = (
   workspace.podTemplate.options.imageConfig.current.labels.filter((label) =>
     isPackageLabel(label.key),
   );
+
+export const getWorkspaceDisplayName = (workspace: WorkspacesWorkspaceListItem): string => {
+  if (workspace.displayName && workspace.displayName.trim() !== '') {
+    return workspace.displayName;
+  }
+  return workspace.name;
+};

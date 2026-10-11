@@ -10,6 +10,7 @@ import { Label, LabelGroup } from '@patternfly/react-core/dist/esm/components/La
 import { DetailsWorkspaceDetails, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 import { DetailsLoadingState } from '~/app/components/DetailsLoadingState';
 import { WorkspacePackageDetails } from '~/app/pages/Workspaces/WorkspacePackageDetails';
+import { getWorkspaceDisplayName } from '~/shared/utilities/WorkspaceUtils';
 
 type WorkspaceDetailsOverviewProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -29,8 +30,16 @@ export const WorkspaceDetailsOverview: React.FunctionComponent<WorkspaceDetailsO
   return (
     <DescriptionList isHorizontal>
       <DescriptionListGroup>
-        <DescriptionListTerm>Name</DescriptionListTerm>
-        <DescriptionListDescription>{workspace.name}</DescriptionListDescription>
+        <DescriptionListTerm> Display Name</DescriptionListTerm>
+        <DescriptionListDescription data-testid="workspace-display-name">
+          {getWorkspaceDisplayName(workspace)}
+        </DescriptionListDescription>
+      </DescriptionListGroup>
+      <DescriptionListGroup>
+        <DescriptionListTerm>Resource Name</DescriptionListTerm>
+        <DescriptionListDescription data-testid="workspace-resource-name">
+          {workspace.name}
+        </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
       <DescriptionListGroup>
