@@ -43,7 +43,9 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
           <DescriptionListGroup>
             <DescriptionListTerm>Pauses after</DescriptionListTerm>
             <DescriptionListDescription data-testid="pausesIn">
-              {format(new Date(activity.rules.pauseWorkspace.eligibleAfter), DATE_FORMAT)}
+              {activity.rules.pauseWorkspace.eligibleAfter === 0
+                ? 'not eligible'
+                : format(new Date(activity.rules.pauseWorkspace.eligibleAfter), DATE_FORMAT)}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <Divider />
