@@ -1010,8 +1010,12 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// generate pod metadata
+	//
 	// NOTE: precedence is Workspace > podConfig > WorkspaceKind (later copies win on key conflicts);
 	//       controller-owned labels are layered on top via labels.Merge when the Pod template is built
+	//
+	// NOTE: entries in this field are currently NOT allowed and blocked via a CRD CEL validation rules
+	// 		 until the security model for Workspace-level Pod metadata is defined and implemented
 	podAnnotations := make(map[string]string)
 	podLabels := make(map[string]string)
 	if workspaceKind.Spec.PodTemplate.PodMetadata != nil {

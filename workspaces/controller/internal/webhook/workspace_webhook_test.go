@@ -72,32 +72,30 @@ var _ = Describe("Workspace Webhook", func() {
 			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("workspace kind %q not found", invalidWorkspaceKindName)))
 		})
 
-		It("should reject an invalid podMetadata.labels key", func() {
-			invalidLabelKey := "!bad-key!"
-
+		It("should reject any podMetadata.labels entry", func() {
 			By("creating the Workspace")
 			workspace := NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName)
 			workspace.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspacePodMetadata{}
 			workspace.Spec.PodTemplate.PodMetadata.Labels = map[string]string{
-				invalidLabelKey: "value",
+				"good-key": "value",
 			}
 			err := k8sClient.Create(ctx, workspace)
 			Expect(err).NotTo(Succeed())
-			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Invalid value: %q", invalidLabelKey)))
+			Expect(err.Error()).To(ContainSubstring("spec.podTemplate.podMetadata.labels"))
+			Expect(err.Error()).To(ContainSubstring("must have at most 0 items"))
 		})
 
-		It("should reject an invalid podMetadata.annotations key", func() {
-			invalidAnnotationKey := "!bad-key!"
-
+		It("should reject any podMetadata.annotations entry", func() {
 			By("creating the Workspace")
 			workspace := NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName)
 			workspace.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspacePodMetadata{}
 			workspace.Spec.PodTemplate.PodMetadata.Annotations = map[string]string{
-				invalidAnnotationKey: "value",
+				"good-key": "value",
 			}
 			err := k8sClient.Create(ctx, workspace)
 			Expect(err).NotTo(Succeed())
-			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Invalid value: %q", invalidAnnotationKey)))
+			Expect(err.Error()).To(ContainSubstring("spec.podTemplate.podMetadata.annotations"))
+			Expect(err.Error()).To(ContainSubstring("must have at most 0 items"))
 		})
 
 		It("should reject an invalid imageConfig", func() {
@@ -209,24 +207,21 @@ var _ = Describe("Workspace Webhook", func() {
 			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
 			patch := client.MergeFrom(workspace.DeepCopy())
 
-			By("failing to update `spec.podTemplate.podMetadata.labels` with an invalid key")
-			invalidLabelKey := "!bad-key!"
+			By("failing to update `spec.podTemplate.podMetadata.labels` with any entry")
 			newWorkspace := workspace.DeepCopy()
 			newWorkspace.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspacePodMetadata{}
 			newWorkspace.Spec.PodTemplate.PodMetadata.Labels = map[string]string{
-				invalidLabelKey: "value",
+				"good-key": "value",
 			}
 			err := k8sClient.Patch(ctx, newWorkspace, patch)
 			Expect(err).NotTo(Succeed())
-			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Invalid value: %q", invalidLabelKey)))
+			Expect(err.Error()).To(ContainSubstring("spec.podTemplate.podMetadata.labels"))
+			Expect(err.Error()).To(ContainSubstring("must have at most 0 items"))
 
-			By("updating `spec.podTemplate.podMetadata.labels` with a valid key")
-			validLabelKey := "good-key"
+			By("updating `spec.podTemplate.podMetadata.labels` with an empty map")
 			newWorkspace = workspace.DeepCopy()
 			newWorkspace.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspacePodMetadata{}
-			newWorkspace.Spec.PodTemplate.PodMetadata.Labels = map[string]string{
-				validLabelKey: "value",
-			}
+			newWorkspace.Spec.PodTemplate.PodMetadata.Labels = map[string]string{}
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
 		})
 
@@ -236,24 +231,21 @@ var _ = Describe("Workspace Webhook", func() {
 			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
 			patch := client.MergeFrom(workspace.DeepCopy())
 
-			By("failing to update `spec.podTemplate.podMetadata.annotations` with an invalid key")
-			invalidAnnotationKey := "!bad-key!"
+			By("failing to update `spec.podTemplate.podMetadata.annotations` with any entry")
 			newWorkspace := workspace.DeepCopy()
 			newWorkspace.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspacePodMetadata{}
 			newWorkspace.Spec.PodTemplate.PodMetadata.Annotations = map[string]string{
-				invalidAnnotationKey: "value",
+				"good-key": "value",
 			}
 			err := k8sClient.Patch(ctx, newWorkspace, patch)
 			Expect(err).NotTo(Succeed())
-			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("Invalid value: %q", invalidAnnotationKey)))
+			Expect(err.Error()).To(ContainSubstring("spec.podTemplate.podMetadata.annotations"))
+			Expect(err.Error()).To(ContainSubstring("must have at most 0 items"))
 
-			By("updating `spec.podTemplate.podMetadata.annotations` with a valid key")
-			validAnnotationKey := "good-key"
+			By("updating `spec.podTemplate.podMetadata.annotations` with an empty map")
 			newWorkspace = workspace.DeepCopy()
 			newWorkspace.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspacePodMetadata{}
-			newWorkspace.Spec.PodTemplate.PodMetadata.Annotations = map[string]string{
-				validAnnotationKey: "value",
-			}
+			newWorkspace.Spec.PodTemplate.PodMetadata.Annotations = map[string]string{}
 			Expect(k8sClient.Patch(ctx, newWorkspace, patch)).To(Succeed())
 		})
 
