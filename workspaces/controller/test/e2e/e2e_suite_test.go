@@ -18,11 +18,12 @@ package e2e
 
 import (
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/kubeflow/notebooks/workspaces/controller/test/utils"
 

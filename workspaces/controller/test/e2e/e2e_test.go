@@ -103,6 +103,18 @@ var _ = Describe("controller", func() {
 
 	Context("Operator", Ordered, func() {
 
+		AfterAll(func() {
+			By("cleaning up Operator resources on failure or completion")
+			cmd := exec.Command("kubectl", "delete", "workspace", workspaceName,
+				"-n", workspaceNamespace, "--ignore-not-found=true", "--wait",
+				fmt.Sprintf("--timeout=%s", timeout),
+			)
+			_, _ = utils.Run(cmd)
+			cmd = exec.Command("kubectl", "delete", "workspacekind", workspaceKindName,
+				"--ignore-not-found=true",
+			)
+			_, _ = utils.Run(cmd)
+		})
 		It("should run successfully", func() {
 
 			By("creating an instance of WorkspaceKind")

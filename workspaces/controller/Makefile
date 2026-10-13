@@ -83,7 +83,7 @@ test-e2e: manifests generate fmt vet istioctl ginkgo ## Run the e2e tests. Expec
 		exit 1; \
 	}
 
-	$(GINKGO) -p ./test/e2e/
+	$(GINKGO) -p -v ./test/e2e/
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter
