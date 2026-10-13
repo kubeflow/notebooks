@@ -966,7 +966,7 @@ func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log log
 }
 
 // generateStatefulSet generates a StatefulSet for a Workspace
-func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec, serviceAccountName string) (*appsv1.StatefulSet, error) {
+func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec, serviceAccountName string) (*appsv1.StatefulSet, error) { //nolint:gocritic
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxStatefulSetNameLength)
 
@@ -1049,18 +1049,13 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	// generate container env
-	containerEnv := make([]corev1.EnvVar, len(workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv))
-	for i, env := range workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv {
-		env := env.DeepCopy() // copy to avoid modifying the original
-		if env.Value != "" {
-			rawValue := env.Value
-			outValue, err := helper.RenderGoTemplate(rawValue, httpPathPrefixFunc)
-			if err != nil {
-				return nil, fmt.Errorf("failed to render extraEnv %q: %w", env.Name, err)
-			}
-			env.Value = outValue
-		}
-		containerEnv[i] = *env
+	containerEnv, err := generateContainerEnv(
+		workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv,
+		podConfigSpec.ExtraEnv,
+		httpPathPrefixFunc,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	// generate container resources
@@ -1262,6 +1257,57 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 	}
 
 	return statefulSet, nil
+}
+
+// generateContainerEnv combines the WorkspaceKind-level extraEnv with the extraEnv of the
+// selected podConfig, then renders the Go templates in each resulting EnvVar value.
+//
+// The result starts with the WorkspaceKind-level variables, in their declared order. Then, for each
+// podConfig variable:
+//   - if a variable with the same name already exists, its definition is replaced, but it keeps its
+//     position (Kubernetes only expands `$(VAR_NAME)` references to EARLIER variables, so keeping
+//     the position avoids changing which references resolve);
+//   - otherwise, it is appended to the end, in its declared order.
+func generateContainerEnv(
+	wskExtraEnv []corev1.EnvVar,
+	podConfigExtraEnv []corev1.EnvVar,
+	httpPathPrefixFunc func(kubefloworgv1beta1.PortId) string,
+) ([]corev1.EnvVar, error) {
+	mergedEnv := make([]corev1.EnvVar, 0, len(wskExtraEnv)+len(podConfigExtraEnv))
+	envIndexByName := make(map[string]int, len(wskExtraEnv)+len(podConfigExtraEnv))
+
+	for _, env := range wskExtraEnv {
+		envCopy := *env.DeepCopy()
+		if idx, exists := envIndexByName[envCopy.Name]; exists {
+			mergedEnv[idx] = envCopy
+		} else {
+			envIndexByName[envCopy.Name] = len(mergedEnv)
+			mergedEnv = append(mergedEnv, envCopy)
+		}
+	}
+
+	for _, env := range podConfigExtraEnv {
+		envCopy := *env.DeepCopy()
+		if idx, exists := envIndexByName[envCopy.Name]; exists {
+			mergedEnv[idx] = envCopy
+		} else {
+			envIndexByName[envCopy.Name] = len(mergedEnv)
+			mergedEnv = append(mergedEnv, envCopy)
+		}
+	}
+
+	for i := range mergedEnv {
+		if mergedEnv[i].Value != "" {
+			rawValue := mergedEnv[i].Value
+			outValue, err := helper.RenderGoTemplate(rawValue, httpPathPrefixFunc)
+			if err != nil {
+				return nil, fmt.Errorf("failed to render extraEnv %q: %w", mergedEnv[i].Name, err)
+			}
+			mergedEnv[i].Value = outValue
+		}
+	}
+
+	return mergedEnv, nil
 }
 
 // generateService generates a Service for a Workspace

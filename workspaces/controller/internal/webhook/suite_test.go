@@ -738,6 +738,46 @@ func NewExampleWorkspaceKindWithInvalidExtraEnvValue(name string) *kubefloworgv1
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithValidPodConfigExtraEnvValue returns a WorkspaceKind with a valid podConfig extraEnv value.
+func NewExampleWorkspaceKindWithValidPodConfigExtraEnvValue(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.ExtraEnv = []v1.EnvVar{
+		{
+			Name:  "POD_CONFIG_PREFIX",
+			Value: `{{ httpPathPrefix "jupyterlab" }}`,
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigExtraEnvValue returns a WorkspaceKind with an invalid podConfig extraEnv value.
+func NewExampleWorkspaceKindWithInvalidPodConfigExtraEnvValue(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.ExtraEnv = []v1.EnvVar{
+		{
+			Name:  "POD_CONFIG_PREFIX",
+			Value: `{{ httpPathPrefix "jupyterlab" }`,
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithDuplicatePodConfigExtraEnvNames returns a WorkspaceKind with duplicate env names in a podConfig extraEnv.
+func NewExampleWorkspaceKindWithDuplicatePodConfigExtraEnvNames(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.ExtraEnv = []v1.EnvVar{
+		{
+			Name:  "DUP_ENV",
+			Value: "val-1",
+		},
+		{
+			Name:  "DUP_ENV",
+			Value: "val-2",
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspaceKindWithInvalidRequestHeadersValue returns a WorkspaceKind with an invalid requestHeaders value.
 func NewExampleWorkspaceKindWithInvalidRequestHeadersValue(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
