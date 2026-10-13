@@ -7507,7 +7507,7 @@
                     }
                 },
                 "serviceAccount": {
-                    "description": "service account configs for Workspace Pods\n - each Workspace runs as its own ServiceAccount, which is created and owned by\n   the controller and named \"ws-{WORKSPACE_NAME}\"\n - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`\n+kubebuilder:validation:Optional",
+                    "description": "service account configs for Workspace Pods\n - each Workspace runs as its own ServiceAccount, which is created and owned by\n   the controller and named \"ws-{WORKSPACE_NAME}-{RANDOM_SUFFIX}\"\n - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccount"
