@@ -104,7 +104,7 @@ describe('useWorkspaceFormData', () => {
     const expectedHomeVolume = podTemplate.volumes.home
       ? {
           pvcName: podTemplate.volumes.home,
-          mountPath: '',
+          mountPath: mockWorkspaceKind.podTemplate.volumeMountPaths.home,
           readOnly: false,
           isAttached: true,
         }
