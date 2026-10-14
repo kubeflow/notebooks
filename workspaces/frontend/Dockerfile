@@ -19,7 +19,7 @@ RUN npm run build:prod
 
 
 # ---------- Production stage ----------
-FROM nginx:alpine
+FROM nginx:1.31-alpine3.24
 
 USER root
 
