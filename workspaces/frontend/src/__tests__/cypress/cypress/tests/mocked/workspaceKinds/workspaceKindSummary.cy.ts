@@ -3,6 +3,12 @@ import { workspaceKindSummary } from '~/__tests__/cypress/cypress/pages/workspac
 import { workspaceKinds } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
 import type { WorkspaceKindSummaryNavigationState } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKindSummary';
 import {
+  deleteModal,
+  workspaceDetailsDrawer,
+  workspaces,
+} from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
+import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
+import {
   buildMockNamespace,
   buildMockWorkspace,
   buildMockWorkspaceKind,
@@ -13,6 +19,7 @@ import {
   buildPodTemplateOptions,
   buildMockOptionInfo,
   buildMockWorkspaceList,
+  buildMockWorkspaceDetails,
 } from '~/shared/mock/mockBuilder';
 import {
   buildMockWorkspaceWithGPU,
@@ -744,6 +751,100 @@ describe('Workspace Kind Summary', () => {
       workspaceKindSummary.assertWorkspaceRowName(0, 'Running Workspace');
       workspaceKindSummary.assertWorkspaceRowName(1, 'Paused Workspace');
       workspaceKindSummary.assertWorkspaceRowName(2, 'Error Workspace');
+    });
+  });
+
+  // Regression test for #1413
+  describe('Delete from another namespace', () => {
+    const SELECTED_NAMESPACE = 'example-profile-1';
+    const WORKSPACE_NAMESPACE = 'example-profile-2';
+    const WORKSPACE_NAME = 'jupyterlab-workspace';
+
+    it('should send the DELETE request to the workspace namespace, not the selected one', () => {
+      const mockWorkspace = buildMockWorkspace({
+        name: WORKSPACE_NAME,
+        namespace: WORKSPACE_NAMESPACE,
+        workspaceKind: buildMockWorkspaceKindInfo({ name: TEST_WORKSPACE_KIND }),
+      });
+
+      cy.interceptApi(
+        'GET /api/:apiVersion/namespaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([
+          buildMockNamespace({ name: SELECTED_NAMESPACE }),
+          buildMockNamespace({ name: WORKSPACE_NAMESPACE }),
+        ]),
+      ).as('getNamespaces');
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: TEST_WORKSPACE_KIND } },
+        mockModArchResponse(
+          buildMockWorkspaceKindUpdate(buildMockWorkspaceKind({ name: TEST_WORKSPACE_KIND })),
+        ),
+      ).as('getWorkspaceKind');
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        mockModArchResponse([mockWorkspace]),
+      ).as('getAllWorkspaces');
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspaces/:namespace/:workspaceName/podtemplate/details',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: WORKSPACE_NAMESPACE,
+            workspaceName: WORKSPACE_NAME,
+          },
+        },
+        mockModArchResponse(buildMockWorkspaceDetails()),
+      ).as('getWorkspaceDetails');
+      cy.interceptApi(
+        'DELETE /api/:apiVersion/workspaces/:namespace/:workspaceName',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: WORKSPACE_NAMESPACE,
+            workspaceName: WORKSPACE_NAME,
+          },
+        },
+        undefined,
+      ).as('deleteInWorkspaceNamespace');
+      cy.interceptApi(
+        'DELETE /api/:apiVersion/workspaces/:namespace/:workspaceName',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: SELECTED_NAMESPACE,
+            workspaceName: WORKSPACE_NAME,
+          },
+        },
+        undefined,
+      ).as('deleteInSelectedNamespace');
+
+      visitWorkspaceKindSummary(TEST_WORKSPACE_KIND);
+      navBar.selectNamespace(SELECTED_NAMESPACE);
+      navBar.findNamespaceSelector().should('contain', SELECTED_NAMESPACE);
+
+      workspaces.findAction({ action: 'viewDetails', workspaceName: WORKSPACE_NAME }).click();
+      workspaceDetailsDrawer.assertDrawerExists();
+      workspaceDetailsDrawer.clickDeleteAction();
+
+      deleteModal.assertModalExists();
+      deleteModal
+        .find()
+        .should('contain', `Are you sure you want to delete ${WORKSPACE_NAME}`)
+        .and('contain', `in namespace ${WORKSPACE_NAMESPACE}`);
+      deleteModal.findConfirmationInput().type(WORKSPACE_NAME);
+      deleteModal.findSubmitButton().click();
+
+      cy.wait('@deleteInWorkspaceNamespace').then((interception) => {
+        expect(interception.request.method).to.equal('DELETE');
+        // The mock server has no `/workspaces` prefix; that comes from the in-cluster route.
+        expect(new URL(interception.request.url).pathname).to.equal(
+          `/api/${NOTEBOOKS_API_VERSION}/workspaces/${WORKSPACE_NAMESPACE}/${WORKSPACE_NAME}`,
+        );
+      });
+      cy.get('@deleteInSelectedNamespace.all').should('have.length', 0);
     });
   });
 });
