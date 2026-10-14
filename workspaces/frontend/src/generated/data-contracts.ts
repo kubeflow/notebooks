@@ -3728,11 +3728,6 @@ export interface V1WindowsSecurityContextOptions {
 
 export interface V1Beta1ActivityProbe {
   /**
-   * a Jupyter-specific API probe
-   * +kubebuilder:validation:Optional
-   */
-  jupyter?: V1Beta1ActivityProbeJupyter;
-  /**
    * the minimum duration in seconds that must elapse between two consecutive probes.
    * - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
    * - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
@@ -3744,9 +3739,9 @@ export interface V1Beta1ActivityProbe {
   minProbeIntervalSeconds?: number;
   /**
    * a script-based probe executed in the Pod
-   * +kubebuilder:validation:Optional
+   *  - this is currently the only supported probe type, so it is required
    */
-  podExec?: V1Beta1ActivityProbePodExec;
+  podExec: V1Beta1ActivityProbePodExec;
   /**
    * the desired interval in seconds between successful probes.
    *  - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).
@@ -3763,16 +3758,6 @@ export interface V1Beta1ActivityProbe {
    * +kubebuilder:validation:Optional
    */
   probeIntervalSeconds?: number;
-}
-
-export interface V1Beta1ActivityProbeJupyter {
-  /**
-   * if the Jupyter-specific probe is enabled
-   * +kubebuilder:example=true
-   */
-  lastActivity: boolean;
-  /** the port to probe, referencing a port defined in spec.podTemplate.ports */
-  portId: string;
 }
 
 export interface V1Beta1ActivityProbePodExec {
@@ -4431,7 +4416,7 @@ export interface V1Beta1WorkspaceKindPodTemplate {
   /**
    * service account configs for Workspace Pods
    *  - each Workspace runs as its own ServiceAccount, which is created and owned by
-   *    the controller and named "ws-{WORKSPACE_NAME}"
+   *    the controller and named "ws-{WORKSPACE_NAME}-{RANDOM_SUFFIX}"
    *  - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`
    * +kubebuilder:validation:Optional
    */
@@ -4562,15 +4547,9 @@ export interface V1Beta1WorkspaceKindVolumeMountPaths {
 }
 
 export interface WorkspacekindsActivityProbe {
-  jupyter?: WorkspacekindsActivityProbeJupyter;
   minProbeIntervalSeconds: number;
   podExec?: WorkspacekindsActivityProbePodExec;
   probeIntervalSeconds: number;
-}
-
-export interface WorkspacekindsActivityProbeJupyter {
-  lastActivity: boolean;
-  portId: string;
 }
 
 export interface WorkspacekindsActivityProbePodExec {

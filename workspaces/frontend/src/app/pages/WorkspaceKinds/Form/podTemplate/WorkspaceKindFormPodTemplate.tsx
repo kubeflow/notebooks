@@ -13,6 +13,10 @@ import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsT
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 import { WorkspaceKindFormActivityRules } from '~/app/pages/WorkspaceKinds/Form/activityRules/WorkspaceKindFormActivityRules';
 
+// The Activity Probe panel is hidden until it is reworked to match the backend contract
+// (e.g. the required `podExec` script). An existing activityProbe is still preserved on save.
+const SHOW_ACTIVITY_PROBE_PANEL = false;
+
 interface WorkspaceKindFormPodTemplateProps {
   podTemplate: WorkspaceKindPodTemplateData;
   updatePodTemplate: (template: WorkspaceKindPodTemplateData) => void;
@@ -27,13 +31,14 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
   updateActivityRules,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { activityProbe } = podTemplate;
 
   const toggleActivityProbeEnabled = useCallback(
     (checked: boolean) => {
       if (checked) {
         updatePodTemplate({
           ...podTemplate,
-          activityProbe: podTemplate.activityProbe ?? {},
+          activityProbe: podTemplate.activityProbe ?? { podExec: { script: '' } },
         });
       } else {
         updatePodTemplate({
@@ -116,54 +121,57 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
           activityRules={activityRules}
           updateActivityRules={updateActivityRules}
         />
-        <FormFieldGroup
-          aria-label="Activity Probe"
-          header={
-            <FormFieldGroupHeader
-              titleText={{
-                text: 'Activity Probe',
-                id: 'workspace-kind-activity-probe',
-              }}
-              titleDescription={
-                <HelperText>
-                  Configure activity probe settings to determine Workspace activity for culling
-                  inactive workspaces.
-                </HelperText>
-              }
-            />
-          }
-        >
-          <FormGroup>
-            <Switch
-              isChecked={podTemplate.activityProbe != null}
-              label="Enabled"
-              aria-label="pod template enable activity probe controlled check"
-              onChange={(_, checked) => toggleActivityProbeEnabled(checked)}
-              id="workspace-kind-pod-template-activity-probe-enabled"
-              name="activity-probe-enabled"
-              data-testid="workspace-kind-pod-template-activity-probe-switch"
-            />
-          </FormGroup>
-          {podTemplate.activityProbe && (
-            <FormGroup label="Probe Interval (seconds)">
-              <ResourceInputWrapper
-                value={String(podTemplate.activityProbe.probeIntervalSeconds ?? 3600)}
-                type="time"
-                onChange={(value) =>
-                  updatePodTemplate({
-                    ...podTemplate,
-                    activityProbe: {
-                      ...podTemplate.activityProbe,
-                      probeIntervalSeconds: Number(value),
-                    },
-                  })
+        {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+        {SHOW_ACTIVITY_PROBE_PANEL && (
+          <FormFieldGroup
+            aria-label="Activity Probe"
+            header={
+              <FormFieldGroupHeader
+                titleText={{
+                  text: 'Activity Probe',
+                  id: 'workspace-kind-activity-probe',
+                }}
+                titleDescription={
+                  <HelperText>
+                    Configure activity probe settings to determine Workspace activity for culling
+                    inactive workspaces.
+                  </HelperText>
                 }
-                step={1}
-                aria-label="probe interval input"
+              />
+            }
+          >
+            <FormGroup>
+              <Switch
+                isChecked={activityProbe != null}
+                label="Enabled"
+                aria-label="pod template enable activity probe controlled check"
+                onChange={(_, checked) => toggleActivityProbeEnabled(checked)}
+                id="workspace-kind-pod-template-activity-probe-enabled"
+                name="activity-probe-enabled"
+                data-testid="workspace-kind-pod-template-activity-probe-switch"
               />
             </FormGroup>
-          )}
-        </FormFieldGroup>
+            {activityProbe && (
+              <FormGroup label="Probe Interval (seconds)">
+                <ResourceInputWrapper
+                  value={String(activityProbe.probeIntervalSeconds ?? 3600)}
+                  type="time"
+                  onChange={(value) =>
+                    updatePodTemplate({
+                      ...podTemplate,
+                      activityProbe: {
+                        ...activityProbe,
+                        probeIntervalSeconds: Number(value),
+                      },
+                    })
+                  }
+                  step={1}
+                  aria-label="probe interval input"
+                />
+              </FormGroup>
+            )}
+          </FormFieldGroup>
+        )}
       </Form>
     </ExpandableSection>
   );

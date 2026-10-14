@@ -143,7 +143,7 @@ const buildMockFormData = (overrides?: Partial<WorkspaceKindFormData>): Workspac
     volumeMountPaths: { home: '/home/jovyan' },
     activityProbe: {
       probeIntervalSeconds: 3600,
-      jupyter: { lastActivity: true, portId: 'http' },
+      podExec: { script: '#!/usr/bin/env bash\nexit 0' },
     },
   },
   ...overrides,
@@ -350,7 +350,7 @@ describe('convertFormDataToUpdate', () => {
 
     expect(result.podTemplate.activityProbe).toEqual({
       probeIntervalSeconds: 3600,
-      jupyter: { lastActivity: true, portId: 'http' },
+      podExec: { script: '#!/usr/bin/env bash\nexit 0' },
     });
   });
 
