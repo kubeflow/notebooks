@@ -91,10 +91,10 @@ spec:
         secondsSinceActive: 7200
         minRunningSeconds: 300
       match:
-        matchNamespace:
-          selector:
-            matchLabels:
-              tier: development
+        - matchNamespace:
+            selector:
+              matchLabels:
+                tier: development
       effect:
         pauseWorkspace: true
 
@@ -106,10 +106,10 @@ spec:
     #    secondsSinceActive: 3600
     #    minRunningSeconds: 300
     #  match:
-    #    matchPodConfig:
-    #      selector:
-    #        matchLabels:
-    #          gpu: "1"
+    #    - matchPodConfig:
+    #        selector:
+    #          matchLabels:
+    #            gpu: "1"
     #  effect:
     #    pauseWorkspace: true
 
@@ -117,10 +117,10 @@ spec:
     ##  - have the namespaces with the label 'tier=production' set
     #- config:
     #  match:
-    #    matchNamespace:
-    #      selector:
-    #        matchLabels:
-    #          tier: production
+    #    - matchNamespace:
+    #        selector:
+    #          matchLabels:
+    #            tier: production
     #  effect:
     #    pauseWorkspace: false
 
@@ -129,9 +129,9 @@ spec:
     ##  - are not matched to any of the above pauseWorkspace rules
     - config:
         secondsSinceActive: 86400
-      ## empty match (`match: {}` or omitted `match`) matches all Workspaces.
+      ## empty match (`match: []` or omitted `match`) matches all Workspaces.
       ## At most one catch-all rule is allowed per effect type, and it must be the last rule.
-      match: {}
+      match: []
       effect:
         pauseWorkspace: true
 

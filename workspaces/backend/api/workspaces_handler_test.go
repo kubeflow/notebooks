@@ -717,7 +717,11 @@ var _ = Describe("Workspaces Handler", func() {
 				Match: []kubefloworgv1beta1.FilterRuleMatch{
 					{
 						MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
-							Selector: metav1.LabelSelector{},
+							Selector: metav1.LabelSelector{
+								MatchExpressions: []metav1.LabelSelectorRequirement{
+									{Key: corev1.LabelMetadataName, Operator: metav1.LabelSelectorOpExists},
+								},
+							},
 						},
 					},
 				},

@@ -58,8 +58,8 @@ spec:
                 description: |-
                   activityRules defines the policies for handling inactivity in Workspaces of this WorkspaceKind (MUTABLE).
                   Rules are evaluated sequentially from top to bottom (first-match-wins semantics) independently for each
-                  configured effect type (e.g., pauseWorkspace). A rule with a nil or empty 'match' is treated as a catch-all
-                  rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
+                  configured effect type (e.g., pauseWorkspace). A rule with an omitted or empty 'match' list is treated as a
+                  catch-all rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
                 items:
                   description: ActivityRule defines a policy for handling inactivity
                     in a Workspace
@@ -100,116 +100,145 @@ spec:
                       - message: must specify at least one effect
                         rule: has(self.pauseWorkspace)
                     match:
-                      description: the conditions under which this rule applies
-                      properties:
-                        matchNamespace:
-                          description: filters Workspaces by namespace labels
-                          properties:
-                            selector:
-                              description: the standard Kubernetes label selector
-                                to match namespace labels
-                              properties:
-                                matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
-                                  items:
-                                    description: |-
-                                      A label selector requirement is a selector that contains values, a key, and an operator that
-                                      relates the key and values.
-                                    properties:
-                                      key:
-                                        description: key is the label key that the
-                                          selector applies to.
-                                        type: string
-                                      operator:
-                                        description: |-
-                                          operator represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists and DoesNotExist.
-                                        type: string
-                                      values:
-                                        description: |-
-                                          values is an array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. This array is replaced during a strategic
-                                          merge patch.
-                                        items:
+                      description: |-
+                        the conditions which must ALL be satisfied for the rule to apply
+                         - an omitted or empty list makes this a catch-all rule that matches all Workspaces
+                      items:
+                        description: ActivityRuleMatch defines a single match condition
+                          for an ActivityRule
+                        properties:
+                          matchNamespace:
+                            description: filters Workspaces by the labels of their
+                              namespace
+                            properties:
+                              selector:
+                                description: |-
+                                  a standard Kubernetes label selector
+                                   - must not be empty, use an empty 'match' list for a catch-all rule
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
                                           type: string
-                                        type: array
-                                        x-kubernetes-list-type: atomic
-                                    required:
-                                    - key
-                                    - operator
-                                    type: object
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                                matchLabels:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                  type: object
-                              type: object
-                              x-kubernetes-map-type: atomic
-                          required:
-                          - selector
-                          type: object
-                        matchPodConfig:
-                          description: filters Workspaces by the PodConfig option
-                            they are using
-                          properties:
-                            selector:
-                              description: the standard Kubernetes label selector
-                                to match podConfig labels
-                              properties:
-                                matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
-                                  items:
-                                    description: |-
-                                      A label selector requirement is a selector that contains values, a key, and an operator that
-                                      relates the key and values.
-                                    properties:
-                                      key:
-                                        description: key is the label key that the
-                                          selector applies to.
-                                        type: string
-                                      operator:
-                                        description: |-
-                                          operator represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists and DoesNotExist.
-                                        type: string
-                                      values:
-                                        description: |-
-                                          values is an array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. This array is replaced during a strategic
-                                          merge patch.
-                                        items:
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
                                           type: string
-                                        type: array
-                                        x-kubernetes-list-type: atomic
-                                    required:
-                                    - key
-                                    - operator
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
                                     type: object
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                                matchLabels:
-                                  additionalProperties:
-                                    type: string
-                                  description: |-
-                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
-                                  type: object
-                              type: object
-                              x-kubernetes-map-type: atomic
-                          required:
-                          - selector
-                          type: object
-                      type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            required:
+                            - selector
+                            type: object
+                            x-kubernetes-validations:
+                            - message: selector must specify at least one of 'matchLabels'
+                                or 'matchExpressions'
+                              rule: (has(self.selector.matchLabels) && size(self.selector.matchLabels)
+                                > 0) || (has(self.selector.matchExpressions) && size(self.selector.matchExpressions)
+                                > 0)
+                          matchPodConfig:
+                            description: filters Workspaces by the labels of the PodConfig
+                              option they are using
+                            properties:
+                              selector:
+                                description: |-
+                                  a standard Kubernetes label selector
+                                   - must not be empty, use an empty 'match' list for a catch-all rule
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            required:
+                            - selector
+                            type: object
+                            x-kubernetes-validations:
+                            - message: selector must specify at least one of 'matchLabels'
+                                or 'matchExpressions'
+                              rule: (has(self.selector.matchLabels) && size(self.selector.matchLabels)
+                                > 0) || (has(self.selector.matchExpressions) && size(self.selector.matchExpressions)
+                                > 0)
+                        type: object
+                        x-kubernetes-validations:
+                        - message: must specify exactly one of 'matchNamespace' or
+                            'matchPodConfig'
+                          rule: '(has(self.matchNamespace) ? 1 : 0) + (has(self.matchPodConfig)
+                            ? 1 : 0) == 1'
+                      type: array
+                      x-kubernetes-list-type: atomic
                   required:
                   - config
                   - effect
@@ -288,7 +317,9 @@ spec:
                               imageConfig value
                             properties:
                               selector:
-                                description: a standard Kubernetes label selector
+                                description: |-
+                                  a standard Kubernetes label selector
+                                   - must not be empty
                                 properties:
                                   matchExpressions:
                                     description: matchExpressions is a list of label
@@ -337,12 +368,20 @@ spec:
                             required:
                             - selector
                             type: object
+                            x-kubernetes-validations:
+                            - message: selector must specify at least one of 'matchLabels'
+                                or 'matchExpressions'
+                              rule: (has(self.selector.matchLabels) && size(self.selector.matchLabels)
+                                > 0) || (has(self.selector.matchExpressions) && size(self.selector.matchExpressions)
+                                > 0)
                           matchNamespace:
                             description: match against the labels of the namespace
                               the workspace would be created in
                             properties:
                               selector:
-                                description: a standard Kubernetes label selector
+                                description: |-
+                                  a standard Kubernetes label selector
+                                   - must not be empty
                                 properties:
                                   matchExpressions:
                                     description: matchExpressions is a list of label
@@ -391,12 +430,20 @@ spec:
                             required:
                             - selector
                             type: object
+                            x-kubernetes-validations:
+                            - message: selector must specify at least one of 'matchLabels'
+                                or 'matchExpressions'
+                              rule: (has(self.selector.matchLabels) && size(self.selector.matchLabels)
+                                > 0) || (has(self.selector.matchExpressions) && size(self.selector.matchExpressions)
+                                > 0)
                           matchPodConfig:
                             description: match against the `spawner.labels` of a podConfig
                               value
                             properties:
                               selector:
-                                description: a standard Kubernetes label selector
+                                description: |-
+                                  a standard Kubernetes label selector
+                                   - must not be empty
                                 properties:
                                   matchExpressions:
                                     description: matchExpressions is a list of label
@@ -445,6 +492,12 @@ spec:
                             required:
                             - selector
                             type: object
+                            x-kubernetes-validations:
+                            - message: selector must specify at least one of 'matchLabels'
+                                or 'matchExpressions'
+                              rule: (has(self.selector.matchLabels) && size(self.selector.matchLabels)
+                                > 0) || (has(self.selector.matchExpressions) && size(self.selector.matchExpressions)
+                                > 0)
                         type: object
                         x-kubernetes-validations:
                         - message: must specify exactly one of 'matchNamespace', 'matchImageConfig',

@@ -345,9 +345,11 @@ var _ = Describe("evaluatePauseDecision", func() {
 				ActivityRules: []kubefloworgv1beta1.ActivityRule{
 					{
 						Config: kubefloworgv1beta1.ActivityRuleConfig{SecondsSinceActive: testSecondsSinceActive1Hour},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{
-							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-								Selector: metav1.LabelSelector{MatchLabels: map[string]string{"protected": "true"}},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{
+							{
+								MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{MatchLabels: map[string]string{"protected": "true"}},
+								},
 							},
 						},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: new(false)},
@@ -405,11 +407,13 @@ var _ = Describe("evaluatePauseDecision", func() {
 				ActivityRules: []kubefloworgv1beta1.ActivityRule{
 					{
 						Config: kubefloworgv1beta1.ActivityRuleConfig{SecondsSinceActive: testSecondsSinceActive1Hour},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{
-							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-								Selector: metav1.LabelSelector{
-									MatchExpressions: []metav1.LabelSelectorRequirement{
-										{Key: "tier", Operator: "InvalidOp"},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{
+							{
+								MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{Key: "tier", Operator: "InvalidOp"},
+										},
 									},
 								},
 							},
