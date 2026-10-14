@@ -2,18 +2,20 @@ import React, { useCallback, useState } from 'react';
 import {
   Form,
   FormFieldGroup,
+  FormFieldGroupExpandable,
   FormFieldGroupHeader,
   FormGroup,
 } from '@patternfly/react-core/dist/esm/components/Form';
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
-import { Grid, GridItem } from '@patternfly/react-core/dist/esm/layouts/Grid';
+import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { ActivityRuleEntry, WorkspaceKindPodTemplateData } from '~/app/types';
 import { V1Beta1ActivityProbe, V1Beta1ActivityProbePodExec } from '~/generated/data-contracts';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
+import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormActivityRules } from '~/app/pages/WorkspaceKinds/Form/activityRules/WorkspaceKindFormActivityRules';
 
 // The Activity Probe panel is hidden until its UX has been reviewed. An existing activityProbe
@@ -191,101 +193,135 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
             </FormGroup>
             {activityProbe && (
               <>
-                <Grid hasGutter md={4}>
-                  <GridItem>
-                    <FormGroup
-                      label="Probe Interval"
-                      fieldId="workspace-kind-activity-probe-interval"
-                    >
-                      <ResourceInputWrapper
-                        value={String(
-                          activityProbe.probeIntervalSeconds ?? DEFAULT_PROBE_INTERVAL_SECONDS,
-                        )}
-                        type="time"
-                        onChange={(value) =>
-                          updateActivityProbe({ probeIntervalSeconds: Number(value) })
-                        }
-                        min={1}
-                        step={1}
-                        aria-label="probe interval input"
-                      />
+                <FormFieldGroupExpandable
+                  isExpanded
+                  toggleAriaLabel="Schedule"
+                  header={
+                    <FormFieldGroupHeader
+                      titleText={{
+                        text: 'Schedule',
+                        id: 'workspace-kind-activity-probe-schedule',
+                      }}
+                    />
+                  }
+                >
+                  <ThemeAwareFormGroupWrapper
+                    label="Probe Interval"
+                    fieldId="workspace-kind-activity-probe-interval"
+                    skipFieldset
+                    helperTextNode={
                       <HelperText>
-                        <HelperTextItem>Desired time between successful probes.</HelperTextItem>
+                        <HelperTextItem icon={<InfoCircleIcon />}>
+                          Desired time between successful probes.
+                        </HelperTextItem>
                       </HelperText>
-                    </FormGroup>
-                  </GridItem>
-                  <GridItem>
-                    <FormGroup
-                      label="Minimum Probe Interval"
-                      fieldId="workspace-kind-activity-probe-min-interval"
-                    >
-                      <ResourceInputWrapper
-                        value={String(
-                          activityProbe.minProbeIntervalSeconds ??
-                            DEFAULT_MIN_PROBE_INTERVAL_SECONDS,
-                        )}
-                        type="time"
-                        onChange={(value) =>
-                          updateActivityProbe({ minProbeIntervalSeconds: Number(value) })
-                        }
-                        min={1}
-                        step={1}
-                        aria-label="minimum probe interval input"
-                      />
+                    }
+                  >
+                    <ResourceInputWrapper
+                      value={String(
+                        activityProbe.probeIntervalSeconds ?? DEFAULT_PROBE_INTERVAL_SECONDS,
+                      )}
+                      type="time"
+                      onChange={(value) =>
+                        updateActivityProbe({ probeIntervalSeconds: Number(value) })
+                      }
+                      min={1}
+                      step={1}
+                      aria-label="probe interval input"
+                    />
+                  </ThemeAwareFormGroupWrapper>
+                  <ThemeAwareFormGroupWrapper
+                    label="Minimum Probe Interval"
+                    fieldId="workspace-kind-activity-probe-min-interval"
+                    skipFieldset
+                    helperTextNode={
                       <HelperText>
-                        <HelperTextItem>
+                        <HelperTextItem icon={<InfoCircleIcon />}>
                           Minimum time between any two probes, including retries after a failure.
                         </HelperTextItem>
                       </HelperText>
-                    </FormGroup>
-                  </GridItem>
-                  <GridItem>
-                    <FormGroup
-                      label="Script Timeout"
-                      fieldId="workspace-kind-activity-probe-timeout"
-                    >
-                      <ResourceInputWrapper
-                        value={String(
-                          activityProbe.podExec.timeoutSeconds ?? DEFAULT_POD_EXEC_TIMEOUT_SECONDS,
-                        )}
-                        type="time"
-                        onChange={(value) => updatePodExec({ timeoutSeconds: Number(value) })}
-                        min={1}
-                        step={1}
-                        aria-label="probe script timeout input"
-                      />
-                      <HelperText>
-                        <HelperTextItem>Maximum time the probe script may run.</HelperTextItem>
-                      </HelperText>
-                    </FormGroup>
-                  </GridItem>
-                </Grid>
-                <FormGroup
-                  label="Probe Script"
-                  isRequired
-                  fieldId="workspace-kind-activity-probe-script"
+                    }
+                  >
+                    <ResourceInputWrapper
+                      value={String(
+                        activityProbe.minProbeIntervalSeconds ?? DEFAULT_MIN_PROBE_INTERVAL_SECONDS,
+                      )}
+                      type="time"
+                      onChange={(value) =>
+                        updateActivityProbe({ minProbeIntervalSeconds: Number(value) })
+                      }
+                      min={1}
+                      step={1}
+                      aria-label="minimum probe interval input"
+                    />
+                  </ThemeAwareFormGroupWrapper>
+                </FormFieldGroupExpandable>
+                <FormFieldGroupExpandable
+                  isExpanded
+                  toggleAriaLabel="Script"
+                  header={
+                    <FormFieldGroupHeader
+                      titleText={{
+                        text: 'Script',
+                        id: 'workspace-kind-activity-probe-script-group',
+                      }}
+                    />
+                  }
                 >
-                  <HelperText>
-                    <HelperTextItem>
-                      Runs inside the Workspace Pod and must start with a shebang and exit 0. To
-                      report inactivity, write a JSON object with either <code>has_activity</code>{' '}
-                      or <code>last_activity</code> to the file at <code>$OUTPUT_JSON_PATH</code>.
-                    </HelperTextItem>
-                  </HelperText>
-                  <CodeEditor
-                    isLineNumbersVisible
-                    isLanguageLabelVisible={false}
-                    height="300px"
-                    code={activityProbe.podExec.script}
-                    onChange={(value) => updatePodExec({ script: value })}
-                    language={Language.shell}
-                    options={{
-                      minimap: { enabled: false },
-                      scrollBeyondLastLine: false,
-                    }}
-                    data-testid="workspace-kind-activity-probe-script-editor"
-                  />
-                </FormGroup>
+                  <ThemeAwareFormGroupWrapper
+                    label="Timeout"
+                    fieldId="workspace-kind-activity-probe-timeout"
+                    skipFieldset
+                    helperTextNode={
+                      <HelperText>
+                        <HelperTextItem icon={<InfoCircleIcon />}>
+                          Maximum time the probe script may run.
+                        </HelperTextItem>
+                      </HelperText>
+                    }
+                  >
+                    <ResourceInputWrapper
+                      value={String(
+                        activityProbe.podExec.timeoutSeconds ?? DEFAULT_POD_EXEC_TIMEOUT_SECONDS,
+                      )}
+                      type="time"
+                      onChange={(value) => updatePodExec({ timeoutSeconds: Number(value) })}
+                      min={1}
+                      step={1}
+                      aria-label="probe script timeout input"
+                    />
+                  </ThemeAwareFormGroupWrapper>
+                  <ThemeAwareFormGroupWrapper
+                    label="Probe Script"
+                    isRequired
+                    fieldId="workspace-kind-activity-probe-script"
+                    skipFieldset
+                    helperTextNode={
+                      <HelperText>
+                        <HelperTextItem icon={<InfoCircleIcon />}>
+                          Runs inside the Workspace Pod and must start with a shebang and exit 0. To
+                          report inactivity, write a JSON object with either{' '}
+                          <code>has_activity</code> or <code>last_activity</code> to the file at{' '}
+                          <code>$OUTPUT_JSON_PATH</code>.
+                        </HelperTextItem>
+                      </HelperText>
+                    }
+                  >
+                    <CodeEditor
+                      isLineNumbersVisible
+                      isLanguageLabelVisible={false}
+                      height="300px"
+                      code={activityProbe.podExec.script}
+                      onChange={(value) => updatePodExec({ script: value })}
+                      language={Language.shell}
+                      options={{
+                        minimap: { enabled: false },
+                        scrollBeyondLastLine: false,
+                      }}
+                      data-testid="workspace-kind-activity-probe-script-editor"
+                    />
+                  </ThemeAwareFormGroupWrapper>
+                </FormFieldGroupExpandable>
               </>
             )}
           </FormFieldGroup>
