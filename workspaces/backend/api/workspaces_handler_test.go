@@ -1454,12 +1454,8 @@ var _ = Describe("Workspaces Handler", func() {
 				Paused:      false,
 				PodTemplate: models.PodTemplateMutate{
 					PodMetadata: models.PodMetadataMutate{
-						Labels: map[string]string{
-							"app": "dora",
-						},
-						Annotations: map[string]string{
-							"app": "dora",
-						},
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
 						Home: new(homePVCName),
@@ -1516,8 +1512,8 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(createdWorkspace.Spec.DisplayName).To(Equal(new(workspaceCreate.DisplayName)))
 			Expect(createdWorkspace.Spec.Kind).To(Equal(workspaceKindName))
 			Expect(createdWorkspace.Spec.Paused).To(Equal(workspaceCreate.Paused))
-			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Labels))
-			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceCreate.PodTemplate.PodMetadata.Annotations))
+			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(BeEmpty())
+			Expect(createdWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(BeEmpty())
 			Expect(createdWorkspace.Spec.PodTemplate.Volumes.Home).To(Equal(workspaceCreate.PodTemplate.Volumes.Home))
 			expected := []kubefloworgv1beta1.PodVolumeMount{
 				{
@@ -1930,6 +1926,58 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(k8sClient.Delete(ctx, createdWorkspace)).To(Succeed())
 		})
 
+		It("should reject a Workspace with podMetadata entries", func() {
+
+			By("defining a WorkspaceCreate model with a podMetadata label")
+			workspaceCreate := &models.WorkspaceCreate{
+				Name:   workspaceName,
+				Kind:   workspaceKindName,
+				Paused: false,
+				PodTemplate: models.PodTemplateMutate{
+					PodMetadata: models.PodMetadataMutate{
+						Labels: map[string]string{
+							"app": "dora",
+						},
+						Annotations: map[string]string{},
+					},
+					Volumes: models.PodVolumesMutate{
+						Home: new(homePVCName),
+					},
+					Options: models.PodTemplateOptionsMutate{
+						ImageConfig: "jupyterlab_scipy_180",
+						PodConfig:   "tiny_cpu",
+					},
+				},
+			}
+			bodyEnvelope := WorkspaceCreateEnvelope{Data: workspaceCreate}
+			bodyEnvelopeJSON, err := json.Marshal(bodyEnvelope)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("executing CreateWorkspaceHandler")
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(string(bodyEnvelopeJSON)))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{Key: constants.NamespacePathParam, Value: namespaceNameCrud},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+			Expect(rr.Body.String()).To(ContainSubstring("spec.podTemplate.podMetadata.labels"))
+
+			By("ensuring the Workspace was not created")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			err = k8sClient.Get(ctx, workspaceKey, workspace)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		})
+
 		It("should update a Workspace successfully", func() {
 
 			By("creating a Workspace via the API")
@@ -1940,12 +1988,8 @@ var _ = Describe("Workspaces Handler", func() {
 				Paused:      false,
 				PodTemplate: models.PodTemplateMutate{
 					PodMetadata: models.PodMetadataMutate{
-						Labels: map[string]string{
-							"app": "testing",
-						},
-						Annotations: map[string]string{
-							"example.com/testing": "true",
-						},
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
 						Home: new("my-home-pvc"),
@@ -1995,13 +2039,8 @@ var _ = Describe("Workspaces Handler", func() {
 				Paused:      true,
 				PodTemplate: models.PodTemplateMutate{
 					PodMetadata: models.PodMetadataMutate{
-						Labels: map[string]string{
-							"app":     "testing",
-							"version": "v2",
-						},
-						Annotations: map[string]string{
-							"example.com/testing": "false",
-						},
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
 					},
 					Volumes: models.PodVolumesMutate{
 						Home: new("my-home-pvc"),
@@ -2067,8 +2106,8 @@ var _ = Describe("Workspaces Handler", func() {
 			By("verifying all fields were applied")
 			Expect(updatedWorkspace.Spec.DisplayName).To(Equal(new("Updated Display Name")))
 			Expect(updatedWorkspace.Spec.Paused).To(BeTrue())
-			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Labels))
-			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(Equal(workspaceUpdate.PodTemplate.PodMetadata.Annotations))
+			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Labels).To(BeEmpty())
+			Expect(updatedWorkspace.Spec.PodTemplate.PodMetadata.Annotations).To(BeEmpty())
 			Expect(updatedWorkspace.Spec.PodTemplate.Options.PodConfig).To(Equal("small_cpu"))
 			Expect(updatedWorkspace.Spec.PodTemplate.Volumes.Data).To(Equal([]kubefloworgv1beta1.PodVolumeMount{
 				{

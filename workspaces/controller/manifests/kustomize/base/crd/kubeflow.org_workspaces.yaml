@@ -113,12 +113,20 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: annotations to be applied to the Pod resource
+                        description: |-
+                          annotations to be applied to the Pod resource
+                           - entries are currently NOT allowed, until the security model
+                             for Workspace-level Pod metadata is defined
+                        maxProperties: 0
                         type: object
                       labels:
                         additionalProperties:
                           type: string
-                        description: labels to be applied to the Pod resource
+                        description: |-
+                          labels to be applied to the Pod resource
+                           - entries are currently NOT allowed, until the security model
+                             for Workspace-level Pod metadata is defined
+                        maxProperties: 0
                         type: object
                     type: object
                   volumes:

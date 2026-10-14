@@ -191,6 +191,7 @@ func (v *WorkspaceValidator) validateWorkspaceKind(ctx context.Context, workspac
 }
 
 // validatePodTemplatePodMetadata validates the podMetadata of a Workspace's PodTemplate
+// NOTE: entries in this field are currently NOT allowed and blocked via a CRD CEL validation rules until the security model for Workspace-level Pod metadata is defined and implemented
 func (v *WorkspaceValidator) validatePodTemplatePodMetadata(workspace *kubefloworgv1beta1.Workspace) []*field.Error {
 	var errs []*field.Error //nolint:prealloc
 
