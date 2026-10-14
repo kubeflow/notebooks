@@ -825,7 +825,7 @@ describe('Workspace Kind Summary', () => {
       navBar.selectNamespace(SELECTED_NAMESPACE);
       navBar.findNamespaceSelector().should('contain', SELECTED_NAMESPACE);
 
-      workspaces.findAction({ action: 'viewDetails', workspaceName: WORKSPACE_NAME }).click();
+      workspaces.clickViewDetailsAction(WORKSPACE_NAME);
       workspaceDetailsDrawer.assertDrawerExists();
       workspaceDetailsDrawer.clickDeleteAction();
 
@@ -834,8 +834,8 @@ describe('Workspace Kind Summary', () => {
         .find()
         .should('contain', `Are you sure you want to delete ${WORKSPACE_NAME}`)
         .and('contain', `in namespace ${WORKSPACE_NAMESPACE}`);
-      deleteModal.findConfirmationInput().type(WORKSPACE_NAME);
-      deleteModal.findSubmitButton().click();
+      deleteModal.typeConfirmationName(WORKSPACE_NAME);
+      deleteModal.clickSubmit();
 
       cy.wait('@deleteInWorkspaceNamespace').then((interception) => {
         expect(interception.request.method).to.equal('DELETE');

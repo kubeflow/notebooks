@@ -201,6 +201,10 @@ class Workspaces {
     return cy.findByTestId(`action-${args.action}`);
   }
 
+  clickViewDetailsAction(workspaceName: string) {
+    return this.findAction({ action: 'viewDetails', workspaceName }).click();
+  }
+
   toggleRowExpansion(rowIndex: number) {
     return cy
       .findByTestId(`workspace-row-${rowIndex}`)
@@ -624,8 +628,16 @@ class DeleteModal {
     return this.find().findByTestId('delete-modal-input');
   }
 
+  typeConfirmationName(name: string) {
+    return this.findConfirmationInput().type(name);
+  }
+
   findSubmitButton() {
     return this.find().findByTestId('delete-button');
+  }
+
+  clickSubmit() {
+    return this.findSubmitButton().click();
   }
 
   findCancelButton() {
