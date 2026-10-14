@@ -208,6 +208,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 volumes={homeVolumeArray}
                 setVolumes={handleSetHomeVolume}
                 namespace={namespace}
+                isHomeVolume
                 fixedMountPath={homeVolumeMountPath}
                 excludedPvcNames={dataPvcNames}
               />

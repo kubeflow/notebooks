@@ -43,6 +43,7 @@ interface WorkspaceFormPropertiesVolumesProps {
   volumes: WorkspacesPodVolumeMountValue[];
   setVolumes: (volumes: WorkspacesPodVolumeMountValue[]) => void;
   namespace: string;
+  isHomeVolume?: boolean;
   fixedMountPath?: string; // For home volume only
   excludedPvcNames?: Set<string>; // PVC names used in the other section
 }
@@ -53,10 +54,11 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   volumes,
   setVolumes,
   namespace,
+  isHomeVolume,
   fixedMountPath,
   excludedPvcNames,
 }) => {
-  const isHomeMounted = !!fixedMountPath && volumes.length > 0;
+  const isHomeMounted = (isHomeVolume || !!fixedMountPath) && volumes.length > 0;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -360,7 +362,11 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                     <Td dataLabel="Mount Path" hasAction>
                       <MountPathField
                         variant="cell"
-                        value={editingMountPath === index ? editMountPathValue : volume.mountPath}
+                        value={
+                          editingMountPath === index
+                            ? editMountPathValue
+                            : volume.mountPath || fixedMountPath || '-'
+                        }
                         index={index}
                         editingIndex={editingMountPath}
                         itemId={volume.pvcName}
@@ -369,7 +375,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                         onConfirm={handleConfirmMountPathEdit}
                         onCancel={handleCancelMountPathEdit}
                         error={mountPathValidationError}
-                        isFixed={volume.mountPath === fixedMountPath}
+                        isFixed={isHomeVolume || fixedMountPath !== undefined}
                       />
                     </Td>
                     <Td dataLabel="Read-only Access">{volume.readOnly ? 'Enabled' : 'Disabled'}</Td>
