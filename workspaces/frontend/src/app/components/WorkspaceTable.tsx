@@ -504,17 +504,18 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                   className="kubeflow-workspace-actions-cell"
                                 >
                                   <Flex
+                                    justifyContent={{ default: 'justifyContentFlexEnd' }}
                                     alignItems={{ default: 'alignItemsCenter' }}
                                     gap={{ default: 'gapXs' }}
                                   >
                                     {workspace.state ===
                                     V1Beta1WorkspaceState.WorkspaceStateRunning ? (
-                                      <Tooltip content="Stop workspace">
+                                      <Tooltip content="Stop workspace" trigger="mouseenter">
                                         <Button
                                           variant="plain"
                                           hasNoPadding
-                                          aria-label="More info"
-                                          icon={<StopIcon />}
+                                          aria-label="stop workspace"
+                                          icon={<StopIcon aria-label="stop workspace" />}
                                           data-testid={`stop${workspace.name}`}
                                           onClick={() =>
                                             requestStopAction({
@@ -526,11 +527,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                       </Tooltip>
                                     ) : workspace.state !==
                                       V1Beta1WorkspaceState.WorkspaceStateError ? (
-                                      <Tooltip content="Start workspace">
+                                      <Tooltip content="Start workspace" trigger="mouseenter">
                                         <Button
                                           variant="plain"
                                           hasNoPadding
-                                          aria-label="More info"
+                                          aria-label="start workspace"
                                           icon={<PlayIcon />}
                                           data-testid={`start${workspace.name}`}
                                           onClick={() =>

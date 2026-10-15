@@ -1,46 +1,29 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
 import {
-  WorkspaceActionsContextProvider,
   useWorkspaceActionsContext,
+  WorkspaceActionsContextProvider,
 } from '~/app/context/WorkspaceActionsContext';
+import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
+import { NotebookApis } from '~/shared/api/notebookApi';
+import {
+  buildImageRedirectChain,
+  buildMockWorkspace,
+  buildMockWorkspaceUpdateFromWorkspace,
+} from '~/shared/mock/mockBuilder';
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
-import { buildMockWorkspace } from '~/shared/mock/mockBuilder';
 
-const mockDeleteWorkspace = jest.fn().mockResolvedValue({});
-const mockNotificationInfo = jest.fn();
-const mockNavigate = jest.fn();
-
-jest.mock('~/app/hooks/useNotebookAPI', () => ({
-  useNotebookAPI: () => ({
-    api: {
-      workspaces: {
-        deleteWorkspace: mockDeleteWorkspace,
-        updateWorkspacePauseState: jest.fn(),
-        getWorkspace: jest.fn(),
-        updateWorkspace: jest.fn(),
-      },
-    },
-  }),
-}));
-
-jest.mock('mod-arch-core', () => ({
-  useNotification: () => ({ info: mockNotificationInfo }),
-}));
-
-jest.mock('~/app/routerHelper', () => ({
-  useTypedNavigate: () => mockNavigate,
-}));
-
-// This mock represents whichever namespace the ADMIN currently has
-// selected at the page level (e.g. the dropdown at the top of the UI).
-let mockSelectedNamespace = 'admin-selected-namespace';
+jest.mock('~/app/hooks/useNotebookAPI', () => ({ useNotebookAPI: jest.fn() }));
 jest.mock('~/app/hooks/useNamespaceSelectorWrapper', () => ({
-  useNamespaceSelectorWrapper: () => ({ selectedNamespace: mockSelectedNamespace }),
+  useNamespaceSelectorWrapper: jest.fn(),
 }));
-
-// Stub DeleteModal down to a single confirm button, exposing the
-// namespace prop it was given so we can assert on it directly.
+jest.mock('~/app/routerHelper', () => ({ useTypedNavigate: () => jest.fn() }));
+jest.mock('~/app/pages/Workspaces/Details/WorkspaceDetails', () => ({
+  WorkspaceDetails: () => null,
+}));
 jest.mock('~/shared/components/DeleteModal', () => ({
   __esModule: true,
   default: ({
@@ -52,115 +35,241 @@ jest.mock('~/shared/components/DeleteModal', () => ({
     resourceName: string;
     namespace: string;
   }) => (
-    <button data-testid="confirm-delete" data-namespace={namespace} onClick={onDelete}>
+    <button
+      type="button"
+      data-testid="confirm-delete"
+      data-namespace={namespace}
+      onClick={onDelete}
+    >
       Confirm delete {resourceName}
     </button>
   ),
 }));
-
-jest.mock('~/app/pages/Workspaces/Details/WorkspaceDetails', () => ({
-  WorkspaceDetails: () => null,
-}));
-jest.mock('~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal', () => ({
-  WorkspaceStartActionModal: () => null,
-}));
-jest.mock('~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal', () => ({
-  WorkspaceStopActionModal: () => null,
+jest.mock('mod-arch-core', () => ({
+  ...jest.requireActual('mod-arch-core'),
+  useNotification: () => ({ info: jest.fn() }),
 }));
 
-const TestConsumer: React.FC<{ workspace: WorkspacesWorkspaceListItem }> = ({ workspace }) => {
-  const { requestDeleteAction } = useWorkspaceActionsContext();
+const workspaceName = 'shared-name';
+const namespaceA = 'namespace-a';
+const namespaceB = 'namespace-b';
+
+const WorkspaceActionTriggers: React.FC<{
+  workspaces: WorkspacesWorkspaceListItem[];
+  action: 'start' | 'stop';
+}> = ({ workspaces, action }) => {
+  const { requestStartAction, requestStopAction } = useWorkspaceActionsContext();
+
   return (
-    <button data-testid="trigger-delete" onClick={() => requestDeleteAction({ workspace })}>
+    <>
+      {workspaces.map((workspace) => (
+        <button
+          key={workspace.namespace}
+          type="button"
+          onClick={() =>
+            (action === 'start' ? requestStartAction : requestStopAction)({ workspace })
+          }
+        >
+          {`${action} ${workspace.namespace}/${workspace.name}`}
+        </button>
+      ))}
+    </>
+  );
+};
+
+const DeleteActionTrigger: React.FC<{ workspace: WorkspacesWorkspaceListItem }> = ({
+  workspace,
+}) => {
+  const { requestDeleteAction } = useWorkspaceActionsContext();
+
+  return (
+    <button
+      type="button"
+      data-testid="trigger-delete"
+      onClick={() => requestDeleteAction({ workspace })}
+    >
       trigger delete
     </button>
   );
 };
 
-describe('WorkspaceActionsContextProvider - delete action namespace handling (#1413)', () => {
+describe('WorkspaceActionsContext namespace routing', () => {
+  const updateWorkspacePauseState = jest.fn();
+  const getWorkspace = jest.fn();
+  const updateWorkspace = jest.fn();
+  const deleteWorkspace = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSelectedNamespace = 'admin-selected-namespace';
+    jest.mocked(useNamespaceSelectorWrapper).mockReturnValue({
+      selectedNamespace: namespaceA,
+    } as ReturnType<typeof useNamespaceSelectorWrapper>);
+    jest.mocked(useNotebookAPI).mockReturnValue({
+      api: {
+        workspaces: { updateWorkspacePauseState, getWorkspace, updateWorkspace, deleteWorkspace },
+      } as unknown as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+    updateWorkspacePauseState.mockResolvedValue({ data: { paused: false } });
+    updateWorkspace.mockResolvedValue({});
+    deleteWorkspace.mockResolvedValue({});
   });
 
-  it('deletes a workspace whose namespace matches the admin-selected namespace', async () => {
-    const workspace = buildMockWorkspace({
-      name: 'my-notebook-1',
-      namespace: 'admin-selected-namespace',
-    });
+  it.each([
+    { action: 'start' as const, button: 'start-button', paused: false },
+    { action: 'stop' as const, button: 'stop-button', paused: true },
+    { action: 'start' as const, button: 'update-and-start-button', paused: false },
+    { action: 'stop' as const, button: 'update-and-stop-button', paused: true },
+  ])(
+    'uses the chosen workspace namespace for $button when names match',
+    async ({ action, button, paused }) => {
+      const user = userEvent.setup();
+      const workspaceInA = buildMockWorkspace({ name: workspaceName, namespace: namespaceA });
+      const workspaceInB = buildMockWorkspace({
+        name: workspaceName,
+        namespace: namespaceB,
+        podTemplate: {
+          ...workspaceInA.podTemplate,
+          options: {
+            ...workspaceInA.podTemplate.options,
+            imageConfig: {
+              ...workspaceInA.podTemplate.options.imageConfig,
+              redirectChain: buildImageRedirectChain({
+                startVersion: '1.8.0',
+                endVersion: '1.9.0',
+              }),
+            },
+          },
+        },
+      });
+      const currentState = buildMockWorkspaceUpdateFromWorkspace({ workspace: workspaceInB });
+      getWorkspace.mockResolvedValue({ data: currentState });
+
+      render(
+        <WorkspaceActionsContextProvider>
+          <WorkspaceActionTriggers workspaces={[workspaceInA, workspaceInB]} action={action} />
+        </WorkspaceActionsContextProvider>,
+      );
+
+      await user.click(
+        screen.getByRole('button', { name: `${action} ${namespaceB}/${workspaceName}` }),
+      );
+      await user.click(screen.getByTestId(button));
+
+      if (button.startsWith('update-and')) {
+        await waitFor(() => {
+          expect(getWorkspace).toHaveBeenCalledWith(namespaceB, workspaceName);
+          expect(updateWorkspace).toHaveBeenCalledWith(
+            namespaceB,
+            workspaceName,
+            expect.objectContaining({ data: expect.objectContaining({ paused }) }),
+          );
+        });
+        expect(updateWorkspacePauseState).not.toHaveBeenCalled();
+      } else {
+        await waitFor(() => {
+          expect(updateWorkspacePauseState).toHaveBeenCalledWith(namespaceB, workspaceName, {
+            data: { paused },
+          });
+        });
+        expect(getWorkspace).not.toHaveBeenCalled();
+        expect(updateWorkspace).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('shows a stop error for the chosen namespace without retrying the matching workspace elsewhere', async () => {
+    const user = userEvent.setup();
+    const workspaceInA = buildMockWorkspace({ name: workspaceName, namespace: namespaceA });
+    const workspaceInB = buildMockWorkspace({ name: workspaceName, namespace: namespaceB });
+    updateWorkspacePauseState.mockRejectedValue(new Error('stop failed'));
 
     render(
       <WorkspaceActionsContextProvider>
-        <TestConsumer workspace={workspace} />
+        <WorkspaceActionTriggers workspaces={[workspaceInA, workspaceInB]} action="stop" />
       </WorkspaceActionsContextProvider>,
     );
 
-    fireEvent.click(screen.getByTestId('trigger-delete'));
-    fireEvent.click(await screen.findByTestId('confirm-delete'));
+    await user.click(screen.getByRole('button', { name: `stop ${namespaceB}/${workspaceName}` }));
+    await user.click(screen.getByTestId('stop-button'));
 
-    await waitFor(() => {
-      expect(mockDeleteWorkspace).toHaveBeenCalledWith('admin-selected-namespace', 'my-notebook-1');
+    expect(await screen.findByTestId('stop-modal-error-message')).toHaveTextContent('stop failed');
+    expect(updateWorkspacePauseState).toHaveBeenCalledTimes(1);
+    expect(updateWorkspacePauseState).toHaveBeenCalledWith(namespaceB, workspaceName, {
+      data: { paused: true },
     });
   });
 
-  it('deletes a workspace using its OWN namespace even when it differs from the admin-selected namespace', async () => {
-    const workspace = buildMockWorkspace({
-      name: 'my-notebook-2',
-      namespace: 'example-profile-2',
+  describe('Delete action namespace handling (#1413)', () => {
+    it('deletes a workspace whose namespace matches the selected namespace', async () => {
+      const user = userEvent.setup();
+      const workspace = buildMockWorkspace({ name: 'my-notebook-1', namespace: namespaceA });
+
+      render(
+        <WorkspaceActionsContextProvider>
+          <DeleteActionTrigger workspace={workspace} />
+        </WorkspaceActionsContextProvider>,
+      );
+
+      await user.click(screen.getByTestId('trigger-delete'));
+      await user.click(await screen.findByTestId('confirm-delete'));
+
+      await waitFor(() => {
+        expect(deleteWorkspace).toHaveBeenCalledWith(namespaceA, workspace.name);
+      });
     });
 
-    render(
-      <WorkspaceActionsContextProvider>
-        <TestConsumer workspace={workspace} />
-      </WorkspaceActionsContextProvider>,
-    );
+    it('deletes a workspace using its own namespace when it differs from the selected namespace', async () => {
+      const user = userEvent.setup();
+      const workspace = buildMockWorkspace({ name: 'my-notebook-2', namespace: namespaceB });
 
-    fireEvent.click(screen.getByTestId('trigger-delete'));
-    fireEvent.click(await screen.findByTestId('confirm-delete'));
+      render(
+        <WorkspaceActionsContextProvider>
+          <DeleteActionTrigger workspace={workspace} />
+        </WorkspaceActionsContextProvider>,
+      );
 
-    await waitFor(() => {
-      // The fix: must use the workspace's own namespace, never the
-      // admin's currently-selected page namespace.
-      expect(mockDeleteWorkspace).toHaveBeenCalledWith('example-profile-2', 'my-notebook-2');
-      expect(mockDeleteWorkspace).not.toHaveBeenCalledWith(
-        'admin-selected-namespace',
-        'my-notebook-2',
+      await user.click(screen.getByTestId('trigger-delete'));
+      await user.click(await screen.findByTestId('confirm-delete'));
+
+      await waitFor(() => {
+        expect(deleteWorkspace).toHaveBeenCalledWith(namespaceB, workspace.name);
+        expect(deleteWorkspace).not.toHaveBeenCalledWith(namespaceA, workspace.name);
+      });
+    });
+
+    it('passes the workspace namespace into the Delete modal', async () => {
+      const user = userEvent.setup();
+      const workspace = buildMockWorkspace({ name: 'my-notebook-3', namespace: namespaceB });
+
+      render(
+        <WorkspaceActionsContextProvider>
+          <DeleteActionTrigger workspace={workspace} />
+        </WorkspaceActionsContextProvider>,
+      );
+
+      await user.click(screen.getByTestId('trigger-delete'));
+
+      expect(await screen.findByTestId('confirm-delete')).toHaveAttribute(
+        'data-namespace',
+        namespaceB,
       );
     });
-  });
 
-  it("passes the workspace's own namespace into the DeleteModal for display", async () => {
-    const workspace = buildMockWorkspace({
-      name: 'my-notebook-3',
-      namespace: 'example-profile-3',
+    it('does not delete before confirmation', async () => {
+      const user = userEvent.setup();
+      const workspace = buildMockWorkspace({ name: 'my-notebook-4', namespace: namespaceB });
+
+      render(
+        <WorkspaceActionsContextProvider>
+          <DeleteActionTrigger workspace={workspace} />
+        </WorkspaceActionsContextProvider>,
+      );
+
+      await user.click(screen.getByTestId('trigger-delete'));
+
+      expect(deleteWorkspace).not.toHaveBeenCalled();
     });
-
-    render(
-      <WorkspaceActionsContextProvider>
-        <TestConsumer workspace={workspace} />
-      </WorkspaceActionsContextProvider>,
-    );
-
-    fireEvent.click(screen.getByTestId('trigger-delete'));
-    const confirmButton = await screen.findByTestId('confirm-delete');
-
-    expect(confirmButton.getAttribute('data-namespace')).toBe('example-profile-3');
-  });
-
-  it('does not call deleteWorkspace before the admin confirms in the modal', () => {
-    const workspace = buildMockWorkspace({
-      name: 'my-notebook-4',
-      namespace: 'example-profile-4',
-    });
-
-    render(
-      <WorkspaceActionsContextProvider>
-        <TestConsumer workspace={workspace} />
-      </WorkspaceActionsContextProvider>,
-    );
-
-    fireEvent.click(screen.getByTestId('trigger-delete'));
-
-    expect(mockDeleteWorkspace).not.toHaveBeenCalled();
   });
 });
