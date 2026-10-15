@@ -12,6 +12,8 @@ import {
 } from '~/__tests__/cypress/cypress/pages/workspaces/secretsManagement';
 import {
   buildMockNamespace,
+  buildMockPVC,
+  buildMockSecret,
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
@@ -20,6 +22,7 @@ import {
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { V1Beta1WorkspaceState } from '~/generated/data-contracts';
+import type { WorkspacesPodVolumesMutate } from '~/generated/data-contracts';
 import { toastNotification } from '~/__tests__/cypress/cypress/pages/components/toastNotification';
 
 const DEFAULT_NAMESPACE = 'default';
@@ -34,12 +37,27 @@ type EditWorkspaceSetup = {
   mockWorkspaceKind: ReturnType<typeof buildMockWorkspaceKind>;
 };
 
-const setupEditWorkspace = (): EditWorkspaceSetup => {
-  const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+type EditWorkspaceOptions = {
+  globalNamespace?: string;
+  workspaceNamespace?: string;
+  initialVolumes?: WorkspacesPodVolumesMutate['data'];
+  initialSecrets?: WorkspacesPodVolumesMutate['secrets'];
+};
+
+const setupEditWorkspace = ({
+  globalNamespace = DEFAULT_NAMESPACE,
+  workspaceNamespace = globalNamespace,
+  initialVolumes = [
+    { pvcName: 'data-volume-1', mountPath: '/data1', readOnly: false },
+    { pvcName: 'data-volume-2', mountPath: '/data2', readOnly: true },
+  ],
+  initialSecrets = [{ secretName: 'secret-1', mountPath: '/secrets/secret1', defaultMode: 420 }],
+}: EditWorkspaceOptions = {}): EditWorkspaceSetup => {
+  const mockNamespace = buildMockNamespace({ name: globalNamespace });
   const mockWorkspaceKind = buildMockWorkspaceKind({ name: WORKSPACE_KIND_NAME });
   const mockWorkspace = buildMockWorkspace({
     name: TEST_WORKSPACE_NAME,
-    namespace: mockNamespace.name,
+    namespace: workspaceNamespace,
     workspaceKind: buildMockWorkspaceKindInfo({ name: WORKSPACE_KIND_NAME }),
     state: V1Beta1WorkspaceState.WorkspaceStateRunning,
     podTemplate: {
@@ -74,14 +92,7 @@ const setupEditWorkspace = (): EditWorkspaceSetup => {
         labels: { testLabel: 'testValue' },
         annotations: { testAnnotation: 'testAnnotationValue' },
       },
-      volumes: {
-        home: '/home',
-        data: [
-          { pvcName: 'data-volume-1', mountPath: '/data1', readOnly: false },
-          { pvcName: 'data-volume-2', mountPath: '/data2', readOnly: true },
-        ],
-        secrets: [{ secretName: 'secret-1', mountPath: '/secrets/secret1', defaultMode: 420 }],
-      },
+      volumes: { home: '/home', data: initialVolumes, secrets: initialSecrets },
     },
   });
 
@@ -102,7 +113,7 @@ const setupEditWorkspace = (): EditWorkspaceSetup => {
     {
       path: {
         apiVersion: NOTEBOOKS_API_VERSION,
-        namespace: mockNamespace.name,
+        namespace: workspaceNamespace,
         workspaceName: mockWorkspace.name,
       },
     },
@@ -576,137 +587,88 @@ describe('Edit workspace — volume detach behavior', () => {
 });
 
 describe('Edit workspace — namespace resolved from the workspace, not the global namespace selector', () => {
-  // Regression coverage: the global/masthead namespace selector can resolve to a
-  // namespace that differs from the one the workspace being edited actually lives
-  // in (e.g. a non-admin user who cannot list all cluster namespaces, or an admin
-  // who drilled into this workspace from a different namespace-scoped view). The
-  // Volume/Secret Attach modals must fetch data for the workspace's own namespace,
-  // not whatever the global selector currently holds — otherwise they hang on an
-  // infinite loading spinner.
   const GLOBAL_NAMESPACE = 'default';
   const WORKSPACE_NAMESPACE = 'team-a';
+  const AVAILABLE_VOLUME = 'workspace-volume';
+  const AVAILABLE_SECRET = 'workspace-secret';
 
-  const setupEditWorkspaceInDifferentNamespace = () => {
-    const mockNamespace = buildMockNamespace({ name: GLOBAL_NAMESPACE });
-    const mockWorkspaceKind = buildMockWorkspaceKind({ name: WORKSPACE_KIND_NAME });
-    const mockWorkspace = buildMockWorkspace({
-      name: TEST_WORKSPACE_NAME,
-      namespace: WORKSPACE_NAMESPACE,
-      workspaceKind: buildMockWorkspaceKindInfo({ name: WORKSPACE_KIND_NAME }),
-      state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-      podTemplate: {
-        options: {
-          imageConfig: {
-            current: {
-              id: IMAGE_CONFIG_ID,
-              displayName: 'jupyter-scipy:v1.9.0',
-              description: 'JupyterLab with SciPy',
-              labels: [],
-            },
-          },
-          podConfig: {
-            current: {
-              id: POD_CONFIG_ID,
-              displayName: 'Tiny CPU',
-              description: 'Pod with 0.1 CPU',
-              labels: [],
-            },
-          },
-        },
-      },
+  const setupWorkspaceNamespaceResources = () => {
+    setupEditWorkspace({
+      globalNamespace: GLOBAL_NAMESPACE,
+      workspaceNamespace: WORKSPACE_NAMESPACE,
+      initialVolumes: [],
+      initialSecrets: [],
     });
-
-    const mockWorkspaceUpdateResponse = buildMockWorkspaceUpdate({
-      podTemplate: {
-        options: {
-          imageConfig: IMAGE_CONFIG_ID,
-          podConfig: POD_CONFIG_ID,
-        },
-        podMetadata: { labels: {}, annotations: {} },
-        volumes: { home: '/home', data: [], secrets: [] },
-      },
-    });
-
-    // The global namespace selector only ever resolves GLOBAL_NAMESPACE.
-    cy.interceptApi(
-      'GET /api/:apiVersion/namespaces',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
-      mockModArchResponse([mockNamespace]),
-    ).as('getNamespaces');
-
-    // The workspace list is scoped to the global namespace, but the workspace it
-    // returns actually lives in a different namespace.
-    cy.interceptApi(
-      'GET /api/:apiVersion/workspaces/:namespace',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: GLOBAL_NAMESPACE } },
-      mockModArchResponse([mockWorkspace]),
-    ).as('getWorkspaces');
-
-    cy.interceptApi(
-      'GET /api/:apiVersion/workspaces/:namespace/:workspaceName',
-      {
-        path: {
-          apiVersion: NOTEBOOKS_API_VERSION,
-          namespace: WORKSPACE_NAMESPACE,
-          workspaceName: mockWorkspace.name,
-        },
-      },
-      mockModArchResponse(mockWorkspaceUpdateResponse),
-    ).as('getWorkspace');
-
-    cy.interceptApi(
-      'GET /api/:apiVersion/workspacekinds',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
-      mockModArchResponse([mockWorkspaceKind]),
-    ).as('getWorkspaceKinds');
-    interceptListValues(mockWorkspaceKind);
-
     cy.interceptApi(
       'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
       { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: WORKSPACE_NAMESPACE } },
-      mockModArchResponse([]),
+      mockModArchResponse([buildMockPVC({ name: AVAILABLE_VOLUME })]),
     ).as('listPVCsInWorkspaceNamespace');
-
     cy.interceptApi(
       'GET /api/:apiVersion/secrets/:namespace',
       { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: WORKSPACE_NAMESPACE } },
-      mockModArchResponse([]),
+      mockModArchResponse([buildMockSecret({ name: AVAILABLE_SECRET })]),
     ).as('listSecretsInWorkspaceNamespace');
   };
 
-  const openEditWorkspaceAndReachProperties = () => {
-    workspaces.visit();
-    cy.wait('@getNamespaces');
-    cy.wait('@getWorkspaces');
-    workspaces.findAction({ action: 'edit', workspaceName: TEST_WORKSPACE_NAME }).click();
+  const advanceToProperties = () => {
     cy.wait('@getWorkspaceKinds');
-
-    editWorkspace.clickNext(); // workspace kind → image
-    editWorkspace.advancePastRedirectModal(); // image → pod config
-    editWorkspace.advancePastRedirectModal(); // pod config → properties
+    editWorkspace.clickNext();
+    editWorkspace.advancePastRedirectModal();
+    editWorkspace.advancePastRedirectModal();
   };
 
   it('loads the Volume Attach modal using the workspace namespace, not the global namespace selector', () => {
-    setupEditWorkspaceInDifferentNamespace();
-    openEditWorkspaceAndReachProperties();
+    setupWorkspaceNamespaceResources();
+    visitEditWorkspace();
+    advanceToProperties();
 
     volumesManagement.expandVolumesSection();
     volumesManagement.clickAttachExistingPVC();
 
     cy.wait('@listPVCsInWorkspaceNamespace');
     volumesAttachModal.assertModalVisible();
-    cy.findByTestId('loading-spinner').should('not.exist');
+    volumesAttachModal.assertPVCOptionAvailable(AVAILABLE_VOLUME);
   });
 
   it('loads the Secret Attach modal using the workspace namespace, not the global namespace selector', () => {
-    setupEditWorkspaceInDifferentNamespace();
-    openEditWorkspaceAndReachProperties();
+    setupWorkspaceNamespaceResources();
+    visitEditWorkspace();
+    advanceToProperties();
 
     secretsManagement.expandSecretsSection();
     secretsManagement.clickAttachExistingSecrets();
 
     cy.wait('@listSecretsInWorkspaceNamespace');
     secretsAttachModal.assertModalVisible();
-    cy.findByTestId('loading-spinner').should('not.exist');
+    secretsAttachModal.assertSecretOptionAvailable(AVAILABLE_SECRET);
+  });
+
+  it('loads workspace resources when namespace listing returns 403', () => {
+    setupWorkspaceNamespaceResources();
+    cy.interceptApi(
+      'GET /api/:apiVersion/namespaces',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      { error: { code: '403', message: 'Forbidden' } },
+    ).as('namespaceListDenied');
+
+    editWorkspace.visitWithState({
+      namespace: WORKSPACE_NAMESPACE,
+      workspaceName: TEST_WORKSPACE_NAME,
+      workspaceKindName: WORKSPACE_KIND_NAME,
+    });
+    cy.wait('@namespaceListDenied');
+    advanceToProperties();
+
+    volumesManagement.expandVolumesSection();
+    volumesManagement.clickAttachExistingPVC();
+    cy.wait('@listPVCsInWorkspaceNamespace');
+    volumesAttachModal.assertPVCOptionAvailable(AVAILABLE_VOLUME);
+    volumesAttachModal.clickCancel();
+
+    secretsManagement.expandSecretsSection();
+    secretsManagement.clickAttachExistingSecrets();
+    cy.wait('@listSecretsInWorkspaceNamespace');
+    secretsAttachModal.assertSecretOptionAvailable(AVAILABLE_SECRET);
   });
 });
