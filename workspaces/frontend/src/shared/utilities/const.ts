@@ -5,9 +5,7 @@ export const STYLE_THEME = asEnumMember(process.env.STYLE_THEME, Theme) || Theme
 export const DEPLOYMENT_MODE =
   asEnumMember(process.env.DEPLOYMENT_MODE, DeploymentMode) || DeploymentMode.Kubeflow;
 export const DEV_MODE = process.env.APP_ENV === 'development';
-export const POLL_INTERVAL = process.env.POLL_INTERVAL
-  ? parseInt(process.env.POLL_INTERVAL)
-  : 30000;
+export const POLL_INTERVAL = process.env.POLL_INTERVAL ? parseInt(process.env.POLL_INTERVAL) : 5000;
 export const KUBEFLOW_USERNAME = process.env.KUBEFLOW_USERNAME || 'user@example.com';
 export const IMAGE_DIR = process.env.IMAGE_DIR || 'images';
 export const ROUTES_PREFIX = process.env.ROUTES_PREFIX ?? '';
