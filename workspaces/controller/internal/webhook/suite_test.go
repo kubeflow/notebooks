@@ -565,6 +565,54 @@ func NewExampleWorkspaceKindWithInvalidStatefulSetMetadataAnnotationKey(name str
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey returns a WorkspaceKind whose first
+// podConfig value has an invalid PodMetadata label key.
+func NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+		Labels: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataAnnotationKey returns a WorkspaceKind whose first
+// podConfig value has an invalid PodMetadata annotation key.
+func NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+		Annotations: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataLabelKey returns a WorkspaceKind whose first
+// podConfig value has an invalid StatefulSetMetadata label key.
+func NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+		Labels: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataAnnotationKey returns a WorkspaceKind whose first
+// podConfig value has an invalid StatefulSetMetadata annotation key.
+func NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+		Annotations: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspaceKindWithImageConfigCycle returns a WorkspaceKind with a cycle in the ImageConfig options.
 func NewExampleWorkspaceKindWithImageConfigCycle(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
@@ -935,6 +983,28 @@ func NewExampleWorkspaceKindWithFilterRuleNoMatchCondition(name string) *kubeflo
 				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
 			},
 			Match: []kubefloworgv1beta1.FilterRuleMatch{{}},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleEmptySelector returns a WorkspaceKind whose filter rule has a
+// match condition with an empty label selector, which is rejected by the CRD validation rule.
+func NewExampleWorkspaceKindWithFilterRuleEmptySelector(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{},
+					},
+				},
+			},
 		},
 	}
 	return workspaceKind

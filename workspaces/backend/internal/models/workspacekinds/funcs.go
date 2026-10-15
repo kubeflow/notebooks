@@ -141,23 +141,20 @@ func buildActivityRules(rules []kubefloworgv1beta1.ActivityRule) []ActivityRule 
 	}
 	res := make([]ActivityRule, len(rules))
 	for i, rule := range rules {
-		var match *ActivityRuleMatch
-		if rule.Match != nil {
-			var matchNs *MatchNamespace
-			if rule.Match.MatchNamespace != nil {
-				matchNs = &MatchNamespace{
-					Selector: *rule.Match.MatchNamespace.Selector.DeepCopy(),
+		var match []ActivityRuleMatch
+		if len(rule.Match) > 0 {
+			match = make([]ActivityRuleMatch, len(rule.Match))
+			for j, m := range rule.Match {
+				if m.MatchNamespace != nil {
+					match[j].MatchNamespace = &ActivityRuleSelector{
+						Selector: *m.MatchNamespace.Selector.DeepCopy(),
+					}
 				}
-			}
-			var matchPodConfig *MatchPodConfig
-			if rule.Match.MatchPodConfig != nil {
-				matchPodConfig = &MatchPodConfig{
-					Selector: *rule.Match.MatchPodConfig.Selector.DeepCopy(),
+				if m.MatchPodConfig != nil {
+					match[j].MatchPodConfig = &ActivityRuleSelector{
+						Selector: *m.MatchPodConfig.Selector.DeepCopy(),
+					}
 				}
-			}
-			match = &ActivityRuleMatch{
-				MatchNamespace: matchNs,
-				MatchPodConfig: matchPodConfig,
 			}
 		}
 

@@ -2954,7 +2954,9 @@ const docTemplate = `{
                 "displayName",
                 "hidden",
                 "id",
-                "restrictions"
+                "podMetadata",
+                "restrictions",
+                "statefulSetMetadata"
             ],
             "properties": {
                 "clusterMetrics": {
@@ -2978,11 +2980,38 @@ const docTemplate = `{
                         "$ref": "#/definitions/options.OptionLabel"
                     }
                 },
+                "podMetadata": {
+                    "$ref": "#/definitions/options.PodMetadata"
+                },
                 "redirect": {
                     "$ref": "#/definitions/options.OptionRedirect"
                 },
                 "restrictions": {
                     "$ref": "#/definitions/common.Restrictions"
+                },
+                "statefulSetMetadata": {
+                    "$ref": "#/definitions/options.StatefulSetMetadata"
+                }
+            }
+        },
+        "options.PodMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -3028,6 +3057,27 @@ const docTemplate = `{
                 "RedirectMessageLevelWarning",
                 "RedirectMessageLevelDanger"
             ]
+        },
+        "options.StatefulSetMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
         },
         "pvcs.PVCCreate": {
             "type": "object",
@@ -6593,12 +6643,11 @@ const docTemplate = `{
                     ]
                 },
                 "match": {
-                    "description": "the conditions under which this rule applies\n+kubebuilder:validation:Optional",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1beta1.ActivityRuleMatch"
-                        }
-                    ]
+                    "description": "the conditions which must ALL be satisfied for the rule to apply\n - an omitted or empty list makes this a catch-all rule that matches all Workspaces\n+kubebuilder:validation:Optional\n+listType:=\"atomic\"",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1beta1.ActivityRuleMatch"
+                    }
                 }
             }
         },
@@ -6631,18 +6680,34 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "matchNamespace": {
-                    "description": "filters Workspaces by namespace labels\n+kubebuilder:validation:Optional",
+                    "description": "filters Workspaces by the labels of their namespace\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/v1beta1.NamespaceMatch"
+                            "$ref": "#/definitions/v1beta1.ActivityRuleSelector"
                         }
                     ]
                 },
                 "matchPodConfig": {
-                    "description": "filters Workspaces by the PodConfig option they are using\n+kubebuilder:validation:Optional",
+                    "description": "filters Workspaces by the labels of the PodConfig option they are using\n+kubebuilder:validation:Optional",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/v1beta1.PodConfigMatch"
+                            "$ref": "#/definitions/v1beta1.ActivityRuleSelector"
+                        }
+                    ]
+                }
+            }
+        },
+        "v1beta1.ActivityRuleSelector": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "description": "a standard Kubernetes label selector\n - must not be empty, use an empty 'match' list for a catch-all rule",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1.LabelSelector"
                         }
                     ]
                 }
@@ -6796,7 +6861,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "selector": {
-                    "description": "a standard Kubernetes label selector",
+                    "description": "a standard Kubernetes label selector\n - must not be empty",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.LabelSelector"
@@ -6969,22 +7034,6 @@ const docTemplate = `{
                 }
             }
         },
-        "v1beta1.NamespaceMatch": {
-            "type": "object",
-            "required": [
-                "selector"
-            ],
-            "properties": {
-                "selector": {
-                    "description": "the standard Kubernetes label selector to match namespace labels",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1.LabelSelector"
-                        }
-                    ]
-                }
-            }
-        },
         "v1beta1.OptionRedirect": {
             "type": "object",
             "required": [
@@ -7085,22 +7134,6 @@ const docTemplate = `{
                 }
             }
         },
-        "v1beta1.PodConfigMatch": {
-            "type": "object",
-            "required": [
-                "selector"
-            ],
-            "properties": {
-                "selector": {
-                    "description": "the standard Kubernetes label selector to match podConfig labels",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/v1.LabelSelector"
-                        }
-                    ]
-                }
-            }
-        },
         "v1beta1.PodConfigSpec": {
             "type": "object",
             "properties": {
@@ -7119,6 +7152,14 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "podMetadata": {
+                    "description": "metadata to apply to Workspace Pods when this podConfig is selected\n - layered over the WorkspaceKind-level ` + "`" + `podMetadata` + "`" + `, winning on key conflicts\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindPodMetadata"
+                        }
+                    ]
+                },
                 "resources": {
                     "description": "resource configs for the \"main\" container in the pod\n+kubebuilder:validation:Optional",
                     "allOf": [
@@ -7130,6 +7171,14 @@ const docTemplate = `{
                 "schedulerName": {
                     "description": "the name of the scheduler to use for the pod\n - this takes precedence over the ` + "`" + `schedulerName` + "`" + ` of the pod template\n - set this to \"default-scheduler\" to have this pod config use the\n   default Kubernetes scheduler, even if the pod template sets another one\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"volcano\"",
                     "type": "string"
+                },
+                "statefulSetMetadata": {
+                    "description": "metadata to apply to the Workspace StatefulSet when this podConfig is selected\n - layered over the WorkspaceKind-level ` + "`" + `statefulSetMetadata` + "`" + `, winning on key conflicts\n+kubebuilder:validation:Optional",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindStatefulSetMetadata"
+                        }
+                    ]
                 },
                 "tolerations": {
                     "description": "toleration configs for the pod\n+kubebuilder:validation:Optional",
@@ -7689,7 +7738,10 @@ const docTemplate = `{
                     "$ref": "#/definitions/workspacekinds.ActivityRuleEffect"
                 },
                 "match": {
-                    "$ref": "#/definitions/workspacekinds.ActivityRuleMatch"
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspacekinds.ActivityRuleMatch"
+                    }
                 }
             }
         },
@@ -7722,10 +7774,21 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "matchNamespace": {
-                    "$ref": "#/definitions/workspacekinds.MatchNamespace"
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleSelector"
                 },
                 "matchPodConfig": {
-                    "$ref": "#/definitions/workspacekinds.MatchPodConfig"
+                    "$ref": "#/definitions/workspacekinds.ActivityRuleSelector"
+                }
+            }
+        },
+        "workspacekinds.ActivityRuleSelector": {
+            "type": "object",
+            "required": [
+                "selector"
+            ],
+            "properties": {
+                "selector": {
+                    "$ref": "#/definitions/v1.LabelSelector"
                 }
             }
         },
@@ -7737,28 +7800,6 @@ const docTemplate = `{
             "properties": {
                 "workspacesCount": {
                     "type": "integer"
-                }
-            }
-        },
-        "workspacekinds.MatchNamespace": {
-            "type": "object",
-            "required": [
-                "selector"
-            ],
-            "properties": {
-                "selector": {
-                    "$ref": "#/definitions/v1.LabelSelector"
-                }
-            }
-        },
-        "workspacekinds.MatchPodConfig": {
-            "type": "object",
-            "required": [
-                "selector"
-            ],
-            "properties": {
-                "selector": {
-                    "$ref": "#/definitions/v1.LabelSelector"
                 }
             }
         },

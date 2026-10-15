@@ -91,13 +91,18 @@ describe('WorkspaceForm - PodConfig validity regression tests', () => {
       restrictions: CommonRestrictions;
     }> = [{ id: 'pod-1', displayName: 'Pod 1', hidden: false, restrictions: { deny: false } }];
 
+    // Preserve the unfiltered response when contextual filtering changes.
+    const unfilteredPodConfigValues = filteredPodConfigValues.map((option) => ({
+      ...option,
+    }));
+
     (usePodTemplateOptionsListValues as jest.Mock).mockImplementation(
       ({ imageId }: { imageId?: string }) => {
         if (!imageId) {
           return [
             {
               imageConfig: { default: 'image-1', values: [] },
-              podConfig: { default: 'pod-1', values: filteredPodConfigValues },
+              podConfig: { default: 'pod-1', values: unfilteredPodConfigValues },
             },
             true,
             null,

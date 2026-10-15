@@ -69,11 +69,17 @@ type WorkspacePodTemplate struct {
 
 type WorkspacePodMetadata struct {
 	// labels to be applied to the Pod resource
+	//  - entries are currently NOT allowed, until the security model
+	//    for Workspace-level Pod metadata is defined
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxProperties:=0
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to be applied to the Pod resource
+	//  - entries are currently NOT allowed, until the security model
+	//    for Workspace-level Pod metadata is defined
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxProperties:=0
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 

@@ -18,6 +18,7 @@ package options
 
 import (
 	"fmt"
+	"maps"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -187,10 +188,12 @@ func buildPodConfigValues(wsk *kubefloworgv1beta1.WorkspaceKind, request *ListVa
 			Description: ptr.Deref(value.Spawner.Description, ""),
 			Labels:      buildOptionLabels(value.Spawner.Labels),
 			// `hidden` is the admin-set value OR the `ui.hide` effect of the first matching rule
-			Hidden:         ptr.Deref(value.Spawner.Hidden, false) || result.UIHide,
-			Redirect:       buildOptionRedirect(value.Redirect),
-			ClusterMetrics: buildClusterOptionMetrics(value.Id, optionMetricsMap),
-			Restrictions:   result.Restrictions,
+			Hidden:              ptr.Deref(value.Spawner.Hidden, false) || result.UIHide,
+			Redirect:            buildOptionRedirect(value.Redirect),
+			ClusterMetrics:      buildClusterOptionMetrics(value.Id, optionMetricsMap),
+			Restrictions:        result.Restrictions,
+			PodMetadata:         buildPodConfigPodMetadata(value.Spec.PodMetadata),
+			StatefulSetMetadata: buildPodConfigStatefulSetMetadata(value.Spec.StatefulSetMetadata),
 		})
 	}
 
@@ -241,6 +244,34 @@ func buildOptionRedirect(redirect *kubefloworgv1beta1.OptionRedirect) *OptionRed
 	return &OptionRedirect{
 		To:      redirect.To,
 		Message: message,
+	}
+}
+
+func buildPodConfigPodMetadata(podMetadata *kubefloworgv1beta1.WorkspaceKindPodMetadata) PodMetadata {
+	podLabels := make(map[string]string)
+	podAnnotations := make(map[string]string)
+	if podMetadata != nil {
+		// NOTE: we copy the maps to avoid creating a reference to the original maps.
+		maps.Copy(podLabels, podMetadata.Labels)
+		maps.Copy(podAnnotations, podMetadata.Annotations)
+	}
+	return PodMetadata{
+		Labels:      podLabels,
+		Annotations: podAnnotations,
+	}
+}
+
+func buildPodConfigStatefulSetMetadata(statefulSetMetadata *kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata) StatefulSetMetadata {
+	stsLabels := make(map[string]string)
+	stsAnnotations := make(map[string]string)
+	if statefulSetMetadata != nil {
+		// NOTE: we copy the maps to avoid creating a reference to the original maps.
+		maps.Copy(stsLabels, statefulSetMetadata.Labels)
+		maps.Copy(stsAnnotations, statefulSetMetadata.Annotations)
+	}
+	return StatefulSetMetadata{
+		Labels:      stsLabels,
+		Annotations: stsAnnotations,
 	}
 }
 

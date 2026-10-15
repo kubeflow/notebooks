@@ -114,6 +114,10 @@ func (p *PodTemplateMutate) Validate(prefix *field.Path) []*field.Error {
 // TODO: figure out how we want to handle labels/annotations
 //   - we do not want users to be able to set labels/annotations
 //   - but we probably want them to be returned in the response
+//
+// NOTE: entries in this field are currently NOT allowed and blocked via a CRD
+// CEL validation rules until the security model for Workspace-level Pod
+// metadata is defined and implemented
 type PodMetadataMutate struct {
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
