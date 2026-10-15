@@ -88,7 +88,7 @@ type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColum
 
 interface WorkspaceTableProps {
   workspaces: WorkspacesWorkspaceListItem[];
-  refreshWorkspaces: () => void;
+  refreshWorkspaces: () => void | Promise<unknown>;
   namespace?: string;
   canCreateWorkspaces?: boolean;
   hiddenColumns?: WorkspaceTableColumnKeys[];
@@ -284,7 +284,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     });
 
     const getRowId = useCallback(
-      (workspace: WorkspacesWorkspaceListItem) => `${workspace.namespace}-${workspace.name}`,
+      (workspace: WorkspacesWorkspaceListItem) => `${workspace.namespace}/${workspace.name}`,
       [],
     );
 

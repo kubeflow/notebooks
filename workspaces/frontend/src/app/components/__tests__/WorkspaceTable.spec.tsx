@@ -160,6 +160,20 @@ describe('WorkspaceTable row order stability during background refresh', () => {
     expect(getVisibleWorkspaceNames()).toEqual(['workspace-a', 'workspace-b']);
   });
 
+  it('keeps workspaces with colliding hyphenated namespace and name combinations distinct', () => {
+    const first = buildMockWorkspace({ namespace: 'a-b', name: 'c' });
+    const second = buildMockWorkspace({ namespace: 'a', name: 'b-c' });
+    const { rerender } = render(
+      <WorkspaceTable workspaces={[first, second]} refreshWorkspaces={jest.fn()} />,
+    );
+
+    rerender(
+      <WorkspaceTable workspaces={[{ ...first }, { ...second }]} refreshWorkspaces={jest.fn()} />,
+    );
+
+    expect(getVisibleWorkspaceNames()).toEqual(['c', 'b-c']);
+  });
+
   it('re-sorts immediately when the user clicks a different sort column', async () => {
     const user = userEvent.setup();
     // Alphabetically, 'workspace-a' < 'workspace-b', opposite of the default last-activity order.

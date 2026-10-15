@@ -6,7 +6,7 @@ import { RedoIcon } from '@patternfly/react-icons/dist/esm/icons/redo-icon';
 
 interface RefreshCounterProps {
   interval: number;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<unknown>;
   /** Called only for an explicit, user-initiated refresh (the button), not the automatic countdown tick. */
   onManualRefresh?: () => void;
 }
@@ -18,31 +18,54 @@ export const RefreshCounter: React.FC<RefreshCounterProps> = ({
 }) => {
   const pollIntervalSeconds = Math.max(1, Math.floor(interval / 1000));
   const [secondsRemaining, setSecondsRemaining] = useState(pollIntervalSeconds);
+  const [timerCycle, setTimerCycle] = useState(0);
+  const [isManualRefreshPending, setIsManualRefreshPending] = useState(false);
   const onRefreshRef = useRef(onRefresh);
   onRefreshRef.current = onRefresh;
 
-  // The countdown updater must stay pure — React may invoke a functional setState updater more
-  // than once while reconciling a queue (e.g. right after a manual reset), so a side effect
-  // (calling onRefresh) does not belong in here. It only decrements, using 0 as a sentinel for
-  // "a full cycle just completed," handled by the effect below instead.
   useEffect(() => {
-    const countdown = setInterval(() => {
-      setSecondsRemaining((prev) => (prev <= 1 ? 0 : prev - 1));
-    }, 1000);
+    const countdown = setInterval(() => setSecondsRemaining((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(countdown);
-  }, [pollIntervalSeconds]);
+  }, [pollIntervalSeconds, timerCycle]);
 
   useEffect(() => {
-    if (secondsRemaining === 0) {
-      onRefreshRef.current();
-      setSecondsRemaining(pollIntervalSeconds);
+    if (secondsRemaining !== 0 || isManualRefreshPending) {
+      return;
     }
-  }, [secondsRemaining, pollIntervalSeconds]);
+
+    let isCurrentRefresh = true;
+    const resetCountdown = () => {
+      if (isCurrentRefresh) {
+        setSecondsRemaining(pollIntervalSeconds);
+        setTimerCycle((cycle) => cycle + 1);
+      }
+    };
+    const refresh = onRefreshRef.current();
+    if (refresh && typeof refresh.then === 'function') {
+      void refresh.then(resetCountdown, resetCountdown);
+    } else {
+      resetCountdown();
+    }
+    return () => {
+      isCurrentRefresh = false;
+    };
+  }, [secondsRemaining, pollIntervalSeconds, isManualRefreshPending]);
 
   const handleManualRefresh = useCallback(() => {
-    onRefresh();
+    setIsManualRefreshPending(true);
+    setSecondsRemaining(0);
     onManualRefresh?.();
-    setSecondsRemaining(pollIntervalSeconds);
+    const resetCountdown = () => {
+      setSecondsRemaining(pollIntervalSeconds);
+      setTimerCycle((cycle) => cycle + 1);
+      setIsManualRefreshPending(false);
+    };
+    const refresh = onRefresh();
+    if (refresh && typeof refresh.then === 'function') {
+      void refresh.then(resetCountdown, resetCountdown);
+    } else {
+      resetCountdown();
+    }
   }, [onRefresh, onManualRefresh, pollIntervalSeconds]);
 
   return (
@@ -67,7 +90,9 @@ export const RefreshCounter: React.FC<RefreshCounterProps> = ({
           data-testid="workspace-refresh-countdown"
           aria-live="polite"
         >
-          Refreshing in {secondsRemaining} seconds...
+          {secondsRemaining === 0
+            ? 'Refreshing...'
+            : `Refreshing in ${secondsRemaining} seconds...`}
         </Content>
       </FlexItem>
     </Flex>
