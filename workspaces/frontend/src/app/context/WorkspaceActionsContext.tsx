@@ -156,10 +156,11 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
     }
 
     const workspaceName = activeWsAction.workspace.name;
-    await api.workspaces.deleteWorkspace(selectedNamespace, workspaceName);
+    const workspaceNamespace = activeWsAction.workspace.namespace;
+    await api.workspaces.deleteWorkspace(workspaceNamespace, workspaceName);
     notification.info(`Workspace '${workspaceName}' deleted successfully`);
     activeWsAction.onActionDone?.();
-  }, [api, selectedNamespace, activeWsAction, notification]);
+  }, [api, activeWsAction, notification]);
 
   useEffect(() => {
     if (!activeWsAction) {
