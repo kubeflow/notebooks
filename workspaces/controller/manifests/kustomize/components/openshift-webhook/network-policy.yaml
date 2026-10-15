@@ -13,5 +13,11 @@ spec:
       port: https-webhook
     # allow traffic from anywhere, as the kubernetes api server must reach the webhook
     from: []
+  - ports:
+    - protocol: TCP
+      port: 8081
+    # health-probe port (--health-probe-bind-address=:8081); must be listed
+    # because the policy above already selects this pod, implicitly denying
+    # any port not covered by an ingress rule.
   policyTypes:
   - Ingress
