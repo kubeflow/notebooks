@@ -52,6 +52,8 @@ type Repositories struct {
 func NewRepositories(
 	cfg *config.EnvConfig,
 	cl client.Client,
+	// apiReader bypasses the informer cache, for read-modify-write operations
+	apiReader client.Reader,
 	// configMapClient is a label-filtered cached client for image-source ConfigMaps
 	configMapClient client.Client,
 	clientset kubernetes.Interface,
@@ -68,8 +70,8 @@ func NewRepositories(
 		PVC:           pvcs.NewPVCRepository(cfg, cl),
 		Secret:        secrets.NewSecretRepository(cfg, cl),
 		StorageClass:  storageclasses.NewStorageClassRepository(cfg, cl),
-		Workspace:     workspaces.NewWorkspaceRepository(cfg, cl),
-		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cfg, cl, configMapClient),
+		Workspace:     workspaces.NewWorkspaceRepository(cfg, cl, apiReader),
+		WorkspaceKind: workspacekinds.NewWorkspaceKindRepository(cfg, cl, apiReader, configMapClient),
 		PodLogs:       podlogs.NewPodLogsRepository(cfg, cl, clientset),
 	}
 }

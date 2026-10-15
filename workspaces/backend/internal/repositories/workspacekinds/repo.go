@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
@@ -57,13 +58,18 @@ type WorkspaceKindRepository struct {
 	cfg             *config.EnvConfig
 	client          client.Client
 	configMapClient client.Client // filtered cache client for ConfigMaps with 'notebooks.kubeflow.org/image-source=true'
+
+	// apiReader bypasses the informer cache, for read-modify-write operations
+	// where a stale read would make the write fail with a conflict
+	apiReader client.Reader
 }
 
-func NewWorkspaceKindRepository(cfg *config.EnvConfig, cl client.Client, configMapClient client.Client) *WorkspaceKindRepository {
+func NewWorkspaceKindRepository(cfg *config.EnvConfig, cl client.Client, apiReader client.Reader, configMapClient client.Client) *WorkspaceKindRepository {
 	return &WorkspaceKindRepository{
 		cfg:             cfg,
 		client:          cl,
 		configMapClient: configMapClient,
+		apiReader:       apiReader,
 	}
 }
 
@@ -137,49 +143,59 @@ func (r *WorkspaceKindRepository) CreateWorkspaceKind(ctx context.Context, actor
 }
 
 func (r *WorkspaceKindRepository) UpdateWorkspaceKind(ctx context.Context, actor user.Info, workspaceKindUpdate *models.WorkspaceKindUpdate, name string) (*models.WorkspaceKindUpdate, error) {
+	// NOTE: captured outside the retry loop, so the audit timestamp is stable across attempts
 	now := time.Now()
 
-	// get workspace kind
-	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: name}, workspaceKind); err != nil {
+	var updated *kubefloworgv1beta1.WorkspaceKind
+
+	// the write is guarded by `resourceVersion`, which the controller bumps whenever it recomputes
+	// `status.workspaces` and the per-option metrics (i.e. whenever any Workspace using this kind
+	// changes) without changing `metadata.generation`. those conflicts are not the caller's fault,
+	// so we retry instead of surfacing them.
+	//
+	// NOTE: the read MUST bypass the cache, or every attempt would re-read the same stale
+	//       object and the retry could never make progress
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// get workspace kind
+		workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+		if err := r.apiReader.Get(ctx, client.ObjectKey{Name: name}, workspaceKind); err != nil {
+			return err
+		}
+
+		// ensure caller's revision matches current workspace kind revision
+		// prevents updates by callers with a stale view of the workspace kind
+		// NOTE: the revision tracks `metadata.generation`, so status-only writes never invalidate it
+		clusterRevision := modelsCommon.CalculateRevision(&workspaceKind.ObjectMeta)
+		callerRevision := workspaceKindUpdate.Revision
+		if clusterRevision != callerRevision {
+			// NOTE: not a kubernetes conflict, so this is returned without retrying
+			return ErrWorkspaceKindRevisionConflict
+		}
+
+		// apply the update to the workspace kind object
+		models.ApplyWorkspaceKindUpdateModelToWorkspaceKind(workspaceKindUpdate, workspaceKind)
+
+		// set audit annotations
+		modelsCommon.UpdateObjectMetaForUpdate(&workspaceKind.ObjectMeta, actor, now)
+
+		// update the workspace kind in K8s
+		if err := r.client.Update(ctx, workspaceKind); err != nil {
+			return err
+		}
+
+		updated = workspaceKind
+		return nil
+	})
+	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, ErrWorkspaceKindNotFound
 		}
+		// NOTE: we don't wrap these so the caller can unpack them: validation errors from the
+		//       Kubernetes API server, and conflicts which survived every retry
 		return nil, err
 	}
 
-	// ensure caller's revision matches current workspace kind revision
-	// prevents updates by callers with a stale view of the workspace kind
-	clusterRevision := modelsCommon.CalculateRevision(&workspaceKind.ObjectMeta)
-	callerRevision := workspaceKindUpdate.Revision
-	if clusterRevision != callerRevision {
-		return nil, ErrWorkspaceKindRevisionConflict
-	}
-
-	// apply the update to the workspace kind object
-	models.ApplyWorkspaceKindUpdateModelToWorkspaceKind(workspaceKindUpdate, workspaceKind)
-
-	// set audit annotations
-	modelsCommon.UpdateObjectMetaForUpdate(&workspaceKind.ObjectMeta, actor, now)
-
-	// update the workspace kind in K8s
-	// TODO: if the update fails due to a kubernetes conflict, this implies our cache is stale.
-	//       we should retry the entire update operation a few times (including recalculating clusterRevision)
-	//       before returning a 500 error to the caller (DO NOT return a 409, as it's not the caller's fault)
-	if err := r.client.Update(ctx, workspaceKind); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, ErrWorkspaceKindNotFound
-		}
-		if apierrors.IsInvalid(err) {
-			// NOTE: we don't wrap this error so we can unpack it in the caller
-			//       and extract the validation errors returned by the Kubernetes API server
-			return nil, err
-		}
-		return nil, err
-	}
-
-	workspaceKindUpdateModel := models.NewWorkspaceKindUpdateModelFromWorkspaceKind(workspaceKind)
-	return workspaceKindUpdateModel, nil
+	return models.NewWorkspaceKindUpdateModelFromWorkspaceKind(updated), nil
 }
 
 func (r *WorkspaceKindRepository) DeleteWorkspaceKind(ctx context.Context, name string) error {
