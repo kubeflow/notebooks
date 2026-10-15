@@ -23,7 +23,8 @@ describe('WorkspaceDetailsOverview', () => {
       <WorkspaceDetailsOverview workspace={mockWorkspace} details={mockDetails} detailsLoaded />,
     );
 
-    expect(screen.getByText('test-workspace')).toBeInTheDocument();
+    // Use testid to target the specific Resource Name field
+    expect(screen.getByTestId('workspace-resource-name')).toHaveTextContent('test-workspace');
     expect(screen.getByText('env=production')).toBeInTheDocument();
   });
 

@@ -22,6 +22,7 @@ import { WorkspaceDetailsPodTemplate } from '~/app/pages/Workspaces/Details/Work
 import { WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 import { WorkspaceResources } from '~/app/pages/Workspaces/WorkspaceResources';
 import { useWorkspaceDetails } from '~/app/hooks/useWorkspaceDetails';
+import { getWorkspaceDisplayName } from '~/shared/utilities/WorkspaceUtils';
 
 type WorkspaceDetailsProps = {
   workspace: WorkspacesWorkspaceListItem;
@@ -49,11 +50,13 @@ export const WorkspaceDetails: React.FunctionComponent<WorkspaceDetailsProps> = 
     setActiveTabKey(tabIndex);
   };
 
+  const displayName = getWorkspaceDisplayName(workspace);
+
   return (
     <DrawerPanelContent defaultSize="45%" minSize="30%" data-testid="workspace-details" isResizable>
       <DrawerHead>
-        <Title headingLevel="h6" data-testid="title">
-          {workspace.name}
+        <Title headingLevel="h2" size="xl" data-testid="title">
+          {displayName}
         </Title>
         <WorkspaceDetailsActions onEditClick={onEditClick} onDeleteClick={onDeleteClick} />
         <DrawerActions>
