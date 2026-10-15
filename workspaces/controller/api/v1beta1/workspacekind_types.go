@@ -243,7 +243,7 @@ type WorkspaceKindPodTemplate struct {
 
 	// service account configs for Workspace Pods
 	//  - each Workspace runs as its own ServiceAccount, which is created and owned by
-	//    the controller and named "ws-{WORKSPACE_NAME}"
+	//    the controller and named "ws-{WORKSPACE_NAME}-{RANDOM_SUFFIX}"
 	//  - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`
 	// +kubebuilder:validation:Optional
 	ServiceAccount *WorkspaceKindServiceAccount `json:"serviceAccount,omitempty"`

@@ -345,10 +345,10 @@ type WorkspacePodStatus struct {
 
 	// the name of the ServiceAccount that the Pod runs as
 	//  - this ServiceAccount is created and owned by the Workspace, and is stable for its lifetime
-	//  - it is reported here so that Roles, RoleBindings, and Istio AuthorizationPolicies
-	//    which reference the ServiceAccount do not have to recompute its name
+	//  - the name has a random suffix, so it is reported here for Roles, RoleBindings,
+	//    and Istio AuthorizationPolicies which need to reference the ServiceAccount
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:example="ws-my-workspace"
+	// +kubebuilder:example="ws-my-workspace-abcde"
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
 	// information about the Pod's containers

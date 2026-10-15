@@ -63,11 +63,6 @@ const (
 	// pod template constants
 	workspacePodTemplateContainerName = "main"
 
-	// requeue delay when the local cache is known to be stale (fixed delay,
-	// since a stale cache is not write contention, so no exponential backoff
-	// is needed)
-	requeueAfterStaleCache = 250 * time.Millisecond
-
 	// lengths for resource names
 	generateNameSuffixLength    = 6
 	nameHashLength              = 8
@@ -90,7 +85,6 @@ const (
 	stateMsgErrorMultipleStatefulSets      = "Workspace owns multiple StatefulSets: %s"
 	stateMsgErrorMultipleServices          = "Workspace owns multiple Services: %s"
 	stateMsgErrorMultipleServiceAccounts   = "Workspace owns multiple ServiceAccounts: %s"
-	stateMsgErrorServiceAccountNotOwned    = "Workspace ServiceAccount %s already exists and is not owned by the Workspace"
 	stateMsgErrorMultipleVirtualServices   = "Workspace owns multiple VirtualServices: %s"
 	stateMsgErrorStatefulSetWarningEvent   = "Workspace StatefulSet has warning event: %s"
 	stateMsgErrorPodUnschedulable          = "Workspace Pod is unschedulable: %s"
@@ -265,8 +259,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// fetch ServiceAccounts
-	// NOTE: even though the ServiceAccount has a deterministic name, we still filter by owner
-	//       so that a ServiceAccount left behind by an older name format is detected rather than orphaned
+	// NOTE: we filter by ServiceAccounts that are owned by the Workspace, not by name
+	//       this allows us to generate a random name for the ServiceAccount with `metadata.generateName`
 	var serviceAccountName string
 	ownedServiceAccounts := &corev1.ServiceAccountList{}
 	listOpts := &client.ListOptions{
@@ -293,31 +287,6 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		)
 	case numServiceAccounts == 0:
 		if err := r.Create(ctx, serviceAccount); err != nil {
-			// NOTE: the ServiceAccount name is deterministic, so `AlreadyExists` is reachable, and
-			//       means either our cache is stale or something else already owns that name
-			if apierrors.IsAlreadyExists(err) {
-				existingServiceAccount := &corev1.ServiceAccount{}
-				if getErr := r.Get(ctx, client.ObjectKeyFromObject(serviceAccount), existingServiceAccount); getErr != nil {
-					if apierrors.IsNotFound(getErr) {
-						// the cache is stale; requeue after a short delay instead of relying on the
-						// owned-object watch, which will not fire if the ServiceAccount is owned by another controller
-						log.V(2).Info("ServiceAccount already exists but is not in the cache yet, will requeue")
-						return ctrl.Result{RequeueAfter: requeueAfterStaleCache}, nil
-					}
-					log.Error(getErr, "unable to get existing ServiceAccount")
-					return ctrl.Result{}, getErr
-				}
-				if !metav1.IsControlledBy(existingServiceAccount, workspace) {
-					log.Error(err, "ServiceAccount already exists and is not owned by the Workspace", "serviceAccount", existingServiceAccount.Name)
-					return r.updateWorkspaceState(ctx, log, workspace,
-						kubefloworgv1beta1.WorkspaceStateError,
-						fmt.Sprintf(stateMsgErrorServiceAccountNotOwned, existingServiceAccount.Name),
-					)
-				}
-				// the cache is stale (the owner index did not return the ServiceAccount), requeue after
-				// a short delay so we pick it up once the cache catches up
-				return ctrl.Result{RequeueAfter: requeueAfterStaleCache}, nil
-			}
 			log.Error(err, "unable to create ServiceAccount")
 			return ctrl.Result{}, err
 		}
@@ -326,7 +295,18 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	default:
 		foundServiceAccount := &ownedServiceAccounts.Items[0]
 		serviceAccountName = foundServiceAccount.Name
-		if helper.CopyServiceAccountFields(serviceAccount, foundServiceAccount) {
+		// NOTE: as with the StatefulSet, the found ServiceAccount may retain the controller reference
+		//       of a previously deleted Workspace instance with the same name (different UID).
+		//       Adopting it keeps the ServiceAccount name stable, otherwise it would be garbage
+		//       collected and replaced by one with a new random name, restarting the Workspace Pod.
+		controllerRefUpdated, err := helper.ReplaceWorkspaceAsController(foundServiceAccount, workspace, r.Scheme)
+		if err != nil {
+			// should never happen, we only list ServiceAccounts that are owned by a Workspace
+			// and ReplaceWorkspaceAsController only fails if the current controller is not a Workspace.
+			log.Error(err, "INTERNAL ERROR: unable to replace controller reference on ServiceAccount")
+			return ctrl.Result{}, err
+		}
+		if helper.CopyServiceAccountFields(serviceAccount, foundServiceAccount) || controllerRefUpdated {
 			if err := r.Update(ctx, foundServiceAccount); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while updating ServiceAccount, will requeue")
@@ -855,31 +835,18 @@ func hashName(parts ...string) string {
 	return hex.EncodeToString(sum[:])[:nameHashLength]
 }
 
-// generateServiceAccountName generates the name of the ServiceAccount for a Workspace,
-// the format is "ws-{WORKSPACE_NAME}", truncated with a hash suffix if it does not fit
-func generateServiceAccountName(workspaceName string) string {
-	// NOTE: this name is deterministic, unlike the `metadata.generateName` used by the other owned
-	//       resources, because users and other controllers reference the ServiceAccount by name
-	//       (in RoleBindings, and in Istio AuthorizationPolicy principals)
-	name := fmt.Sprintf("ws-%s", workspaceName)
-	if len(name) <= maxServiceAccountNameLength {
-		return name
-	}
-	// NOTE: we hash the Workspace name rather than the truncated result, so two Workspaces
-	//       sharing a long prefix get different ServiceAccount names
-	suffix := hashName(workspaceName)
-	return fmt.Sprintf("%s-%s", name[:maxServiceAccountNameLength-len(suffix)-1], suffix)
-}
-
 // generateServiceAccount generates a ServiceAccount for a Workspace
 func generateServiceAccount(workspace *kubefloworgv1beta1.Workspace) *corev1.ServiceAccount {
+	// generate name prefix
+	namePrefix := generateNamePrefix(workspace.Name, maxServiceAccountNameLength)
+
 	//
 	// NOTE: if you add new fields, ensure they are reflected in `helper.CopyServiceAccountFields()`
 	//
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      generateServiceAccountName(workspace.Name),
-			Namespace: workspace.Namespace,
+			GenerateName: namePrefix,
+			Namespace:    workspace.Namespace,
 			Labels: map[string]string{
 				workspaceNameLabel: workspace.Name,
 			},

@@ -165,8 +165,9 @@ spec:
         my-workspace-kind-sts-annotation: "my-value"
 
     ## service account configs for Workspace Pods
-    ##  - each Workspace runs as its own ServiceAccount named "ws-{WORKSPACE_NAME}",
-    ##    which the controller creates, owns, and deletes along with the Workspace
+    ##  - each Workspace runs as its own ServiceAccount named
+    ##    "ws-{WORKSPACE_NAME}-{RANDOM_SUFFIX}", which the controller creates, owns,
+    ##    and deletes along with the Workspace
     ##  - the resolved name is reported in the Workspace
     ##    `status.podTemplatePod.serviceAccountName`
     ##
