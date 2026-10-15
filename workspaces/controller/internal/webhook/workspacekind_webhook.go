@@ -206,12 +206,6 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 	// if the ports config changed, we need to validate all image config values again
 	shouldValidateAllImageConfigValues := !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.Ports, oldWorkspaceKind.Spec.PodTemplate.Ports)
 
-	// generate helper maps for podtemplate ports
-	podTemplatePortsIdMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
-	for _, port := range newWorkspaceKind.Spec.PodTemplate.Ports {
-		podTemplatePortsIdMap[port.Id] = port
-	}
-
 	// validate activity probe if probe changed
 	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.ActivityProbe, oldWorkspaceKind.Spec.PodTemplate.ActivityProbe) {
 		activityProbePath := field.NewPath("spec", "podTemplate", "activityProbe")
@@ -391,6 +385,12 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 	//       any options were changed or removed
 	allErrs = append(allErrs, validateDefaultImageConfig(newWorkspaceKind, newImageConfigIdMap)...)
 	allErrs = append(allErrs, validateDefaultPodConfig(newWorkspaceKind, newPodConfigIdMap)...)
+
+	// generate helper maps for podtemplate ports
+	podTemplatePortsIdMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
+	for _, port := range newWorkspaceKind.Spec.PodTemplate.Ports {
+		podTemplatePortsIdMap[port.Id] = port
+	}
 
 	// validate imageConfig values
 	// NOTE: we only need to validate new or changed imageConfig values
