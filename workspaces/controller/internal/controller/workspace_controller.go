@@ -320,7 +320,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// generate StatefulSet
-	statefulSet, err := generateStatefulSet(workspace, workspaceKind, currentImageConfig.Spec, currentPodConfig.Spec, serviceAccountName)
+	statefulSet, err := generateStatefulSet(workspace, workspaceKind, &currentImageConfig.Spec, &currentPodConfig.Spec, serviceAccountName)
 	if err != nil {
 		log.V(0).Info("failed to generate StatefulSet for Workspace", "error", err.Error())
 		return r.updateWorkspaceState(ctx, log, workspace,
@@ -966,7 +966,7 @@ func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log log
 }
 
 // generateStatefulSet generates a StatefulSet for a Workspace
-func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec, podConfigSpec kubefloworgv1beta1.PodConfigSpec, serviceAccountName string) (*appsv1.StatefulSet, error) { //nolint:gocritic
+func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec *kubefloworgv1beta1.ImageConfigSpec, podConfigSpec *kubefloworgv1beta1.PodConfigSpec, serviceAccountName string) (*appsv1.StatefulSet, error) {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxStatefulSetNameLength)
 
@@ -1278,12 +1278,8 @@ func generateContainerEnv(
 
 	for _, env := range wskExtraEnv {
 		envCopy := *env.DeepCopy()
-		if idx, exists := envIndexByName[envCopy.Name]; exists {
-			mergedEnv[idx] = envCopy
-		} else {
-			envIndexByName[envCopy.Name] = len(mergedEnv)
-			mergedEnv = append(mergedEnv, envCopy)
-		}
+		envIndexByName[envCopy.Name] = len(mergedEnv)
+		mergedEnv = append(mergedEnv, envCopy)
 	}
 
 	for _, env := range podConfigExtraEnv {
