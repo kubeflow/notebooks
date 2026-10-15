@@ -51,6 +51,8 @@ const buildMockPodConfigValue = (
   labels: [],
   hidden: false,
   restrictions: { deny: false },
+  podMetadata: { labels: {}, annotations: {} },
+  statefulSetMetadata: { labels: {}, annotations: {} },
 });
 
 describe('Summary step', () => {

@@ -14,4 +14,6 @@ export const mockPodConfig: WorkspaceKindPodConfigValue = {
     limits: { 'nvidia.com/gpu': '2' },
   },
   restrictions: { deny: false },
+  podMetadata: { labels: {}, annotations: {} },
+  statefulSetMetadata: { labels: {}, annotations: {} },
 };

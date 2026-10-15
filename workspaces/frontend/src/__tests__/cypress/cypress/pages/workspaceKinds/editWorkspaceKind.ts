@@ -997,6 +997,14 @@ class EditWorkspaceKind {
     cy.findByTestId(`activity-rule-effect-cell-${index}`).should('have.text', value);
   }
 
+  assertActivityRuleNamespaceMatchCell(index: number, value: string) {
+    cy.findByTestId(`activity-rule-ns-match-cell-${index}`).should('have.text', value);
+  }
+
+  assertActivityRulePodConfigMatchCell(index: number, value: string) {
+    cy.findByTestId(`activity-rule-pc-match-cell-${index}`).should('have.text', value);
+  }
+
   clickEditActivityRule(index: number) {
     cy.findByTestId(`activity-rule-edit-${index}`).click();
   }

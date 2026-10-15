@@ -159,11 +159,15 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
     [type],
   );
 
+  const parsedInputValue = parseFloat(inputValue);
+  const displayValue =
+    Number.isNaN(parsedInputValue) || (parsedInputValue === 0 && min > 0) ? 1 : parsedInputValue;
+
   return (
     <Split className="workspacekind-form-resource-input">
       <SplitItem>
         <NumberInput
-          value={parseFloat(inputValue) || 1}
+          value={displayValue}
           placeholder={placeholder}
           onMinus={handleDecrement}
           onChange={handleNumberInputChange}

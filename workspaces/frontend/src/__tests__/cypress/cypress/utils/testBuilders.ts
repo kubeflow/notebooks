@@ -153,6 +153,8 @@ export const buildMockPodConfigWithLabels = (
   redirect: undefined,
   clusterMetrics: undefined,
   restrictions: { deny: false },
+  podMetadata: { labels: {}, annotations: {} },
+  statefulSetMetadata: { labels: {}, annotations: {} },
 });
 
 type InterceptListValuesOptions = {

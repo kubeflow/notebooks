@@ -15,11 +15,12 @@ import {
   resolveRedirectChain,
 } from '~/app/pages/Workspaces/Form/utils/resolveRedirectChain';
 
-interface WorkspaceFormOptionCardProps {
-  option: OptionValue;
+interface WorkspaceFormOptionCardProps<T extends OptionValue> {
+  option: T;
+  allOptions: T[];
   isSelected: boolean;
   isDefault: boolean;
-  onClick: (option: OptionValue) => void;
+  onClick: (option: T) => void;
   onChange: (event: React.FormEvent<HTMLInputElement>) => void;
   activePopoverId: string | null;
   pinnedPopoverId: string | null;
@@ -27,9 +28,7 @@ interface WorkspaceFormOptionCardProps {
   onPinnedPopoverChange: (id: string | null) => void;
 }
 
-export const WorkspaceFormOptionCard: React.FC<
-  WorkspaceFormOptionCardProps & { allOptions: OptionValue[] }
-> = ({
+export const WorkspaceFormOptionCard = <T extends OptionValue>({
   option,
   isSelected,
   isDefault,
@@ -40,7 +39,7 @@ export const WorkspaceFormOptionCard: React.FC<
   onActivePopoverChange,
   onPinnedPopoverChange,
   allOptions,
-}) => {
+}: WorkspaceFormOptionCardProps<T>): React.ReactElement => {
   const { chain: redirectChain } = option.redirect
     ? resolveRedirectChain(option, allOptions)
     : { chain: undefined };

@@ -74,11 +74,13 @@ export const mockWorkspaceKind3: WorkspacekindsWorkspaceKindListItem = buildMock
         secondsSinceActive: 3600,
         minRunningSeconds: 300,
       },
-      match: {
-        matchNamespace: {
-          selector: { matchLabels: { tier: 'development' } },
+      match: [
+        {
+          matchNamespace: {
+            selector: { matchLabels: { tier: 'development' } },
+          },
         },
-      },
+      ],
       effect: {
         pauseWorkspace: true,
       },
@@ -639,5 +641,7 @@ export const mockListValuesPodConfigs: OptionsPodConfigValue[] = [
       { key: 'gpu', value: '1' },
     ],
     restrictions: { deny: false },
+    podMetadata: { labels: {}, annotations: {} },
+    statefulSetMetadata: { labels: {}, annotations: {} },
   },
 ];
