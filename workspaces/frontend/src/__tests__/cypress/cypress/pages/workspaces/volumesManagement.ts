@@ -134,6 +134,14 @@ class VolumesAttachModal {
     return this.findPVCSelect().click();
   }
 
+  assertPVCOptionAvailable(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.openPVCDropdown();
+    return cy
+      .contains('.pf-v6-c-menu__list-item', pvcName)
+      .should('be.visible')
+      .and('not.have.class', 'pf-m-disabled');
+  }
+
   selectPVC(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     this.openPVCDropdown();
     return cy.contains('.pf-v6-c-menu__list-item', pvcName).click() as unknown as Cypress.Chainable<

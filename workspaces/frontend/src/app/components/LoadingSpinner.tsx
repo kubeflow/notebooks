@@ -6,6 +6,6 @@ import { Spinner } from '@patternfly/react-core/dist/esm/components/Spinner';
 
 export const LoadingSpinner: React.FC = () => (
   <Bullseye>
-    <Spinner />
+    <Spinner data-testid="loading-spinner" />
   </Bullseye>
 );

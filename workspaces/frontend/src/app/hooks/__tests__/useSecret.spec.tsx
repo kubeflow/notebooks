@@ -1,5 +1,4 @@
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import useSecret from '~/app/hooks/useSecret';
 import { NotebookApis } from '~/shared/api/notebookApi';
@@ -7,22 +6,12 @@ import { NotebookApis } from '~/shared/api/notebookApi';
 jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: jest.fn(),
 }));
-jest.mock('~/app/hooks/useNamespaceSelectorWrapper', () => ({
-  useNamespaceSelectorWrapper: jest.fn(),
-}));
 
 const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
-const mockUseNamespaceSelectorWrapper = useNamespaceSelectorWrapper as jest.MockedFunction<
-  typeof useNamespaceSelectorWrapper
->;
 
 describe('useSecret', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNamespaceSelectorWrapper.mockReturnValue({
-      selectedNamespace: 'test-namespace',
-      namespacesLoaded: true,
-    } as ReturnType<typeof useNamespaceSelectorWrapper>);
   });
 
   it('returns initial state when API is not available', () => {
@@ -32,7 +21,9 @@ describe('useSecret', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result } = renderHook(() => useSecret({ isOpen: true, secretName: 'my-secret' }));
+    const { result } = renderHook(() =>
+      useSecret({ isOpen: true, secretName: 'my-secret', namespace: 'test-namespace' }),
+    );
 
     const [details, loaded] = result.current;
     expect(details).toEqual({ keyValuePairs: [], immutable: false, type: 'Opaque' });
@@ -46,7 +37,9 @@ describe('useSecret', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result } = renderHook(() => useSecret({ isOpen: false, secretName: 'my-secret' }));
+    const { result } = renderHook(() =>
+      useSecret({ isOpen: false, secretName: 'my-secret', namespace: 'test-namespace' }),
+    );
 
     const [details, loaded] = result.current;
     expect(details).toEqual({ keyValuePairs: [], immutable: false, type: 'Opaque' });
@@ -60,7 +53,9 @@ describe('useSecret', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result } = renderHook(() => useSecret({ isOpen: true, secretName: undefined }));
+    const { result } = renderHook(() =>
+      useSecret({ isOpen: true, secretName: undefined, namespace: 'test-namespace' }),
+    );
 
     const [details, loaded] = result.current;
     expect(details).toEqual({ keyValuePairs: [], immutable: false, type: 'Opaque' });
@@ -85,7 +80,7 @@ describe('useSecret', () => {
     });
 
     const { result, waitForNextUpdate } = renderHook(() =>
-      useSecret({ isOpen: true, secretName: 'my-secret' }),
+      useSecret({ isOpen: true, secretName: 'my-secret', namespace: 'test-namespace' }),
     );
     await waitForNextUpdate();
 
@@ -118,7 +113,7 @@ describe('useSecret', () => {
     });
 
     const { result, waitForNextUpdate } = renderHook(() =>
-      useSecret({ isOpen: true, secretName: 'tls-secret' }),
+      useSecret({ isOpen: true, secretName: 'tls-secret', namespace: 'test-namespace' }),
     );
     await waitForNextUpdate();
 
@@ -140,7 +135,7 @@ describe('useSecret', () => {
     });
 
     const { result, waitForNextUpdate } = renderHook(() =>
-      useSecret({ isOpen: true, secretName: 'empty-secret' }),
+      useSecret({ isOpen: true, secretName: 'empty-secret', namespace: 'test-namespace' }),
     );
     await waitForNextUpdate();
 
@@ -168,7 +163,7 @@ describe('useSecret', () => {
     });
 
     const { result, waitForNextUpdate } = renderHook(() =>
-      useSecret({ isOpen: true, secretName: 'my-secret' }),
+      useSecret({ isOpen: true, secretName: 'my-secret', namespace: 'test-namespace' }),
     );
     await waitForNextUpdate();
 

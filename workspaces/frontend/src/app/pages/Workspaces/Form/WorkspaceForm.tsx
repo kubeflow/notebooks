@@ -685,6 +685,7 @@ const WorkspaceForm: React.FC = () => {
                     {currentStep === WorkspaceFormSteps.Properties && (
                       <WorkspaceFormPropertiesSelection
                         mode={mode}
+                        namespace={namespace}
                         selectedProperties={data.properties}
                         onSelect={(properties) => setData('properties', properties)}
                         homeVolumeMountPath={data.kind?.podTemplate.volumeMountPaths.home}

@@ -1,5 +1,4 @@
 import { renderHook } from '~/__tests__/unit/testUtils/hooks';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import usePVCs from '~/app/hooks/usePVCs';
 import { NotebookApis } from '~/shared/api/notebookApi';
@@ -7,22 +6,12 @@ import { NotebookApis } from '~/shared/api/notebookApi';
 jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: jest.fn(),
 }));
-jest.mock('~/app/hooks/useNamespaceSelectorWrapper', () => ({
-  useNamespaceSelectorWrapper: jest.fn(),
-}));
 
 const mockUseNotebookAPI = useNotebookAPI as jest.MockedFunction<typeof useNotebookAPI>;
-const mockUseNamespaceSelectorWrapper = useNamespaceSelectorWrapper as jest.MockedFunction<
-  typeof useNamespaceSelectorWrapper
->;
 
 describe('usePVCs', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNamespaceSelectorWrapper.mockReturnValue({
-      selectedNamespace: 'test-namespace',
-      namespacesLoaded: true,
-    } as ReturnType<typeof useNamespaceSelectorWrapper>);
   });
 
   it('returns empty list and no error when API is not yet available', () => {
@@ -32,7 +21,7 @@ describe('usePVCs', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result } = renderHook(() => usePVCs());
+    const { result } = renderHook(() => usePVCs('test-namespace'));
 
     expect(result.current.pvcs).toEqual([]);
     expect(result.current.pvcsLoaded).toBe(false);
@@ -40,18 +29,13 @@ describe('usePVCs', () => {
   });
 
   it('returns empty list and no error when namespace is not yet available', () => {
-    mockUseNamespaceSelectorWrapper.mockReturnValue({
-      selectedNamespace: '',
-      namespacesLoaded: false,
-    } as ReturnType<typeof useNamespaceSelectorWrapper>);
-
     mockUseNotebookAPI.mockReturnValue({
       api: {} as NotebookApis,
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
     });
 
-    const { result } = renderHook(() => usePVCs());
+    const { result } = renderHook(() => usePVCs(''));
 
     expect(result.current.pvcs).toEqual([]);
     expect(result.current.pvcsLoaded).toBe(false);
@@ -71,7 +55,7 @@ describe('usePVCs', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result, waitForNextUpdate } = renderHook(() => usePVCs());
+    const { result, waitForNextUpdate } = renderHook(() => usePVCs('test-namespace'));
     await waitForNextUpdate();
 
     expect(listPvCs).toHaveBeenCalledWith('test-namespace');
@@ -89,7 +73,7 @@ describe('usePVCs', () => {
       refreshAllAPI: jest.fn(),
     });
 
-    const { result, waitForNextUpdate } = renderHook(() => usePVCs());
+    const { result, waitForNextUpdate } = renderHook(() => usePVCs('test-namespace'));
     await waitForNextUpdate();
 
     expect(result.current.pvcs).toEqual([]);
@@ -97,5 +81,28 @@ describe('usePVCs', () => {
     expect(result.current.pvcLoadError).toBe(
       'Failed to load volume details. Connection info may be unavailable.',
     );
+  });
+
+  it('re-fetches when the namespace prop changes, independent of any global namespace selector', async () => {
+    const listPvCs = jest.fn().mockResolvedValue({ data: [] });
+
+    mockUseNotebookAPI.mockReturnValue({
+      api: { pvc: { listPvCs } } as unknown as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+
+    const { rerender, waitForNextUpdate } = renderHook(
+      ({ namespace }: { namespace: string }) => usePVCs(namespace),
+      { initialProps: { namespace: 'workspace-namespace' } },
+    );
+    await waitForNextUpdate();
+
+    expect(listPvCs).toHaveBeenCalledWith('workspace-namespace');
+
+    rerender({ namespace: 'other-namespace' });
+    await waitForNextUpdate();
+
+    expect(listPvCs).toHaveBeenCalledWith('other-namespace');
   });
 });
