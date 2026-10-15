@@ -20,6 +20,7 @@ import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupW
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 
 interface ActivityRuleModalProps {
+  isOpen: boolean;
   onClose: () => void;
   onSubmit: (rule: ActivityRuleEntry) => void;
   existingRule: ActivityRuleEntry | null;
@@ -37,6 +38,7 @@ const rowsToLabels = (rows: KeyValueRow[]): Record<string, string> | undefined =
 };
 
 export const ActivityRuleModal: React.FC<ActivityRuleModalProps> = ({
+  isOpen,
   onClose,
   onSubmit,
   existingRule,
@@ -84,7 +86,7 @@ export const ActivityRuleModal: React.FC<ActivityRuleModalProps> = ({
 
   return (
     <Modal
-      isOpen
+      isOpen={isOpen}
       onClose={onClose}
       variant="large"
       data-testid="activity-rule-modal"

@@ -163,6 +163,7 @@ export const WorkspaceKindFormActivityRules: React.FC<WorkspaceKindFormActivityR
 
       {isModalOpen && (
         <ActivityRuleModal
+          isOpen={isModalOpen}
           key={editIndex !== null ? activityRules[editIndex].id : 'new'}
           onClose={handleModalClose}
           onSubmit={handleModalSubmit}
