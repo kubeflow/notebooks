@@ -134,6 +134,15 @@ class WorkspaceKindSummary {
       .should('have.text', name);
   }
 
+  stopWorkspaceInNamespace(namespace: string, workspaceName: string) {
+    this.findWorkspaceTable()
+      .findByText(namespace)
+      .closest('tr')
+      .findByTestId('action-column')
+      .findByTestId(`stop${workspaceName}`)
+      .click();
+  }
+
   findEmptyState() {
     return cy.findByTestId('empty-state');
   }

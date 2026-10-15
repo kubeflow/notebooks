@@ -440,7 +440,10 @@ describe('WorkspaceTable actions column', () => {
     const actionsCell = screen.getByTestId('action-column');
     expect(actionsCell).toContainElement(screen.getByTestId(`start${workspace.name}`));
     expect(screen.queryByTestId(`stop${workspace.name}`)).not.toBeInTheDocument();
-    expect(screen.getByTestId(`start${workspace.name}`)).toHaveAttribute('aria-label', 'More info');
+    expect(screen.getByTestId(`start${workspace.name}`)).toHaveAttribute(
+      'aria-label',
+      'start workspace',
+    );
 
     await user.click(screen.getByTestId(`start${workspace.name}`));
     expect(requestStartAction).toHaveBeenCalledWith({ workspace, onActionDone: refreshWorkspaces });

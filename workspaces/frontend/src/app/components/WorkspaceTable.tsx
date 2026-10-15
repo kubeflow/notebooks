@@ -504,6 +504,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                   className="kubeflow-workspace-actions-cell"
                                 >
                                   <Flex
+                                    justifyContent={{ default: 'justifyContentFlexEnd' }}
                                     alignItems={{ default: 'alignItemsCenter' }}
                                     gap={{ default: 'gapXs' }}
                                   >
@@ -513,8 +514,8 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                         <Button
                                           variant="plain"
                                           hasNoPadding
-                                          aria-label="More info"
-                                          icon={<StopIcon />}
+                                          aria-label="stop workspace"
+                                          icon={<StopIcon aria-label="stop workspace" />}
                                           data-testid={`stop${workspace.name}`}
                                           onClick={() =>
                                             requestStopAction({
@@ -530,7 +531,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                         <Button
                                           variant="plain"
                                           hasNoPadding
-                                          aria-label="More info"
+                                          aria-label="start workspace"
                                           icon={<PlayIcon />}
                                           data-testid={`start${workspace.name}`}
                                           onClick={() =>
