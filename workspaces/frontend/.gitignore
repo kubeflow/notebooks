@@ -2,6 +2,9 @@
 bin/*
 Dockerfile.cross
 
+# Local environment overrides
+.env*.local
+
 # Package managers generated files
 **/node_modules
 dist
