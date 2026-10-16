@@ -84,6 +84,7 @@ export const WorkspaceFormOptionCard = <T extends OptionValue>({
       onClick={handleCardClick}
     >
       <CardHeader
+        hasWrap
         selectableActions={{
           selectableActionId: `selectable-actions-item-${cardId}`,
           selectableActionAriaLabelledby: option.displayName.replace(/ /g, '-'),
