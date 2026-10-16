@@ -20,6 +20,8 @@ import { WorkspaceKindFormActivityRules } from '~/app/pages/WorkspaceKinds/Form/
 
 // The Activity Probe panel is hidden until its UX has been reviewed. An existing activityProbe
 // is still preserved on save.
+// TODO: When re-enabling this panel, remove the "configure Activity Probe in the YAML" note from
+// the HelperText in WorkspaceKindFormActivityRules.tsx.
 const SHOW_ACTIVITY_PROBE_PANEL = false;
 
 // Display fallbacks mirroring the CRD defaults for unset fields.
