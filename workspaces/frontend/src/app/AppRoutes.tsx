@@ -1,9 +1,10 @@
 import React from 'react';
-import { Route, Routes, Navigate } from 'react-router-dom';
+import { Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import { AppRoutePaths } from '~/app/routes';
 import { WorkspaceKindSummaryWrapper } from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryWrapper';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
 import { useAppContext } from '~/app/context/AppContext';
+import { WorkspaceKindsRestrictedAccess } from '~/app/components/WorkspaceKindsRestrictedAccess';
 import { DEV_MODE } from '~/shared/utilities/const';
 import { Debug } from './pages/Debug/Debug';
 import { NotFound } from './pages/notFound/NotFound';
@@ -59,6 +60,12 @@ export const useNavData = (): NavDataItem[] => [
   ...useAdminDebugSettings(),
 ];
 
+const WorkspaceKindAdminRoute: React.FC = () => {
+  const { user } = useAppContext();
+
+  return user?.clusterAdmin ? <Outlet /> : <WorkspaceKindsRestrictedAccess />;
+};
+
 const AppRoutes: React.FC = () => {
   const { user } = useAppContext();
 
@@ -69,8 +76,10 @@ const AppRoutes: React.FC = () => {
       <Route path={AppRoutePaths.workspaces} element={<WorkspacesWrapper />} />
       <Route path={AppRoutePaths.workspaceKindSummary} element={<WorkspaceKindSummaryWrapper />} />
       <Route path={AppRoutePaths.workspaceKinds} element={<WorkspaceKinds />} />
-      <Route path={AppRoutePaths.workspaceKindCreate} element={<WorkspaceKindForm />} />
-      <Route path={AppRoutePaths.workspaceKindEdit} element={<WorkspaceKindForm />} />
+      <Route element={<WorkspaceKindAdminRoute />}>
+        <Route path={AppRoutePaths.workspaceKindCreate} element={<WorkspaceKindForm />} />
+        <Route path={AppRoutePaths.workspaceKindEdit} element={<WorkspaceKindForm />} />
+      </Route>
       <Route
         path={AppRoutePaths.root}
         element={<Navigate to={AppRoutePaths.workspaces} replace />}
