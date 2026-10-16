@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -48,15 +47,6 @@ const (
 	// activity probes target (matches workspacePodTemplateContainerName in the controller).
 	probeContainerName = "main"
 
-	// jupyterStatusPath is the Jupyter Server endpoint used to determine activity.
-	jupyterStatusPath = "/api/status"
-
-	// ProbeMessagePrefixJupyterFailed is the message prefix for failed Jupyter probe results.
-	ProbeMessagePrefixJupyterFailed = "Jupyter probe failed: "
-
-	// ProbeMessageJupyterSucceeded is the message for successful Jupyter probe results.
-	ProbeMessageJupyterSucceeded = "Jupyter probe succeeded"
-
 	// ProbeMessagePrefixPodExecFailed is the message prefix for failed PodExec probe results.
 	ProbeMessagePrefixPodExecFailed = "PodExec probe failed: "
 
@@ -65,9 +55,6 @@ const (
 
 	// ProbeMessagePodNotReady is the message when a Workspace Pod is not ready to be probed.
 	ProbeMessagePodNotReady = "probe failed: Workspace Pod is not ready"
-
-	// ProbeMessageNoTypeConfigured is the message when no probe type is configured on a Workspace.
-	ProbeMessageNoTypeConfigured = "probe failed: no probe type configured"
 )
 
 // ProbeResult captures the outcome of an activity probe execution.
@@ -134,12 +121,6 @@ func newSuccessResult(startTime, endTime time.Time, message string, lastActivity
 	}
 }
 
-// jupyterStatusResponse is the subset of the Jupyter `/api/status` response we care about.
-type jupyterStatusResponse struct {
-	// LastActivity is an ISO 8601 timestamp (e.g. "2030-01-01T00:00:00Z").
-	LastActivity string `json:"last_activity"`
-}
-
 // podExecOutput is the JSON contract written by a podExec probe script to OUTPUT_JSON_PATH.
 type podExecOutput struct {
 	// HasActivity, when set, indicates whether the Workspace was active at the probe end time.
@@ -156,13 +137,6 @@ type PodExecutor interface {
 	// process and capturing stdout and stderr. It returns an error if the command exits
 	// with a non-zero status code or if the exec stream fails.
 	Exec(ctx context.Context, namespace, podName, container string, command []string, stdin io.Reader, stdout, stderr io.Writer) error
-}
-
-// HTTPProber performs an HTTP GET request against a Workspace Pod, used by the Jupyter probe.
-// It is an interface to allow the controller to inject a fake implementation in tests.
-type HTTPProber interface {
-	// Get performs an HTTP GET against the given URL and returns the response.
-	Get(ctx context.Context, url string) (*http.Response, error)
 }
 
 // RemoteCommandExecutor is a PodExecutor backed by the Kubernetes exec subresource.
@@ -211,83 +185,9 @@ func (e *RemoteCommandExecutor) Exec(ctx context.Context, namespace, podName, co
 	})
 }
 
-// DefaultHTTPProber is an HTTPProber backed by a standard http.Client.
-type DefaultHTTPProber struct {
-	Client *http.Client
-}
-
-// Get implements HTTPProber using the underlying http.Client.
-func (p *DefaultHTTPProber) Get(ctx context.Context, url string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-	if err != nil {
-		return nil, err
-	}
-	client := p.Client
-	if client == nil {
-		client = http.DefaultClient
-	}
-	return client.Do(req)
-}
-
 // isDeadlineExceeded reports whether the given error (or the context) was caused by a deadline.
 func isDeadlineExceeded(ctx context.Context, err error) bool {
 	return errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded)
-}
-
-// RunJupyterProbe polls the Jupyter `/api/status` endpoint on the Workspace Pod and
-// extracts the `last_activity` timestamp.
-//
-// The serviceHost should be the DNS name (or IP) that resolves to the Workspace Pod, and
-// port is the container port to probe. basePath is the HTTP path prefix (if any) used by the
-// Jupyter server. A failed probe (connection error, non-2xx status, invalid body) returns a
-// ProbeResult with Result == Failure/Timeout and a nil LastActivity, so that failing probes
-// never trigger activity rule effects.
-func RunJupyterProbe(ctx context.Context, prober HTTPProber, serviceHost string, port int32, basePath string, timeout time.Duration) *ProbeResult {
-	startTime := time.Now()
-
-	probeCtx := ctx
-	var cancel context.CancelFunc
-	if timeout > 0 {
-		probeCtx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	// ensure basePath has no trailing slash and jupyterStatusPath starts with a slash
-	url := fmt.Sprintf("http://%s:%d%s%s", serviceHost, port, strings.TrimSuffix(basePath, "/"), jupyterStatusPath)
-
-	resp, err := prober.Get(probeCtx, url)
-	endTime := time.Now()
-
-	if err != nil {
-		if isDeadlineExceeded(probeCtx, err) {
-			return newTimeoutResult(startTime, endTime, fmt.Sprintf("%stimeout after %dms", ProbeMessagePrefixJupyterFailed, timeout.Milliseconds()))
-		}
-		return newFailureResult(startTime, fmt.Sprintf("%s%v", ProbeMessagePrefixJupyterFailed, err))
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return newFailureResult(startTime, fmt.Sprintf("%sHTTP %d", ProbeMessagePrefixJupyterFailed, resp.StatusCode))
-	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxProbeResponseBytes))
-	if err != nil {
-		return newFailureResult(startTime, fmt.Sprintf("%sunable to read response body: %v", ProbeMessagePrefixJupyterFailed, err))
-	}
-
-	var status jupyterStatusResponse
-	if err := json.Unmarshal(body, &status); err != nil {
-		return newFailureResult(startTime, ProbeMessagePrefixJupyterFailed+"invalid response body")
-	}
-
-	lastActivity, err := parseISO8601(status.LastActivity)
-	if err != nil {
-		return newFailureResult(startTime, fmt.Sprintf("%sinvalid last_activity: %v", ProbeMessagePrefixJupyterFailed, err))
-	}
-
-	return newSuccessResult(startTime, endTime, ProbeMessageJupyterSucceeded, &lastActivity)
 }
 
 // RunPodExecProbe executes the given script inside the Workspace Pod via the Kubernetes exec
