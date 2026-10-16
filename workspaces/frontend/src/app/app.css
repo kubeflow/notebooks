@@ -72,12 +72,53 @@ html:not(.mui-theme) .pf-v6-c-card.summary-card--clickable:hover {
   text-decoration: none;
 }
 
-.workspace-form__full-height {
-  height: 100%;
+/* Contain the DrawerContentBody scroll so the workspace form's inner
+   flex chain can propagate bounded height to the filter sidebar.
+   Scoped via the class set on WorkspaceForm's Flex wrapper. */
+.workspace-form__full-height.pf-v6-l-flex {
+  overflow: hidden;
 }
 
+/* Container for the form step content */
+.workspace-form__step-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The outer Flex column (DrawerContentBody child) */
+.workspace-form__full-height {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The Content wrapper inside WorkspaceFormImageSelection /
+   WorkspaceFormPodConfigSelection */
+.workspace-form__full-height.pf-v6-c-content,
+.pf-v6-c-page__main-section.workspace-form__full-height {
+  overflow: hidden;
+}
+
+/* The Split layout that holds the sidebar + card grid */
+.workspace-form__full-height > .pf-v6-l-split {
+  height: 100%;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* The sidebar SplitItem itself: scrolls within its bounded height */
 .workspace-form__filter-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
   min-width: 200px;
+  overflow-y: auto;
 }
 
 .filter-label--disabled {
