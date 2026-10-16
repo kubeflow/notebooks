@@ -1,13 +1,14 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { workspaceKindSummary } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKindSummary';
+import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
 import { workspaceKinds } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
 import type { WorkspaceKindSummaryNavigationState } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKindSummary';
 import {
   deleteModal,
   workspaceDetailsDrawer,
   workspaces,
+  stopModal,
 } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
-import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
 import {
   buildMockNamespace,
   buildMockWorkspace,
@@ -20,6 +21,7 @@ import {
   buildMockOptionInfo,
   buildMockWorkspaceList,
   buildMockWorkspaceDetails,
+  buildMockActionsWorkspaceActionPause,
 } from '~/shared/mock/mockBuilder';
 import {
   buildMockWorkspaceWithGPU,
@@ -153,6 +155,49 @@ const visitWorkspaceKindSummary = (
 
 describe('Workspace Kind Summary', () => {
   describe('Basic', () => {
+    it('stops the chosen workspace when the same name exists in two namespaces', () => {
+      const { mockNamespaceA, mockNamespaceB, namespaceAWorkspaces, namespaceBWorkspaces } =
+        setupMultiNamespaceWorkspaces({
+          workspaceKindName: TEST_WORKSPACE_KIND,
+          namespaceACount: 1,
+          namespaceBCount: 1,
+        });
+      const workspaceName = namespaceBWorkspaces[0].name;
+      expect(namespaceAWorkspaces[0].name).to.equal(workspaceName);
+
+      cy.interceptApi(
+        'POST /api/:apiVersion/workspaces/:namespace/:workspaceName/actions/pause',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespaceA.name,
+            workspaceName,
+          },
+        },
+        mockModArchResponse(buildMockActionsWorkspaceActionPause()),
+      ).as('stopNamespaceA');
+      cy.interceptApi(
+        'POST /api/:apiVersion/workspaces/:namespace/:workspaceName/actions/pause',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: mockNamespaceB.name,
+            workspaceName,
+          },
+        },
+        mockModArchResponse(buildMockActionsWorkspaceActionPause()),
+      ).as('stopNamespaceB');
+
+      visitWorkspaceKindSummary(TEST_WORKSPACE_KIND);
+      navBar.selectNamespace(mockNamespaceA.name);
+      workspaceKindSummary.stopWorkspaceInNamespace(mockNamespaceB.name, workspaceName);
+      stopModal.findStopButton().click();
+
+      cy.wait('@stopNamespaceB');
+      cy.get('@stopNamespaceA.all').should('have.length', 0);
+      stopModal.assertModalNotExists();
+    });
+
     it('should display the workspace kind summary page with correct title', () => {
       setupWorkspaceKindSummary({
         workspaceKindName: TEST_WORKSPACE_KIND,

@@ -197,6 +197,27 @@ describe('Workspaces', () => {
       });
     });
 
+    it('displays the applicable status button and omits Start and Stop from the menu', () => {
+      const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(
+        DEFAULT_NAMESPACE,
+        2,
+      );
+
+      navigateToNamespace(mockNamespace.name);
+
+      mockWorkspaces.forEach((workspace) => {
+        workspaces.assertWorkspaceStatusAction(
+          workspace.name,
+          workspace.state === V1Beta1WorkspaceState.WorkspaceStateRunning
+            ? 'stop'
+            : workspace.state === V1Beta1WorkspaceState.WorkspaceStateError
+              ? 'none'
+              : 'start',
+        );
+      });
+      workspaces.assertNoStartOrStopMenuActions(mockWorkspaces[0].name);
+    });
+
     it('should display "unknown" for last activity when epoch is 0', () => {
       const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
       const mockWorkspace = buildMockWorkspace({
@@ -908,7 +929,7 @@ describe('Workspaces', () => {
       });
 
       it('should successfully start a paused workspace', () => {
-        workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStartButton(TEST_WORKSPACE_NAME).click();
         startModal.findStartButton().click();
 
         cy.wait('@startWorkspace').then((interception) => {
@@ -919,7 +940,7 @@ describe('Workspaces', () => {
       });
 
       it('should cancel workspace start when cancel button is clicked', () => {
-        workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStartButton(TEST_WORKSPACE_NAME).click();
         startModal.findCancelButton().click();
         startModal.assertModalNotExists();
         cy.get('@startWorkspace.all').should('have.length', 0);
@@ -943,7 +964,7 @@ describe('Workspaces', () => {
           },
         ).as('startWorkspaceError');
 
-        workspaces.findAction({ action: 'start', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStartButton(TEST_WORKSPACE_NAME).click();
         startModal.findStartButton().click();
 
         cy.wait('@startWorkspaceError');
@@ -974,7 +995,7 @@ describe('Workspaces', () => {
       });
 
       it('should successfully stop a running workspace', () => {
-        workspaces.findAction({ action: 'stop', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStopButton(TEST_WORKSPACE_NAME).click();
         stopModal.findStopButton().click();
 
         cy.wait('@stopWorkspace').then((interception) => {
@@ -985,7 +1006,7 @@ describe('Workspaces', () => {
       });
 
       it('should cancel workspace stop when cancel button is clicked', () => {
-        workspaces.findAction({ action: 'stop', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStopButton(TEST_WORKSPACE_NAME).click();
         stopModal.findCancelButton().click();
         stopModal.assertModalNotExists();
         cy.get('@stopWorkspace.all').should('have.length', 0);
@@ -1009,7 +1030,7 @@ describe('Workspaces', () => {
           },
         ).as('stopWorkspaceError');
 
-        workspaces.findAction({ action: 'stop', workspaceName: TEST_WORKSPACE_NAME }).click();
+        workspaces.findStopButton(TEST_WORKSPACE_NAME).click();
         stopModal.findStopButton().click();
 
         cy.wait('@stopWorkspaceError');
