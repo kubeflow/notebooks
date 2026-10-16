@@ -48,6 +48,7 @@ const buildLabelMap = <T,>(objects: LabelledObject<T>[]): Map<string, Set<string
 
 export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactElement => {
   const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
+  const [showAllExtraFilters, setShowAllExtraFilters] = useState(false);
   const [selectedExtraFilters, setSelectedExtraFilters] = useState<Map<string, ExtraFilter<T>>>(
     () => {
       const extraFiltersMap = new Map();
@@ -200,35 +201,39 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
   return (
     <FilterSidePanel id="filter-panel" data-testid="label-filter-panel">
       {selectedExtraFilters.size > 0 && (
-        <FilterSidePanelCategory key="extraFilters" data-testid="extra-filters-category">
-          <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXs' }}>
-            {[...selectedExtraFilters.values()].map((extraFilter) => (
-              <Flex
-                key={extraFilter.key}
-                alignItems={{ default: 'alignItemsCenter' }}
-                flexWrap={{ default: 'nowrap' }}
-                spaceItems={{ default: 'spaceItemsSm' }}
+        <FilterSidePanelCategory
+          key="extraFilters"
+          data-testid="extra-filters-category"
+          showAll={showAllExtraFilters}
+          onShowAllToggle={() => setShowAllExtraFilters((showAll) => !showAll)}
+        >
+          {[...selectedExtraFilters.values()].map((extraFilter) => (
+            <Flex
+              key={extraFilter.key}
+              className="filter-panel-pf-category-item"
+              alignItems={{ default: 'alignItemsCenter' }}
+              flexWrap={{ default: 'nowrap' }}
+              spaceItems={{ default: 'spaceItemsSm' }}
+            >
+              <FilterSidePanelCategoryItem
+                data-testid={`extra-filter-${extraFilter.key}`}
+                checked={extraFilter.value}
+                onClick={(e) => onChangeExtraFilters(extraFilter, e)}
               >
-                <FilterSidePanelCategoryItem
-                  data-testid={`extra-filter-${extraFilter.key}`}
-                  checked={extraFilter.value}
-                  onClick={(e) => onChangeExtraFilters(extraFilter, e)}
-                >
-                  {extraFilter.label}
-                </FilterSidePanelCategoryItem>
-                {extraFilter.tooltip && (
-                  <Tooltip content={extraFilter.tooltip}>
-                    <Button
-                      variant="plain"
-                      hasNoPadding
-                      aria-label={`About ${extraFilter.label}`}
-                      icon={<QuestionCircleIcon />}
-                    />
-                  </Tooltip>
-                )}
-              </Flex>
-            ))}
-          </Flex>
+                {extraFilter.label}
+              </FilterSidePanelCategoryItem>
+              {extraFilter.tooltip && (
+                <Tooltip content={extraFilter.tooltip}>
+                  <Button
+                    variant="plain"
+                    hasNoPadding
+                    aria-label={`About ${extraFilter.label}`}
+                    icon={<QuestionCircleIcon />}
+                  />
+                </Tooltip>
+              )}
+            </Flex>
+          ))}
         </FilterSidePanelCategory>
       )}
       {[...filterMap.keys()].map((label) => (

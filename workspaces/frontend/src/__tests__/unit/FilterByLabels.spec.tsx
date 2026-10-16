@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { FilterByLabels } from '~/app/pages/Workspaces/Form/labelFilter/FilterByLabels';
 
-describe('FilterByLabels help', () => {
+describe('FilterByLabels', () => {
   it('supports keyboard help without changing the filter or submitting the form', async () => {
     const user = userEvent.setup();
     const onSubmit = jest.fn((event: React.FormEvent) => event.preventDefault());
@@ -56,5 +56,34 @@ describe('FilterByLabels help', () => {
     );
     expect(screen.getByRole('checkbox', { name: 'Show all' })).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('shows and hides extra filters beyond the category limit', async () => {
+    const user = userEvent.setup();
+    render(
+      <FilterByLabels
+        labelledObjects={[]}
+        setLabelledObjects={jest.fn()}
+        extraFilters={Array.from({ length: 8 }, (_, index) => ({
+          key: `filter-${index + 1}`,
+          label: `Filter ${index + 1}`,
+          tooltip: index === 7 ? 'About the eighth filter.' : undefined,
+          value: false,
+          matchesFilter: () => true,
+        }))}
+      />,
+    );
+
+    expect(screen.getAllByRole('checkbox')).toHaveLength(5);
+    expect(screen.queryByRole('checkbox', { name: 'Filter 8' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'About Filter 8' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Show 3 more' }));
+    expect(screen.getAllByRole('checkbox')).toHaveLength(8);
+    expect(screen.getByRole('button', { name: 'About Filter 8' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Show less' }));
+    expect(screen.getAllByRole('checkbox')).toHaveLength(5);
+    expect(screen.queryByRole('button', { name: 'About Filter 8' })).not.toBeInTheDocument();
   });
 });
