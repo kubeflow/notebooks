@@ -72,7 +72,7 @@ type PodVolumeMountPaths struct {
 type ActivityProbe struct {
 	MinProbeIntervalSeconds int32                `json:"minProbeIntervalSeconds"`
 	ProbeIntervalSeconds    int32                `json:"probeIntervalSeconds"`
-	PodExec                 ActivityProbePodExec `json:"podExec"`
+	PodExec                 ActivityProbePodExec `json:"podExec,omitempty"` //nolint:modernize // omitempty is for swag (--requiredByDefault) to mark podExec optional
 }
 
 type ActivityProbePodExec struct {

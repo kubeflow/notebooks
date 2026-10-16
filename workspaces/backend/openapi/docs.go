@@ -7659,7 +7659,6 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "minProbeIntervalSeconds",
-                "podExec",
                 "probeIntervalSeconds"
             ],
             "properties": {
