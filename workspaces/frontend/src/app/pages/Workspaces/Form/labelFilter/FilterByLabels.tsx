@@ -5,6 +5,10 @@ import {
   FilterSidePanelCategoryItem,
 } from '@patternfly/react-catalog-view-extension';
 import '@patternfly/react-catalog-view-extension/dist/css/react-catalog-view-extension.css';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { Flex } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { QuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/question-circle-icon';
 import { formatLabelKey } from '~/shared/utilities/WorkspaceUtils';
 
 type LabelledObject<T> = { labels?: { key: string; value: string }[] } & T;
@@ -13,6 +17,7 @@ export type ExtraFilter<T> = {
   key: string;
   value: boolean;
   label: string;
+  tooltip?: string;
   matchesFilter: (obj: LabelledObject<T>, value: boolean) => boolean;
 };
 
@@ -43,6 +48,7 @@ const buildLabelMap = <T,>(objects: LabelledObject<T>[]): Map<string, Set<string
 
 export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactElement => {
   const [selectedLabels, setSelectedLabels] = useState<Map<string, Set<string>>>(new Map());
+  const [showAllExtraFilters, setShowAllExtraFilters] = useState(false);
   const [selectedExtraFilters, setSelectedExtraFilters] = useState<Map<string, ExtraFilter<T>>>(
     () => {
       const extraFiltersMap = new Map();
@@ -133,10 +139,8 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
       const newSelectedExtraFilters: Map<string, ExtraFilter<T>> = new Map(selectedExtraFilters);
 
       newSelectedExtraFilters.set(extraFilter.key, {
-        key: extraFilter.key,
+        ...extraFilter,
         value: checked,
-        label: extraFilter.label,
-        matchesFilter: extraFilter.matchesFilter,
       });
 
       setSelectedExtraFilters(newSelectedExtraFilters);
@@ -197,16 +201,38 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
   return (
     <FilterSidePanel id="filter-panel" data-testid="label-filter-panel">
       {selectedExtraFilters.size > 0 && (
-        <FilterSidePanelCategory key="extraFilters" data-testid="extra-filters-category">
+        <FilterSidePanelCategory
+          key="extraFilters"
+          data-testid="extra-filters-category"
+          showAll={showAllExtraFilters}
+          onShowAllToggle={() => setShowAllExtraFilters((showAll) => !showAll)}
+        >
           {[...selectedExtraFilters.values()].map((extraFilter) => (
-            <FilterSidePanelCategoryItem
+            <Flex
               key={extraFilter.key}
-              data-testid={`extra-filter-${extraFilter.key}`}
-              checked={extraFilter.value}
-              onClick={(e) => onChangeExtraFilters(extraFilter, e)}
+              className="filter-panel-pf-category-item"
+              alignItems={{ default: 'alignItemsCenter' }}
+              flexWrap={{ default: 'nowrap' }}
+              spaceItems={{ default: 'spaceItemsSm' }}
             >
-              {extraFilter.label}
-            </FilterSidePanelCategoryItem>
+              <FilterSidePanelCategoryItem
+                data-testid={`extra-filter-${extraFilter.key}`}
+                checked={extraFilter.value}
+                onClick={(e) => onChangeExtraFilters(extraFilter, e)}
+              >
+                {extraFilter.label}
+              </FilterSidePanelCategoryItem>
+              {extraFilter.tooltip && (
+                <Tooltip content={extraFilter.tooltip}>
+                  <Button
+                    variant="plain"
+                    hasNoPadding
+                    aria-label={`About ${extraFilter.label}`}
+                    icon={<QuestionCircleIcon />}
+                  />
+                </Tooltip>
+              )}
+            </Flex>
           ))}
         </FilterSidePanelCategory>
       )}
