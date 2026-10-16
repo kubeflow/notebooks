@@ -230,10 +230,15 @@ func ApplyWorkspaceUpdateModelToWorkspace(ctx context.Context, k8sClient client.
 		return err
 	}
 
+	// NOTE: `spec.podTemplate` is replaced wholesale below, so any sub-field the API does not
+	//       expose must be carried over by hand or it is dropped on every update.
+	serviceAccount := workspace.Spec.PodTemplate.ServiceAccount
+
 	// apply model fields to workspace spec
 	workspace.Spec.Paused = workspaceUpdate.Paused
 	workspace.Spec.DisplayName = displayNamePtr(workspaceUpdate.DisplayName)
 	workspace.Spec.PodTemplate = buildWorkspacePodTemplate(&workspaceUpdate.PodTemplate, workspaceUpdate.PodTemplate.Volumes.Home, dataVolumeMounts, secretMounts)
+	workspace.Spec.PodTemplate.ServiceAccount = serviceAccount
 
 	return nil
 }
