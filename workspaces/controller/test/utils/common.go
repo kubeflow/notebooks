@@ -100,6 +100,16 @@ func RenderActivityWorkspaceKind(samplePath, newName string) (string, error) {
 	return string(out), nil
 }
 
+// RunYAML executes the provided command (which should output YAML or JSON)
+// and unmarshals the output into target.
+func RunYAML(cmd *exec.Cmd, target any) error {
+	out, err := Run(cmd)
+	if err != nil {
+		return err
+	}
+	return yaml.Unmarshal([]byte(out), target)
+}
+
 // GetWorkspaceJSONPath runs `kubectl get workspace <name> -n <namespace> -o jsonpath=<path>`
 // and returns the (trimmed) value. It is a small convenience wrapper used by e2e assertions
 // that repeatedly read individual Workspace status fields.
