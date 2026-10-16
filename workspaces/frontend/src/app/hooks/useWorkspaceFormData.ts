@@ -80,7 +80,7 @@ const useWorkspaceFormData = (args: {
         homeVolume: workspaceUpdate.podTemplate.volumes.home
           ? {
               pvcName: workspaceUpdate.podTemplate.volumes.home,
-              mountPath: workspaceKind?.podTemplate.volumeMountPaths.home ?? '',
+              mountPath: '',
               readOnly: false,
               isAttached: true,
             }

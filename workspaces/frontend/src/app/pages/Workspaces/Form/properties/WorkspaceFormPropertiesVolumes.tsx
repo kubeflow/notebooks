@@ -362,11 +362,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                     <Td dataLabel="Mount Path" hasAction>
                       <MountPathField
                         variant="cell"
-                        value={
-                          editingMountPath === index
-                            ? editMountPathValue
-                            : volume.mountPath || fixedMountPath || '-'
-                        }
+                        value={editingMountPath === index ? editMountPathValue : volume.mountPath}
                         index={index}
                         editingIndex={editingMountPath}
                         itemId={volume.pvcName}

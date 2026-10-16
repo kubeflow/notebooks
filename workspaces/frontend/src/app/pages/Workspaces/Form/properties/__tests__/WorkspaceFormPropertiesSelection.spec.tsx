@@ -40,7 +40,7 @@ describe('WorkspaceFormPropertiesSelection mount paths', () => {
       name: 'my-workspace',
       homeVolume: {
         pvcName: 'home-pvc',
-        mountPath: '/home/jovyan',
+        mountPath: '',
         readOnly: false,
         isAttached: true,
       },
@@ -70,6 +70,7 @@ describe('WorkspaceFormPropertiesSelection mount paths', () => {
       />,
     );
 
+    expect(screen.getByText('/home/jovyan')).toBeInTheDocument();
     expect(screen.getByTestId('edit-mount-path-home-pvc')).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Data Volumes' }));
