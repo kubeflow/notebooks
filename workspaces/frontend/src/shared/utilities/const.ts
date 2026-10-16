@@ -17,11 +17,5 @@ export const WORKSPACE_KIND_EXAMPLES_URL =
   process.env.WORKSPACE_KIND_EXAMPLES_URL ||
   'https://github.com/kubeflow/notebooks/wiki/WorkspaceKinds';
 export const MOCK_API_ENABLED = process.env.MOCK_API_ENABLED === 'true';
-/** Set HIDE_PRE_GA_BANNER=true to hide the pre-GA banner; shown by default. */
-export const HIDE_PRE_GA_BANNER = process.env.HIDE_PRE_GA_BANNER === 'true';
-/** Learn more link in the pre-GA banner; default kubeflow.org. */
-export const PRE_GA_LEARN_MORE_LINK =
-  process.env.PRE_GA_LEARN_MORE_LINK ||
-  'https://www.kubeflow.org/docs/components/notebooks/notebooks-v2-pre-ga-banner';
 
 export const CONTENT_TYPE_KEY = 'Content-Type';
