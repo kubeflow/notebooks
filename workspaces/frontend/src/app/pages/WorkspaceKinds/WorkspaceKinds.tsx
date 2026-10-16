@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { useNotification } from 'mod-arch-core';
 import {
   Drawer,
@@ -56,6 +57,24 @@ export enum ActionType {
   ViewDetails,
   Delete,
 }
+
+const WorkspaceKindsRestrictedState: React.FunctionComponent = () => (
+  <PageSection isFilled>
+    <Bullseye>
+      <EmptyState
+        headingLevel="h4"
+        titleText="WorkspaceKind management is restricted to administrators"
+        icon={LockIcon}
+        status="info"
+        data-testid="workspace-kinds-access-empty-state"
+      >
+        <EmptyStateBody>
+          Please contact your admin if you need changes to workspace configurations.
+        </EmptyStateBody>
+      </EmptyState>
+    </Bullseye>
+  </PageSection>
+);
 
 const filterConfig = {
   name: { type: 'text', label: 'Name', placeholder: 'Filter by name' },
@@ -298,6 +317,12 @@ const WorkspaceKindsAdminView: React.FunctionComponent = () => {
   );
 
   if (workspaceKindsError) {
+    if (
+      axios.isAxiosError(workspaceKindsError) &&
+      workspaceKindsError.response?.status === 403
+    ) {
+      return <WorkspaceKindsRestrictedState />;
+    }
     return <LoadError title="Failed to load workspace kinds" error={workspaceKindsError} />;
   }
 
@@ -514,23 +539,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const canManageWorkspaceKinds = Boolean(user?.clusterAdmin);
 
   if (!canManageWorkspaceKinds) {
-    return (
-      <PageSection isFilled>
-        <Bullseye>
-          <EmptyState
-            headingLevel="h4"
-            titleText="WorkspaceKind management is restricted to administrators"
-            icon={LockIcon}
-            status="info"
-            data-testid="workspace-kinds-access-empty-state"
-          >
-            <EmptyStateBody>
-              Please contact your admin if you need changes to workspace configurations.
-            </EmptyStateBody>
-          </EmptyState>
-        </Bullseye>
-      </PageSection>
-    );
+    return <WorkspaceKindsRestrictedState />;
   }
 
   return <WorkspaceKindsAdminView />;

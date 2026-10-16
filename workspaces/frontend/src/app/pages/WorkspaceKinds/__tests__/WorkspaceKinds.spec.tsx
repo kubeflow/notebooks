@@ -6,6 +6,7 @@ import { WorkspaceKinds } from '~/app/pages/WorkspaceKinds/WorkspaceKinds';
 import { useAppContext } from '~/app/context/AppContext';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
+import { buildAxiosError } from '~/shared/mock/mockUtils';
 
 jest.mock('~/app/context/AppContext', () => ({
   useAppContext: jest.fn(),
@@ -99,6 +100,55 @@ describe('WorkspaceKinds', () => {
 
     const emptyState = screen.getByTestId('empty-state');
     expect(emptyState.closest('tbody')).toBeInTheDocument();
+  });
+
+  it('shows the restricted-access message when the workspace kinds request returns 403', () => {
+    mockUseAppContext.mockReturnValue({
+      config: null,
+      user: { userId: 'admin-user', clusterAdmin: true },
+    });
+
+    mockUseWorkspaceKinds.mockReturnValue([
+      [],
+      false,
+      buildAxiosError({ error: { code: 'forbidden', message: 'Forbidden' } }, 403),
+      jest.fn(),
+    ]);
+
+    render(
+      <MemoryRouter>
+        <WorkspaceKinds />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('workspace-kinds-access-empty-state')).toBeInTheDocument();
+    expect(
+      screen.getByText('WorkspaceKind management is restricted to administrators'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load workspace kinds')).not.toBeInTheDocument();
+  });
+
+  it('shows the load error when the workspace kinds request fails for another reason', () => {
+    mockUseAppContext.mockReturnValue({
+      config: null,
+      user: { userId: 'admin-user', clusterAdmin: true },
+    });
+
+    mockUseWorkspaceKinds.mockReturnValue([
+      [],
+      false,
+      buildAxiosError({ error: { code: 'internal_error', message: 'Server error' } }, 500),
+      jest.fn(),
+    ]);
+
+    render(
+      <MemoryRouter>
+        <WorkspaceKinds />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Failed to load workspace kinds')).toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-kinds-access-empty-state')).not.toBeInTheDocument();
   });
 
   it('shows the restricted-access message when user context is not yet loaded', () => {
