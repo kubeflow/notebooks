@@ -25,6 +25,7 @@ import (
 	"strings"
 	"sync"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
@@ -142,6 +143,7 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, workspaceKi
 		podConfigValueId := podConfigValue.Id
 		podConfigValuePath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(podConfigValueId)
 		allErrs = append(allErrs, validatePodConfigMetadata(&podConfigValue, podConfigValuePath)...)
+		allErrs = append(allErrs, validatePodConfigExtraEnv(&podConfigValue, podConfigValuePath)...)
 	}
 
 	// validate redirects
@@ -406,6 +408,7 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 		podConfigValue := newPodConfigIdMap[podConfigValueId]
 		podConfigValuePath := field.NewPath("spec", "podTemplate", "options", "podConfig", "values").Key(podConfigValueId)
 		allErrs = append(allErrs, validatePodConfigMetadata(&podConfigValue, podConfigValuePath)...)
+		allErrs = append(allErrs, validatePodConfigExtraEnv(&podConfigValue, podConfigValuePath)...)
 	}
 
 	// process bad imageConfig values
@@ -652,8 +655,20 @@ func validateLabelsAndAnnotations(labels, annotations map[string]string, path *f
 	return errs
 }
 
-// validateExtraEnv validates the extra environment variables in a WorkspaceKind
+// validateExtraEnv validates the extra environment variables in a WorkspaceKind's mainContainer
 func validateExtraEnv(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	extraEnvPath := field.NewPath("spec", "podTemplate", "podSpec", "mainContainer", "extraEnv")
+	return validateExtraEnvEntries(workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv, extraEnvPath)
+}
+
+// validatePodConfigExtraEnv validates the extra environment variables in a podConfig value
+func validatePodConfigExtraEnv(podConfigValue *kubefloworgv1beta1.PodConfigValue, podConfigValuePath *field.Path) []*field.Error {
+	extraEnvPath := podConfigValuePath.Child("spec", "extraEnv")
+	return validateExtraEnvEntries(podConfigValue.Spec.ExtraEnv, extraEnvPath)
+}
+
+// validateExtraEnvEntries validates that each EnvVar value template in extraEnv can be rendered successfully
+func validateExtraEnvEntries(extraEnv []corev1.EnvVar, extraEnvPath *field.Path) []*field.Error {
 	var errs []*field.Error
 
 	// the real httpPathPrefix can't fail, so we return a dummy value
@@ -662,13 +677,12 @@ func validateExtraEnv(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.
 	}
 
 	// validate that each value template can be rendered successfully
-	for _, env := range workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv {
+	for _, env := range extraEnv {
 		if env.Value != "" {
 			rawValue := env.Value
 			_, err := helper.RenderGoTemplate(rawValue, httpPathPrefixFunc)
 			if err != nil {
-				extraEnvPath := field.NewPath("spec", "podTemplate", "podSpec", "mainContainer", "extraEnv").Key(env.Name).Child("value")
-				errs = append(errs, field.Invalid(extraEnvPath, rawValue, err.Error()))
+				errs = append(errs, field.Invalid(extraEnvPath.Key(env.Name).Child("value"), rawValue, err.Error()))
 			}
 		}
 	}

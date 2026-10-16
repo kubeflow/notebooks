@@ -151,6 +151,21 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
+				description:   "should accept creation if podConfig extraEnv[].value is a valid Go template",
+				workspaceKind: NewExampleWorkspaceKindWithValidPodConfigExtraEnvValue("wsk-webhook-create--pod-config-extra-valid-env-value"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should reject creation if podConfig extraEnv[].value is not a valid Go template",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigExtraEnvValue("wsk-webhook-create--pod-config-extra-invalid-env-value"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation if podConfig extraEnv has duplicate names",
+				workspaceKind: NewExampleWorkspaceKindWithDuplicatePodConfigExtraEnvNames("wsk-webhook-create--pod-config-extra-duplicate-names"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation if requestHeaders template is invalid",
 				workspaceKind: NewExampleWorkspaceKindWithInvalidRequestHeadersValue("wsk-webhook-create--request-headers-invalid"),
 				shouldSucceed: false,
@@ -867,6 +882,33 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				},
 			},
 			{
+				description:   "should reject updates to `extraEnv` on an in-use podConfig spec",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					inUseId := wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Id
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.ExtraEnv = []corev1.EnvVar{
+						{Name: "NCCL_DEBUG", Value: "INFO"},
+					}
+					return ContainSubstring("podConfig value %q is in use and cannot be changed", inUseId)
+				},
+			},
+			{
+				description:   "should accept updates to `extraEnv` on an unused podConfig spec",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.ExtraEnv = []corev1.EnvVar{
+						{Name: "NCCL_DEBUG", Value: "INFO"},
+					}
+					return ContainSubstring("")
+				},
+			},
+			{
 				description:   "should reject removing in-use imageConfig values",
 				shouldSucceed: false,
 
@@ -1227,6 +1269,71 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					wsk.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv[0].Value = `{{ httpPathPrefix "jupyterlab"   }}`
 					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject updating a podConfig extraEnv[].value to an invalid Go template",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					podConfigId := wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Id
+					invalidValue := `{{ httpPathPrefix "jupyterlab" }`
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.ExtraEnv = []corev1.EnvVar{
+						{
+							Name:  "POD_CONFIG_PREFIX",
+							Value: invalidValue,
+						},
+					}
+					return And(
+						ContainSubstring(`spec.podTemplate.options.podConfig.values[%s].spec.extraEnv[POD_CONFIG_PREFIX].value`, podConfigId),
+						ContainSubstring("failed to parse template %q", invalidValue),
+					)
+				},
+			},
+			{
+				description:   "should accept updating a podConfig extraEnv[].value to a valid Go template",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.ExtraEnv = []corev1.EnvVar{
+						{
+							Name:  "POD_CONFIG_PREFIX",
+							Value: `{{ httpPathPrefix "jupyterlab" }}`,
+						},
+					}
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject adding a new podConfig value with an invalid Go template in extraEnv[].value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidValue := `{{ httpPathPrefix "jupyterlab" }`
+					wsk.Spec.PodTemplate.Options.PodConfig.Values = append(
+						wsk.Spec.PodTemplate.Options.PodConfig.Values,
+						kubefloworgv1beta1.PodConfigValue{
+							Id: "new_pod_config",
+							Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+								DisplayName: "New Pod Config",
+							},
+							Spec: kubefloworgv1beta1.PodConfigSpec{
+								ExtraEnv: []corev1.EnvVar{
+									{
+										Name:  "BAD_ENV",
+										Value: invalidValue,
+									},
+								},
+							},
+						},
+					)
+					return And(
+						ContainSubstring(`spec.podTemplate.options.podConfig.values[new_pod_config].spec.extraEnv[BAD_ENV].value`),
+						ContainSubstring("failed to parse template %q", invalidValue),
+					)
 				},
 			},
 			{

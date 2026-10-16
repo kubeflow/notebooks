@@ -7121,6 +7121,13 @@
                         }
                     ]
                 },
+                "extraEnv": {
+                    "description": "extra environment variables for the \"main\" container, specific to this pod config\n - use this for variables that depend on the hardware or scheduling of this pod config,\n   for example `PJRT_DEVICE=CPU` for a CPU pod config, or `TPU_TOPOLOGY=2x2` for a TPU slice\n - these are combined with the WorkspaceKind-level `podTemplate.podSpec.mainContainer.extraEnv`:\n    - a variable with the same `name` as a WorkspaceKind-level variable replaces its value,\n      but keeps the position of the WorkspaceKind-level variable\n    - all other variables are added after the WorkspaceKind-level variables, in the order listed here\n - Kubernetes only expands `$(VAR_NAME)` references to variables that appear EARLIER in the\n   final list, so WorkspaceKind-level variables can NOT reference variables only defined here\n - like all pod config `spec` fields, this can NOT be changed while the pod config is used by\n   any Workspace, instead, create a new pod config value and redirect the old one to it\n - the following go template functions are available:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={{name: \"PJRT_DEVICE\", value: \"CPU\"}}\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.EnvVar"
+                    }
+                },
                 "nodeSelector": {
                     "description": "node selector configs for the pod\n+kubebuilder:validation:Optional",
                     "type": "object",
@@ -7310,7 +7317,7 @@
             "type": "object",
             "properties": {
                 "extraEnv": {
-                    "description": "environment variables for the main container (MUTABLE)\n - the following go template functions are available:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"NB_PREFIX\": \"{{ httpPathPrefix 'jupyterlab' }}\" }\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "environment variables for the main container (MUTABLE)\n - these apply to ALL Workspaces of this WorkspaceKind, regardless of the selected pod config\n - a pod config may override (by `name`) or add to these with its own `spec.extraEnv`\n - the following go template functions are available:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={{name: \"NB_PREFIX\", value: \"{{ httpPathPrefix \\\"jupyterlab\\\" }}\"}}\n+listType:=\"map\"\n+listMapKey:=\"name\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.EnvVar"
