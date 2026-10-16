@@ -78,7 +78,8 @@ export const WorkspaceKindFormActivityRules: React.FC<WorkspaceKindFormActivityR
           titleDescription={
             <HelperText>
               Define rules that automatically pause idle workspaces based on inactivity thresholds.
-              Rules are evaluated in order; the first matching rule applies.
+              Rules are evaluated in order; the first matching rule applies. Note: In order for
+              rules to take effect, an Activity Probe must be configured in the YAML
             </HelperText>
           }
         />
