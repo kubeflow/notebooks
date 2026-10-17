@@ -88,6 +88,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, workspaceKi
 	// validate the statefulset metadata
 	allErrs = append(allErrs, v.validatePodTemplateStatefulSetMetadata(workspaceKind)...)
 
+	// validate the serviceaccount metadata
+	allErrs = append(allErrs, v.validatePodTemplateServiceAccountMetadata(workspaceKind)...)
+
 	// validate the extra environment variables
 	allErrs = append(allErrs, validateExtraEnv(workspaceKind)...)
 
@@ -188,6 +191,11 @@ func (v *WorkspaceKindValidator) ValidateUpdate(ctx context.Context, oldWorkspac
 	// validate the statefulset metadata
 	if !equality.Semantic.DeepEqual(newWorkspaceKind.Spec.PodTemplate.StatefulSetMetadata, oldWorkspaceKind.Spec.PodTemplate.StatefulSetMetadata) {
 		allErrs = append(allErrs, v.validatePodTemplateStatefulSetMetadata(newWorkspaceKind)...)
+	}
+
+	// validate the serviceaccount metadata
+	if !equality.Semantic.DeepEqual(getServiceAccountMetadata(newWorkspaceKind), getServiceAccountMetadata(oldWorkspaceKind)) {
+		allErrs = append(allErrs, v.validatePodTemplateServiceAccountMetadata(newWorkspaceKind)...)
 	}
 
 	// validate the extra environment variables
@@ -621,6 +629,27 @@ func (v *WorkspaceKindValidator) validatePodTemplateStatefulSetMetadata(workspac
 
 	statefulSetMetadataPath := field.NewPath("spec", "podTemplate", "statefulSetMetadata")
 	return validateLabelsAndAnnotations(statefulSetMetadata.Labels, statefulSetMetadata.Annotations, statefulSetMetadataPath)
+}
+
+// getServiceAccountMetadata returns the serviceAccount.metadata of a WorkspaceKind's PodTemplate, or nil if unset
+func getServiceAccountMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) *kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata {
+	if workspaceKind.Spec.PodTemplate.ServiceAccount == nil {
+		return nil
+	}
+	return workspaceKind.Spec.PodTemplate.ServiceAccount.Metadata
+}
+
+// validatePodTemplateServiceAccountMetadata validates the serviceAccount.metadata of a WorkspaceKind's PodTemplate
+func (v *WorkspaceKindValidator) validatePodTemplateServiceAccountMetadata(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	serviceAccountMetadata := getServiceAccountMetadata(workspaceKind)
+
+	// if serviceAccount.metadata is nil, we cannot validate it
+	if serviceAccountMetadata == nil {
+		return nil
+	}
+
+	serviceAccountMetadataPath := field.NewPath("spec", "podTemplate", "serviceAccount", "metadata")
+	return validateLabelsAndAnnotations(serviceAccountMetadata.Labels, serviceAccountMetadata.Annotations, serviceAccountMetadataPath)
 }
 
 // validatePodConfigMetadata validates the podMetadata and statefulSetMetadata of a single podConfig value

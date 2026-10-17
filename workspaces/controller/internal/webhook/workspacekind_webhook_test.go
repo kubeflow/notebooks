@@ -76,6 +76,21 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
+				description:   "should accept creation with valid serviceAccount.metadata",
+				workspaceKind: NewExampleWorkspaceKindWithServiceAccountMetadata("wsk-webhook-create--valid-serviceaccount-metadata"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should reject creation with invalid serviceAccount.metadata label key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidServiceAccountMetadataLabelKey("wsk-webhook-create--invalid-serviceaccount-metadata--label-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid serviceAccount.metadata annotation key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidServiceAccountMetadataAnnotationKey("wsk-webhook-create--invalid-serviceaccount-metadata--annotation-key"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation with invalid podConfig podMetadata label key",
 				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey("wsk-webhook-create--invalid-podconfig-pod-metadata--label-key"),
 				shouldSucceed: false,
@@ -1245,6 +1260,40 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					wsk.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
 						Annotations: map[string]string{
 							invalidAnnotationKey: "some-value",
+						},
+					}
+					return ContainSubstring("Invalid value: %q", invalidAnnotationKey)
+				},
+			},
+			{
+				description:   "should reject updating a serviceAccount.metadata.labels key to an invalid value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidKey := "!bad-key!"
+					wsk.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+						Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+							Labels: map[string]string{
+								invalidKey: "some-value",
+							},
+						},
+					}
+					return ContainSubstring("Invalid value: %q", invalidKey)
+				},
+			},
+			{
+				description:   "should reject updating a serviceAccount.metadata.annotations key to an invalid value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidAnnotationKey := "!bad-key!"
+					wsk.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+						Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+							Annotations: map[string]string{
+								invalidAnnotationKey: "some-value",
+							},
 						},
 					}
 					return ContainSubstring("Invalid value: %q", invalidAnnotationKey)
