@@ -564,6 +564,53 @@ func NewExampleWorkspaceKindWithInvalidStatefulSetMetadataAnnotationKey(name str
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithServiceAccountMetadata returns a WorkspaceKind with valid ServiceAccount metadata,
+// using the Workload Identity annotations of the major cloud providers.
+func NewExampleWorkspaceKindWithServiceAccountMetadata(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+		Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+			Labels: map[string]string{
+				"my-sa-label": "my-value",
+			},
+			Annotations: map[string]string{
+				"eks.amazonaws.com/role-arn":         "arn:aws:iam::111122223333:role/my-role",
+				"iam.gke.io/gcp-service-account":     "my-gsa@my-project.iam.gserviceaccount.com",
+				"azure.workload.identity/client-id":  "00000000-0000-0000-0000-000000000000",
+				"azure.workload.identity/tenant-id":  "00000000-0000-0000-0000-000000000000",
+				"eks.amazonaws.com/token-expiration": "86400",
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidServiceAccountMetadataLabelKey returns a WorkspaceKind with an invalid ServiceAccount metadata label key.
+func NewExampleWorkspaceKindWithInvalidServiceAccountMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+		Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+			Labels: map[string]string{
+				"!bad_key!": "value",
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidServiceAccountMetadataAnnotationKey returns a WorkspaceKind with an invalid ServiceAccount metadata annotation key.
+func NewExampleWorkspaceKindWithInvalidServiceAccountMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+		Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+			Annotations: map[string]string{
+				"!bad_key!": "value",
+			},
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey returns a WorkspaceKind whose first
 // podConfig value has an invalid PodMetadata label key.
 func NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
