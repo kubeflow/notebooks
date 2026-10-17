@@ -46,6 +46,7 @@ type ClusterKindMetrics struct {
 type PodTemplate struct {
 	PodMetadata         PodMetadata         `json:"podMetadata"`
 	StatefulSetMetadata StatefulSetMetadata `json:"statefulSetMetadata"`
+	ServiceAccount      ServiceAccount      `json:"serviceAccount"`
 	VolumeMountPaths    PodVolumeMountPaths `json:"volumeMountPaths"`
 	ActivityProbe       *ActivityProbe      `json:"activityProbe,omitempty"`
 
@@ -61,6 +62,15 @@ type PodMetadata struct {
 }
 
 type StatefulSetMetadata struct {
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+}
+
+type ServiceAccount struct {
+	Metadata ServiceAccountMetadata `json:"metadata"`
+}
+
+type ServiceAccountMetadata struct {
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
 }

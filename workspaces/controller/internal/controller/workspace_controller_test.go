@@ -782,6 +782,187 @@ var _ = Describe("Workspace Controller", func() {
 		})
 	})
 
+	Context("When a WorkspaceKind sets metadata for the Workspace ServiceAccount", Serial, Ordered, func() {
+
+		const (
+			roleArnAnnotation = "eks.amazonaws.com/role-arn"
+			roleArnV1         = "arn:aws:iam::111122223333:role/my-role-v1"
+			roleArnV2         = "arn:aws:iam::111122223333:role/my-role-v2"
+		)
+
+		// Define utility variables for object names.
+		// NOTE: to avoid conflicts between parallel tests, resource names are unique to each test
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+			workspaceKindKey  types.NamespacedName
+		)
+
+		// getServiceAccount returns the ServiceAccount labeled for the Workspace under test.
+		getServiceAccount := func(g Gomega) *corev1.ServiceAccount {
+			serviceAccountList := &corev1.ServiceAccountList{}
+			g.Expect(k8sClient.List(ctx, serviceAccountList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})).To(Succeed())
+			g.Expect(serviceAccountList.Items).To(HaveLen(1))
+			return &serviceAccountList.Items[0]
+		}
+
+		// getStatefulSetGeneration returns the `metadata.generation` of the StatefulSet of the Workspace under test.
+		getStatefulSetGeneration := func(g Gomega) int64 {
+			statefulSetList := &appsv1.StatefulSetList{}
+			g.Expect(k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})).To(Succeed())
+			g.Expect(statefulSetList.Items).To(HaveLen(1))
+			return statefulSetList.Items[0].Generation
+		}
+
+		// pendingRestart returns the `status.pendingRestart` of the Workspace under test.
+		pendingRestart := func() (bool, error) {
+			workspace := &kubefloworgv1beta1.Workspace{}
+			if err := k8sClient.Get(ctx, workspaceKey, workspace); err != nil {
+				return false, err
+			}
+			return workspace.Status.PendingRestart, nil
+		}
+
+		// setServiceAccountMetadata patches the WorkspaceKind `spec.podTemplate.serviceAccount.metadata`.
+		setServiceAccountMetadata := func(labels, annotations map[string]string) {
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+			patch := client.MergeFrom(workspaceKind.DeepCopy())
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+				Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+					Labels:      labels,
+					Annotations: annotations,
+				},
+			}
+			Expect(k8sClient.Patch(ctx, workspaceKind, patch)).To(Succeed())
+		}
+
+		BeforeAll(func() {
+			uniqueName := "ws-sa-metadata-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
+
+			By("creating the WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+				Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+					Labels:      map[string]string{"my-sa-label": "my-value"},
+					Annotations: map[string]string{roleArnAnnotation: roleArnV1},
+				},
+			}
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			// NOTE: the default imageConfig of the example Workspace has a redirect, which would make
+			//       `status.pendingRestart` true from the start and hide any change caused by the metadata
+			workspace.Spec.PodTemplate.Options.ImageConfig = "jupyterlab_scipy_190"
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			}
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+		})
+
+		It("should apply the metadata when the ServiceAccount is created", func() {
+			Eventually(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				g.Expect(serviceAccount.Labels).To(HaveKeyWithValue("my-sa-label", "my-value"))
+				g.Expect(serviceAccount.Labels).To(HaveKeyWithValue(workspaceNameLabel, workspaceName))
+				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV1))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should propagate added keys and changed values to the existing ServiceAccount without a restart", func() {
+			By("waiting for `status.pendingRestart` to be false")
+			Eventually(pendingRestart, timeout, interval).Should(BeFalse())
+			var statefulSetGeneration int64
+			Eventually(func(g Gomega) {
+				statefulSetGeneration = getStatefulSetGeneration(g)
+			}, timeout, interval).Should(Succeed())
+
+			By("adding a new label and annotation, and changing an existing annotation value")
+			setServiceAccountMetadata(
+				map[string]string{"my-sa-label": "my-value", "my-new-sa-label": "my-value"},
+				map[string]string{roleArnAnnotation: roleArnV2, "my-new-sa-annotation": "my-value"},
+			)
+
+			By("updating the existing ServiceAccount")
+			Eventually(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				g.Expect(serviceAccount.Labels).To(HaveKeyWithValue("my-new-sa-label", "my-value"))
+				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue("my-new-sa-annotation", "my-value"))
+				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV2))
+			}, timeout, interval).Should(Succeed())
+
+			By("leaving `status.pendingRestart` false and the StatefulSet spec unchanged")
+			// the ServiceAccount metadata is not part of the Pod template, so changing it
+			// never requires a Workspace restart
+			Consistently(pendingRestart, "2s", interval).Should(BeFalse())
+			Consistently(getStatefulSetGeneration, "2s", interval).Should(Equal(statefulSetGeneration))
+		})
+
+		It("should preserve metadata added to the ServiceAccount out of band", func() {
+			By("adding an annotation to the ServiceAccount directly, as another controller would")
+			Eventually(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				if serviceAccount.Annotations == nil {
+					serviceAccount.Annotations = map[string]string{}
+				}
+				serviceAccount.Annotations["other-tool.example.com/annotation"] = "other-value"
+				g.Expect(k8sClient.Update(ctx, serviceAccount)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			By("triggering a reconcile with a WorkspaceKind change")
+			setServiceAccountMetadata(
+				map[string]string{"my-sa-label": "my-value", "my-new-sa-label": "my-value"},
+				map[string]string{roleArnAnnotation: roleArnV1, "my-new-sa-annotation": "my-value"},
+			)
+			Eventually(func(g Gomega) {
+				g.Expect(getServiceAccount(g).Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV1))
+			}, timeout, interval).Should(Succeed())
+
+			By("keeping the out of band annotation")
+			Consistently(func(g Gomega) {
+				g.Expect(getServiceAccount(g).Annotations).To(HaveKeyWithValue("other-tool.example.com/annotation", "other-value"))
+			}, "2s", interval).Should(Succeed())
+		})
+
+		It("should NOT remove keys from the ServiceAccount when they are removed from the WorkspaceKind", func() {
+			// NOTE: the controller merges rather than replaces ServiceAccount metadata, so it cannot
+			//       tell a key it previously applied from one added by someone else, see the
+			//       `serviceAccount.metadata` field description in the WorkspaceKind CRD
+			By("removing the new label and annotation, and changing an existing annotation value")
+			setServiceAccountMetadata(
+				map[string]string{"my-sa-label": "my-value"},
+				map[string]string{roleArnAnnotation: roleArnV2},
+			)
+			Eventually(func(g Gomega) {
+				g.Expect(getServiceAccount(g).Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV2))
+			}, timeout, interval).Should(Succeed())
+
+			By("keeping the removed keys on the ServiceAccount")
+			Consistently(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				g.Expect(serviceAccount.Labels).To(HaveKeyWithValue("my-new-sa-label", "my-value"))
+				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue("my-new-sa-annotation", "my-value"))
+			}, "2s", interval).Should(Succeed())
+		})
+	})
+
 	Context("When generating the RoleBinding name for a Workspace", func() {
 
 		It("should be stable across calls", func() {
@@ -809,9 +990,20 @@ var _ = Describe("Workspace Controller", func() {
 
 	Context("When generating a ServiceAccount for a Workspace", func() {
 
+		// NOTE: these tests call generateServiceAccount directly and do not create any
+		//       resources in the cluster, so no teardown is required.
+		var workspaceKind *kubefloworgv1beta1.WorkspaceKind
+
+		BeforeEach(func() {
+			workspaceKind = NewExampleWorkspaceKind1("my-workspacekind")
+
+			// ensure the field starts unset, so each test only sets what it exercises
+			workspaceKind.Spec.PodTemplate.ServiceAccount = nil
+		})
+
 		It("should use `generateName` with the Workspace name prefix", func() {
 			workspace := NewExampleWorkspace1("my-workspace", namespaceName, "my-workspacekind")
-			serviceAccount := generateServiceAccount(workspace)
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
 			Expect(serviceAccount.Name).To(BeEmpty())
 			Expect(serviceAccount.GenerateName).To(Equal("ws-my-workspace-"))
 			Expect(serviceAccount.Labels).To(HaveKeyWithValue(workspaceNameLabel, "my-workspace"))
@@ -819,9 +1011,57 @@ var _ = Describe("Workspace Controller", func() {
 
 		It("should leave room for the `generateName` suffix within the max ServiceAccount name length", func() {
 			workspace := NewExampleWorkspace1(strings.Repeat("a", 253), namespaceName, "my-workspacekind")
-			serviceAccount := generateServiceAccount(workspace)
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
 			Expect(len(serviceAccount.GenerateName)).To(BeNumerically("<=", maxServiceAccountNameLength-generateNameSuffixLength))
 			Expect(serviceAccount.GenerateName).To(HaveSuffix("-"))
+		})
+
+		It("should set only the controller-managed label when `serviceAccount.metadata` is unset", func() {
+			workspace := NewExampleWorkspace1("my-workspace", namespaceName, "my-workspacekind")
+
+			By("generating the ServiceAccount with `serviceAccount` unset")
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
+			Expect(serviceAccount.Labels).To(Equal(map[string]string{workspaceNameLabel: "my-workspace"}))
+			Expect(serviceAccount.Annotations).To(BeEmpty())
+
+			By("generating the ServiceAccount with `serviceAccount` set but `metadata` unset")
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{}
+			serviceAccount = generateServiceAccount(workspace, workspaceKind)
+			Expect(serviceAccount.Labels).To(Equal(map[string]string{workspaceNameLabel: "my-workspace"}))
+			Expect(serviceAccount.Annotations).To(BeEmpty())
+		})
+
+		It("should apply the WorkspaceKind `serviceAccount.metadata` labels and annotations", func() {
+			workspace := NewExampleWorkspace1("my-workspace", namespaceName, "my-workspacekind")
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+				Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+					Labels:      map[string]string{"my-label": "my-value"},
+					Annotations: map[string]string{"eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"},
+				},
+			}
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
+
+			By("checking the admin labels/annotations are present alongside the controller label")
+			Expect(serviceAccount.Labels).To(HaveKeyWithValue("my-label", "my-value"))
+			Expect(serviceAccount.Labels).To(HaveKeyWithValue(workspaceNameLabel, "my-workspace"))
+			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("eks.amazonaws.com/role-arn", "arn:aws:iam::111122223333:role/my-role"))
+
+			By("checking the generated maps do not alias the WorkspaceKind maps")
+			serviceAccount.Annotations["eks.amazonaws.com/role-arn"] = "mutated"
+			Expect(workspaceKind.Spec.PodTemplate.ServiceAccount.Metadata.Annotations).To(HaveKeyWithValue("eks.amazonaws.com/role-arn", "arn:aws:iam::111122223333:role/my-role"))
+		})
+
+		It("should not let `serviceAccount.metadata` override the controller-managed label", func() {
+			workspace := NewExampleWorkspace1("my-workspace", namespaceName, "my-workspacekind")
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+				Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+					Labels: map[string]string{workspaceNameLabel: "hijacked"},
+				},
+			}
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
+
+			By("checking the controller value wins over the admin-provided one")
+			Expect(serviceAccount.Labels).To(HaveKeyWithValue(workspaceNameLabel, "my-workspace"))
 		})
 	})
 
