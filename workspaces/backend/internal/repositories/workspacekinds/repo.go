@@ -56,7 +56,7 @@ const (
 type WorkspaceKindRepository struct {
 	cfg             *config.EnvConfig
 	client          client.Client
-	configMapClient client.Client // filtered cache client for ConfigMaps with 'notebooks.kubeflow.org/image-source=true'
+	configMapClient client.Client // filtered cache client for ConfigMaps with 'workspaces.kubeflow.org/image-source=true'
 }
 
 func NewWorkspaceKindRepository(cfg *config.EnvConfig, cl client.Client, configMapClient client.Client) *WorkspaceKindRepository {

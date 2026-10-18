@@ -35,18 +35,18 @@ import (
 const (
 	// ImageSourceLabel is the label that must be present on ConfigMaps for them
 	// to be visible to the filtered image-source cache.
-	ImageSourceLabel = "notebooks.kubeflow.org/image-source"
+	ImageSourceLabel = "workspaces.kubeflow.org/image-source"
 
 	// ImageSourceLabelValue is the expected value of ImageSourceLabel on ConfigMaps.
 	ImageSourceLabelValue = "true"
 
 	// SHA256AnnotationPrefix is the prefix for virtual annotations that store
 	// pre-computed SHA256 hashes of ConfigMap data keys.
-	// The full annotation key is: VIRTUAL.notebooks.kubeflow.org/sha256.{data-key}
+	// The full annotation key is: VIRTUAL.workspaces.kubeflow.org/sha256.{data-key}
 	//
 	// The "VIRTUAL." prefix uses capital letters which are invalid in real Kubernetes
 	// annotations, making it obvious that these only exist in the in-memory cache.
-	SHA256AnnotationPrefix = "VIRTUAL.notebooks.kubeflow.org/sha256."
+	SHA256AnnotationPrefix = "VIRTUAL.workspaces.kubeflow.org/sha256."
 )
 
 // TransformConfigMapSHA256 returns a cache Transform function that computes SHA256 hashes
@@ -57,7 +57,7 @@ const (
 //
 // For a ConfigMap with Data key "my-icon", the annotation will be:
 //
-//	VIRTUAL.notebooks.kubeflow.org/sha256.my-icon = "a1b2c3..."
+//	VIRTUAL.workspaces.kubeflow.org/sha256.my-icon = "a1b2c3..."
 func TransformConfigMapSHA256() toolscache.TransformFunc {
 	return func(in any) (any, error) {
 		obj, err := meta.Accessor(in)
@@ -93,15 +93,15 @@ func TransformConfigMapSHA256() toolscache.TransformFunc {
 	}
 }
 
-// BuildImageSourceConfigMapCache creates a filtered cache for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
+// BuildImageSourceConfigMapCache creates a filtered cache for ConfigMaps with the label 'workspaces.kubeflow.org/image-source=true'
 // REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
 //
 // The cache uses a Transform function that pre-computes SHA256 hashes of each ConfigMap
 // data key and stores them as virtual annotations (see TransformConfigMapSHA256).
 //
-// WARNING: this client is ONLY able to see ConfigMaps with the 'notebooks.kubeflow.org/image-source=true' label
+// WARNING: this client is ONLY able to see ConfigMaps with the 'workspaces.kubeflow.org/image-source=true' label
 func BuildImageSourceConfigMapCache(mgr ctrl.Manager) (cache.Cache, error) {
-	// ConfigMaps we manage will have the `notebooks.kubeflow.org/image-source=true` label
+	// ConfigMaps we manage will have the `workspaces.kubeflow.org/image-source=true` label
 	imageSourceLabelReq, err := labels.NewRequirement(ImageSourceLabel, selection.Equals, []string{ImageSourceLabelValue})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create label requirement: %w", err)

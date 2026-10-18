@@ -43,7 +43,7 @@ import (
 )
 
 const (
-	WorkspaceKindFinalizer = "notebooks.kubeflow.org/workspacekind-protection"
+	WorkspaceKindFinalizer = "workspaces.kubeflow.org/workspacekind-protection"
 )
 
 // WorkspaceKindReconciler reconciles a WorkspaceKind object
@@ -51,7 +51,7 @@ type WorkspaceKindReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 
-	// ImageSourceCache is a filtered cache for ConfigMaps with the "notebooks.kubeflow.org/image-source=true" label.
+	// ImageSourceCache is a filtered cache for ConfigMaps with the "workspaces.kubeflow.org/image-source=true" label.
 	// The cache Transform pre-computes SHA256 hashes and stores them as virtual annotations.
 	// It implements client.Reader (for Get/List) and is used as a watch source for ConfigMap changes.
 	ImageSourceCache cache.Cache

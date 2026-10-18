@@ -57,7 +57,7 @@ import (
 
 const (
 	// label keys
-	workspaceNameLabel     = "notebooks.kubeflow.org/workspace-name"
+	workspaceNameLabel     = "workspaces.kubeflow.org/workspace-name"
 	workspaceSelectorLabel = "statefulset"
 
 	// pod template constants

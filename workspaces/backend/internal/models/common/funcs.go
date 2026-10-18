@@ -24,17 +24,17 @@ import (
 )
 
 const (
-	AnnotationCreatedBy = "notebooks.kubeflow.org/created-by"
-	AnnotationUpdatedAt = "notebooks.kubeflow.org/updated-at"
-	AnnotationUpdatedBy = "notebooks.kubeflow.org/updated-by"
+	AnnotationCreatedBy = "workspaces.kubeflow.org/created-by"
+	AnnotationUpdatedAt = "workspaces.kubeflow.org/updated-at"
+	AnnotationUpdatedBy = "workspaces.kubeflow.org/updated-by"
 
-	AnnotationDisplayName = "notebooks.kubeflow.org/display-name"
-	AnnotationDescription = "notebooks.kubeflow.org/description"
+	AnnotationDisplayName = "workspaces.kubeflow.org/display-name"
+	AnnotationDescription = "workspaces.kubeflow.org/description"
 
-	LabelCanMount      = "notebooks.kubeflow.org/can-mount"
-	LabelCanUpdate     = "notebooks.kubeflow.org/can-update"
-	LabelCanUse        = "notebooks.kubeflow.org/can-use"
-	LabelWorkspaceName = "notebooks.kubeflow.org/workspace-name"
+	LabelCanMount      = "workspaces.kubeflow.org/can-mount"
+	LabelCanUpdate     = "workspaces.kubeflow.org/can-update"
+	LabelCanUse        = "workspaces.kubeflow.org/can-use"
+	LabelWorkspaceName = "workspaces.kubeflow.org/workspace-name"
 )
 
 // NewAuditFromObjectMeta creates an Audit instance from Kubernetes ObjectMeta.
