@@ -32,6 +32,10 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
+const (
+	ControllerFieldOwner = "kubeflow-workspaces-controller"
+)
+
 // copyLabelFields copies metadata.labels from desired to target, returning the updated map and whether an update is required.
 func copyLabelFields(desiredLabels map[string]string, targetLabels map[string]string) (map[string]string, bool) {
 	requireUpdate := false
@@ -179,6 +183,12 @@ func CopyServiceAccountFields(desired *corev1.ServiceAccount, target *corev1.Ser
 
 	// NOTE: we merge rather than replace, because administrators and other controllers attach
 	//       their own metadata to a ServiceAccount (e.g. the IAM annotations used by IRSA)
+
+	//
+	// TODO: when allowing users to set ServiceAccount labels/annotations,
+	//       use the `target` object "metadata.managedFields" to determine which map keys were actually created
+	//       by this controller and so need to be cleaned up if they are no longer present in the `desired` object.
+	//
 
 	var updated bool
 	target.Labels, updated = mergeStringMapFields(desired.Labels, target.Labels)
