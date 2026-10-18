@@ -35,7 +35,8 @@ import (
 )
 
 const (
-	LabelImageSource = "notebooks.kubeflow.org/image-source"
+	BackendAPIFieldOwner = "kubeflow-workspaces-backend-api"
+	LabelImageSource     = "notebooks.kubeflow.org/image-source"
 )
 
 // BuildScheme returns builds a new runtime scheme with all the necessary types registered.
@@ -72,6 +73,7 @@ func NewManager(cfg *rest.Config, scheme *runtime.Scheme) (ctrl.Manager, error) 
 					&metricsv1beta1.PodMetrics{},
 				},
 			},
+			FieldOwner: BackendAPIFieldOwner,
 		},
 		Metrics: metricsserver.Options{
 			BindAddress: "0", // disable metrics serving
