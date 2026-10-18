@@ -183,6 +183,13 @@ export const WorkspaceKindForm: React.FC = () => {
   const [data, setData, resetData, replaceData] = useGenericObjectState<WorkspaceKindFormData>(
     initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
   );
+  const updateData = useCallback(
+    <K extends keyof WorkspaceKindFormData>(key: K, value: WorkspaceKindFormData[K]) => {
+      setApiError(null);
+      setData(key, value);
+    },
+    [setData],
+  );
   const [originalFormData, setOriginalFormData] = useState<WorkspaceKindFormData | null>(null);
 
   useEffect(() => {
@@ -460,7 +467,7 @@ export const WorkspaceKindForm: React.FC = () => {
                       <WorkspaceKindFormProperties
                         mode={mode}
                         properties={data.properties}
-                        updateField={(properties) => setData('properties', properties)}
+                        updateField={(properties) => updateData('properties', properties)}
                       />
                     </StackItem>
                     <StackItem>
@@ -468,7 +475,7 @@ export const WorkspaceKindForm: React.FC = () => {
                         mode={mode}
                         imageConfig={data.imageConfig}
                         updateImageConfig={(imageInput) => {
-                          setData('imageConfig', imageInput);
+                          updateData('imageConfig', imageInput);
                         }}
                       />
                     </StackItem>
@@ -476,7 +483,7 @@ export const WorkspaceKindForm: React.FC = () => {
                       <WorkspaceKindFormPodConfig
                         podConfig={data.podConfig}
                         updatePodConfig={(podConfig) => {
-                          setData('podConfig', podConfig);
+                          updateData('podConfig', podConfig);
                         }}
                       />
                     </StackItem>
@@ -484,11 +491,11 @@ export const WorkspaceKindForm: React.FC = () => {
                       <WorkspaceKindFormPodTemplate
                         podTemplate={data.podTemplate}
                         updatePodTemplate={(podTemplate) => {
-                          setData('podTemplate', podTemplate);
+                          updateData('podTemplate', podTemplate);
                         }}
                         activityRules={data.activityRules ?? []}
                         updateActivityRules={(rules) => {
-                          setData('activityRules', rules);
+                          updateData('activityRules', rules);
                         }}
                       />
                     </StackItem>
