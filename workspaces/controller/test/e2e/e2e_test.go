@@ -443,7 +443,7 @@ var _ = Describe("controller", Ordered, func() {
 			// the sample WorkspaceKind sets spec.podTemplate.serviceAccount.metadata, which the controller
 			// merges onto the generated ServiceAccount's own metadata (alongside the workspace-name label)
 			verifyServiceAccountMetadata := func(g Gomega) {
-				saSelector := fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName)
+				saSelector := fmt.Sprintf("workspaces.kubeflow.org/workspace-name=%s", workspaceName)
 
 				cmd := exec.Command("kubectl", "get", "serviceaccounts",
 					"-l", saSelector,

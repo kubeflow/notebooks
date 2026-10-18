@@ -5441,7 +5441,7 @@ spec:
                              - "azure.workload.identity/client-id" (Azure)
                            - the Azure "azure.workload.identity/use" label belongs on the Pod, NOT the
                              ServiceAccount, so set it in `spec.podTemplate.podMetadata.labels` instead
-                           - the controller-managed `notebooks.kubeflow.org/*` labels always take precedence
+                           - the controller-managed `workspaces.kubeflow.org/*` labels always take precedence
                            - changes are applied to the ServiceAccounts of existing Workspaces without a restart,
                              but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the
                              ServiceAccount when a Pod is created, so running Workspaces must be restarted

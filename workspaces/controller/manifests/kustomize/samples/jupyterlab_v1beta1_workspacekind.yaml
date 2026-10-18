@@ -188,7 +188,7 @@ spec:
       ##  - labels and annotations applied to the ServiceAccount object itself,
       ##    for example to configure cloud Workload Identity
       ##  - this is an admin-only default for all Workspaces of this WorkspaceKind
-      ##  - the controller-managed `notebooks.kubeflow.org/workspace-name` label
+      ##  - the controller-managed `workspaces.kubeflow.org/workspace-name` label
       ##    always takes precedence and cannot be overridden here
       ##  - keys are only ever added or updated on existing ServiceAccounts,
       ##    removing a key here does NOT remove it from existing ServiceAccounts
