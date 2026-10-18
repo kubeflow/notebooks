@@ -695,6 +695,7 @@ const WorkspaceForm: React.FC = () => {
                         isResourceNameEditing={isResourceNameEditing}
                         onStartResourceNameEdit={onStartResourceNameEdit}
                         onResourceNameChange={onResourceNameChange}
+                        workspaceName={workspaceName}
                       />
                     )}
                     {currentStep === WorkspaceFormSteps.Summary && (

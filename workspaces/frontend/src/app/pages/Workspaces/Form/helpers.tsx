@@ -140,28 +140,69 @@ export const getUnmountableTooltip = (pvc: PvcsPVCListItem): string | null => {
   return null;
 };
 
+export const isPVCMountBlocked = (pvc: PvcsPVCListItem, currentWorkspaceName?: string): boolean => {
+  const hasOtherWorkspaces = pvc.workspaces.some((ws) => ws.name !== currentWorkspaceName);
+  const modes = pvc.pvcSpec.accessModes;
+  if (modes.includes(V1PersistentVolumeAccessMode.ReadWriteOncePod)) {
+    const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
+      ?.name;
+    return hasOtherWorkspaces || pvc.pods.some((pod) => pod.name !== ownPodName);
+  }
+  if (modes.includes(V1PersistentVolumeAccessMode.ReadWriteOnce)) {
+    return hasOtherWorkspaces;
+  }
+  return false;
+};
+
+export const getBlockedMountTooltip = (
+  pvc: PvcsPVCListItem,
+  currentWorkspaceName?: string,
+): string | null => {
+  if (!isPVCMountBlocked(pvc, currentWorkspaceName)) {
+    return null;
+  }
+  const modes = pvc.pvcSpec.accessModes;
+  const otherWorkspace = pvc.workspaces.find((ws) => ws.name !== currentWorkspaceName);
+  if (modes.includes(V1PersistentVolumeAccessMode.ReadWriteOncePod)) {
+    if (otherWorkspace?.name) {
+      return `This volume uses ReadWriteOncePod access and is already mounted by workspace "${otherWorkspace.name}".`;
+    }
+    const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
+      ?.name;
+    const otherPod = pvc.pods.find((pod) => pod.name !== ownPodName);
+    if (otherPod?.name) {
+      return `This volume uses ReadWriteOncePod access and is already mounted by pod "${otherPod.name}".`;
+    }
+    return 'This volume uses ReadWriteOncePod access and is already mounted by another pod or workspace.';
+  }
+  if (otherWorkspace?.name) {
+    return `This volume uses ReadWriteOnce access and is already mounted by workspace "${otherWorkspace.name}".`;
+  }
+  return 'This volume uses ReadWriteOnce access and is already mounted by another workspace.';
+};
+
 export const buildPVCOptionDescription = (
   pvc: PvcsPVCListItem,
   excludedPvcNames?: Set<string>,
+  currentWorkspaceName?: string,
 ): React.ReactNode => {
   const isExcluded = excludedPvcNames?.has(pvc.name) ?? false;
+  const isBlocked = isPVCMountBlocked(pvc, currentWorkspaceName);
+  const isDimmed = !pvc.canMount || isExcluded || isBlocked;
   return (
     <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
       <FlexItem>
         <Stack style={{ width: '100%' }}>
           <StackItem>
             <LabelGroup numLabels={5}>
-              <Label
-                isCompact
-                className={!pvc.canMount || isExcluded ? 'pf-m-disabled' : undefined}
-              >
+              <Label isCompact className={isDimmed ? 'pf-m-disabled' : undefined}>
                 {pvc.pvcSpec.requests.storage}
               </Label>
               {pvc.pvcSpec.accessModes.map((mode) => (
                 <Label
                   key={mode}
                   isCompact
-                  className={!pvc.canMount || isExcluded ? 'pf-m-disabled' : undefined}
+                  className={isDimmed ? 'pf-m-disabled' : undefined}
                   color="blue"
                 >
                   {mode}
@@ -191,7 +232,7 @@ export const buildPVCOptionDescription = (
                     icon={<CubeIcon color="teal" />}
                     isCompact
                     color="teal"
-                    className={!pvc.canMount || isExcluded ? 'pf-m-disabled' : undefined}
+                    className={isDimmed ? 'pf-m-disabled' : undefined}
                   />
                 </FlexItem>
               </Flex>
@@ -224,6 +265,7 @@ export const buildPVCSelectOptions = (
   storageClasses: StorageclassesStorageClassListItem[],
   excludedPvcNames?: Set<string>,
   selectedPvcName?: string,
+  currentWorkspaceName?: string,
 ): TypeaheadSelectOption[] => {
   const scMap = new Map(storageClasses.map((s) => [s.name, s]));
   const grouped = new Map<
@@ -255,22 +297,39 @@ export const buildPVCSelectOptions = (
     });
 
     const sorted = [...pvcs].sort((a, b) => {
-      const aDisabled = !a.canMount || (excludedPvcNames?.has(a.name) ?? false);
-      const bDisabled = !b.canMount || (excludedPvcNames?.has(b.name) ?? false);
+      const aDisabled =
+        !a.canMount ||
+        (excludedPvcNames?.has(a.name) ?? false) ||
+        isPVCMountBlocked(a, currentWorkspaceName);
+      const bDisabled =
+        !b.canMount ||
+        (excludedPvcNames?.has(b.name) ?? false) ||
+        isPVCMountBlocked(b, currentWorkspaceName);
       return Number(aDisabled) - Number(bDisabled);
     });
 
     for (const pvc of sorted) {
-      const isDisabled = !pvc.canMount || (excludedPvcNames?.has(pvc.name) ?? false);
-      const tooltip = getUnmountableTooltip(pvc);
+      const isExcluded = excludedPvcNames?.has(pvc.name) ?? false;
+      const isDisabled =
+        !pvc.canMount || isExcluded || isPVCMountBlocked(pvc, currentWorkspaceName);
+      const tooltip =
+        getUnmountableTooltip(pvc) ??
+        (isExcluded ? null : getBlockedMountTooltip(pvc, currentWorkspaceName));
       options.push({
         content: pvc.name,
         value: pvc.name,
         isDisabled: isDisabled && !tooltip,
         isAriaDisabled: isDisabled && !!tooltip,
         selected: pvc.name === selectedPvcName,
-        description: buildPVCOptionDescription(pvc, excludedPvcNames),
-        ...(tooltip ? { tooltipProps: { content: tooltip } } : {}),
+        description: buildPVCOptionDescription(pvc, excludedPvcNames, currentWorkspaceName),
+        ...(tooltip
+          ? {
+              tooltipProps: {
+                content: tooltip,
+                'data-testid': `pvc-option-tooltip-${pvc.name}`,
+              },
+            }
+          : {}),
       });
     }
   }

@@ -156,6 +156,34 @@ class VolumesAttachModal {
       .should('have.class', 'pf-m-disabled') as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
   }
 
+  assertPVCAriaDisabled(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.openPVCDropdown();
+    return cy
+      .contains('.pf-v6-c-menu__list-item', pvcName)
+      .should('have.class', 'pf-m-aria-disabled') as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
+  hoverPVCOption(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .contains('.pf-v6-c-menu__list-item', pvcName)
+      .trigger('mouseenter') as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+  }
+
+  assertPVCTooltipContainsText(
+    pvcName: string,
+    text: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`pvc-option-tooltip-${pvcName}`).should('contain.text', text);
+  }
+
+  clickDisabledPVCOption(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.contains('.pf-v6-c-menu__list-item', pvcName).click() as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
   // Mount Path
   findMountPathInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('#pvc-mount-path');

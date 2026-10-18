@@ -14,13 +14,15 @@ import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { TypeaheadSelect } from '@patternfly/react-templates';
-import { PvcsPVCListItem, V1PersistentVolumeAccessMode } from '~/generated/data-contracts';
+import { PvcsPVCListItem } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import {
   normalizeMountPath,
   validateMountPath,
   getMountPathUniquenessError,
   buildPVCSelectOptions,
+  isPVCMountBlocked,
+  getBlockedMountTooltip,
 } from '~/app/pages/Workspaces/Form/helpers';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import usePVCs from '~/app/hooks/usePVCs';
@@ -43,13 +45,17 @@ export interface VolumesAttachModalProps {
   fixedMountPath?: string;
   /** PVC names already mounted in the other volume section (home or data) */
   excludedPvcNames?: Set<string>;
+  currentWorkspaceName?: string;
 }
 
-const isRWO = (pvc: PvcsPVCListItem): boolean =>
-  pvc.pvcSpec.accessModes.includes(V1PersistentVolumeAccessMode.ReadWriteOnce) ||
-  pvc.pvcSpec.accessModes.includes(V1PersistentVolumeAccessMode.ReadWriteOncePod);
-
-const isInUse = (pvc: PvcsPVCListItem): boolean => pvc.pods.length > 0 || pvc.workspaces.length > 0;
+const isMountedByOther = (pvc: PvcsPVCListItem, currentWorkspaceName?: string): boolean => {
+  const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
+    ?.name;
+  return (
+    pvc.pods.some((pod) => pod.name !== ownPodName) ||
+    pvc.workspaces.some((ws) => ws.name !== currentWorkspaceName)
+  );
+};
 
 export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   isOpen,
@@ -59,6 +65,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   mountedPaths,
   fixedMountPath,
   excludedPvcNames,
+  currentWorkspaceName,
 }) => {
   // ── Data fetching ───────────────────────────────────────────────────────
 
@@ -124,28 +131,36 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
     [availablePVCs, selectedPvcName],
   );
 
+  const isSelectedPvcBlocked = useMemo(
+    () => !!selectedPvc && isPVCMountBlocked(selectedPvc, currentWorkspaceName),
+    [selectedPvc, currentWorkspaceName],
+  );
+
   const inUseAlert = useMemo(() => {
-    if (!selectedPvc || !isInUse(selectedPvc)) {
+    if (!selectedPvc) {
       return null;
     }
-    if (isRWO(selectedPvc)) {
+    if (isPVCMountBlocked(selectedPvc, currentWorkspaceName)) {
       return {
         variant: AlertVariant.danger,
-        title: 'Volume is in use with ReadWriteOnce or ReadWriteOncePod access',
-        body: 'This volume uses ReadWriteOnce or ReadWriteOncePod access mode and is already mounted. Attaching it to this workspace may fail if it is scheduled on a different node.',
+        title: 'Volume cannot be attached',
+        body: `${getBlockedMountTooltip(selectedPvc, currentWorkspaceName) ?? 'This volume uses ReadWriteOnce or ReadWriteOncePod access mode and is already mounted by another workspace or pod.'} Detach it there before attaching it here.`,
       };
     }
-    return {
-      variant: AlertVariant.warning,
-      title: 'Volume is currently in use',
-      body: 'This volume is already mounted by other workspaces or pods. Verify that sharing is supported.',
-    };
-  }, [selectedPvc]);
+    if (isMountedByOther(selectedPvc, currentWorkspaceName)) {
+      return {
+        variant: AlertVariant.warning,
+        title: 'Volume is currently in use',
+        body: 'This volume is already mounted by other workspaces or pods. Verify that sharing is supported.',
+      };
+    }
+    return null;
+  }, [selectedPvc, currentWorkspaceName]);
 
   // ── Attach handler ───────────────────────────────────────────────────────
 
   const handleAttach = useCallback(() => {
-    if (!selectedPvc) {
+    if (!selectedPvc || isPVCMountBlocked(selectedPvc, currentWorkspaceName)) {
       return;
     }
     const trimmedPath = normalizeMountPath(mountPath);
@@ -154,13 +169,20 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       return;
     }
     onAttach(selectedPvc, trimmedPath, readOnly);
-  }, [selectedPvc, mountPath, readOnly, mountedPaths, onAttach]);
+  }, [selectedPvc, mountPath, readOnly, mountedPaths, onAttach, currentWorkspaceName]);
 
   // ── Options ──────────────────────────────────────────────────────────────
 
   const initialOptions = useMemo(
-    () => buildPVCSelectOptions(availablePVCs, storageClasses, excludedPvcNames, selectedPvcName),
-    [availablePVCs, storageClasses, excludedPvcNames, selectedPvcName],
+    () =>
+      buildPVCSelectOptions(
+        availablePVCs,
+        storageClasses,
+        excludedPvcNames,
+        selectedPvcName,
+        currentWorkspaceName,
+      ),
+    [availablePVCs, storageClasses, excludedPvcNames, selectedPvcName, currentWorkspaceName],
   );
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -272,7 +294,8 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
             !selectedPvcName ||
             !mountPath.trim() ||
             !!mountPathError ||
-            isMountPathEditing
+            isMountPathEditing ||
+            isSelectedPvcBlocked
           }
           onClick={handleAttach}
           data-testid="attach-pvc-button"
