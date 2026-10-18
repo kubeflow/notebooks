@@ -97,9 +97,39 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
       const found = mockWorkspaceKinds.find((w) => w.name === kind)!;
       return { data: buildMockWorkspaceKindUpdate(found) };
     },
-    updateWorkspaceKind: async () => ({
-      data: buildMockWorkspaceKindUpdate(mockWorkspaceKind1),
-    }),
+    updateWorkspaceKind: async (name, body) => {
+      if (
+        name.includes('-invalid') ||
+        (body.data.spawner.displayName && body.data.spawner.displayName.includes('-invalid'))
+      ) {
+        const apiErrorEnvelope: ApiErrorEnvelope = {
+          error: {
+            code: '422',
+            message: 'request body was invalid',
+            cause: {
+              // eslint-disable-next-line camelcase
+              validation_errors: [
+                {
+                  type: FieldErrorType.ErrorTypeInvalid,
+                  field: 'spec.spawner.displayName',
+                  message: "Invalid value: 'displayName' contains invalid pattern",
+                },
+              ],
+            },
+          },
+        };
+        throw buildAxiosError(apiErrorEnvelope, 422);
+      }
+      const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind1);
+      return {
+        data: {
+          name: name || mockWorkspaceKind1.name,
+          revision: update.revision,
+          podTemplate: update.podTemplate,
+          spawner: update.spawner,
+        },
+      };
+    },
     deleteWorkspaceKind: async () => {
       await delay(1500);
     },
@@ -172,7 +202,7 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
           },
         };
 
-        throw buildAxiosError(apiErrorEnvelope);
+        throw buildAxiosError(apiErrorEnvelope, 422);
       }
       const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind1);
       return {
