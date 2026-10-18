@@ -21,16 +21,13 @@ import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { ImagePullPolicy, WorkspaceKindFormData } from '~/app/types';
-import {
-  extractErrorMessage,
-  formatConflictErrorMessages,
-  formatValidationErrorMessages,
-  safeApiCall,
-} from '~/shared/api/apiUtils';
+import { extractErrorMessage, safeApiCall } from '~/shared/api/apiUtils';
 import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
+import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import {
+  ApiErrorEnvelope,
   OptionsOptionRedirect,
   OptionsRedirectMessageLevel,
   V1Beta1OptionRedirect,
@@ -172,6 +169,7 @@ export const WorkspaceKindForm: React.FC = () => {
   const [editYamlValue, setEditYamlValue] = useState('');
   const [originalYaml, setOriginalYaml] = useState('');
   const [yamlParseError, setYamlParseError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | ApiErrorEnvelope | null>(null);
   const lastApiObjectRef = useRef<WorkspacekindsWorkspaceKindUpdate | null>(null);
   const mode: FormMode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
   const [validated, setValidated] = useState<ValidationStatus>(
@@ -235,6 +233,7 @@ export const WorkspaceKindForm: React.FC = () => {
   );
 
   const handleRevert = useCallback(() => {
+    setApiError(null);
     if (initialFormData) {
       const converted = convertToFormData(initialFormData);
       replaceData(converted);
@@ -248,6 +247,7 @@ export const WorkspaceKindForm: React.FC = () => {
   }, [initialFormData, replaceData]);
 
   const handleYamlChange = useCallback((value: string) => {
+    setApiError(null);
     setEditYamlValue(value);
     try {
       yaml.load(value);
@@ -259,6 +259,7 @@ export const WorkspaceKindForm: React.FC = () => {
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
+    setApiError(null);
     // TODO: Complete handleCreate with API call to create a new WS kind
     try {
       if (mode === 'create') {
@@ -307,19 +308,10 @@ export const WorkspaceKindForm: React.FC = () => {
       navigate('workspaceKinds');
     } catch (err) {
       const extracted = extractErrorMessage(err);
-      let message: string;
-      if (typeof extracted === 'string') {
-        message = extracted;
-      } else {
-        const details = [
-          ...formatValidationErrorMessages(extracted),
-          ...formatConflictErrorMessages(extracted),
-        ];
-        message = details.length > 0 ? details.join('; ') : extracted.error.message;
-      }
+      setApiError(extracted);
       notification.error(
         `Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`,
-        message,
+        'Please review the errors below.',
       );
       if (mode === 'create') {
         setValidated('error');
@@ -406,16 +398,29 @@ export const WorkspaceKindForm: React.FC = () => {
       </PageGroup>
       <PageSection isFilled>
         <Stack hasGutter>
+          {apiError && (
+            <StackItem>
+              <ErrorAlert
+                title={`Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`}
+                content={apiError}
+                testId="workspace-kind-form-error"
+              />
+            </StackItem>
+          )}
           {mode === 'create' && (
             <StackItem style={{ height: '100%' }}>
               <WorkspaceKindFileUpload
                 resetData={resetData}
                 value={yamlValue}
-                setValue={setYamlValue}
+                setValue={(v) => {
+                  setApiError(null);
+                  setYamlValue(v);
+                }}
                 validated={validated}
                 setValidated={setValidated}
-                // eslint-disable-next-line @typescript-eslint/no-empty-function
-                onClear={() => {}}
+                onClear={() => {
+                  setApiError(null);
+                }}
               />
             </StackItem>
           )}
