@@ -43,12 +43,12 @@ import (
 var _ = Describe("Workspaces Handler", func() {
 
 	//
-	// TODO: add a test which fails when CREATING/UPDATING a Workspace with a home PVC that does not have `notebooks.kubeflow.org/can-mount=true` label
+	// TODO: add a test which fails when CREATING/UPDATING a Workspace with a home PVC that does not have `workspaces.kubeflow.org/can-mount=true` label
 	//
-	// TODO: add a test which fails when CREATING/UPDATING a Workspace with a dataVolume PVC that does not have `notebooks.kubeflow.org/can-mount=true` label
+	// TODO: add a test which fails when CREATING/UPDATING a Workspace with a dataVolume PVC that does not have `workspaces.kubeflow.org/can-mount=true` label
 	//       the test should include multiple dataVolumes, some of which are mountable and some of which are not.
 	//
-	// TODO: add a test which fails when CREATING/UPDATING a Workspace with a SECRET that does not have `notebooks.kubeflow.org/can-mount=true` label
+	// TODO: add a test which fails when CREATING/UPDATING a Workspace with a SECRET that does not have `workspaces.kubeflow.org/can-mount=true` label
 	//       the test should include multiple secrets, some of which are mountable and some of which are not.
 	//
 

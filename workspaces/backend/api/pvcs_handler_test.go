@@ -46,7 +46,7 @@ var _ = Describe("PVCs Handler", func() {
 
 	//
 	// TODO: add test which fails when CREATING a PVC that references a StorageClass that does not
-	//       have the `notebooks.kubeflow.org/can-use=true` label.
+	//       have the `workspaces.kubeflow.org/can-use=true` label.
 	//
 
 	// NOTE: the tests in this context work on the same resources, they must be run in order.

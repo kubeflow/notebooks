@@ -291,7 +291,7 @@ var _ = Describe("controller", Ordered, func() {
 			verifyWorkspacePod := func(g Gomega) {
 				// Get workspace pod name
 				cmd := exec.Command("kubectl", "get", "pods",
-					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
+					"-l", fmt.Sprintf("workspaces.kubeflow.org/workspace-name=%s", workspaceName),
 					"-n", workspaceNamespace,
 					"-o", "go-template={{ range .items }}"+
 						"{{ if not .metadata.deletionTimestamp }}"+
@@ -324,7 +324,7 @@ var _ = Describe("controller", Ordered, func() {
 			getServiceName := func(g Gomega) {
 				// Get the workspace service name
 				cmd := exec.Command("kubectl", "get", "services",
-					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
+					"-l", fmt.Sprintf("workspaces.kubeflow.org/workspace-name=%s", workspaceName),
 					"-n", workspaceNamespace,
 					"-o", "go-template={{ range .items }}"+
 						"{{ if not .metadata.deletionTimestamp }}"+
@@ -362,7 +362,7 @@ var _ = Describe("controller", Ordered, func() {
 			var workspaceVirtualServiceName string
 			verifyWorkspaceVirtualService := func(g Gomega) {
 				cmd := exec.Command("kubectl", "get", "virtualservices",
-					"-l", fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName),
+					"-l", fmt.Sprintf("workspaces.kubeflow.org/workspace-name=%s", workspaceName),
 					"-n", workspaceNamespace,
 					"-o", "go-template={{ range .items }}"+
 						"{{ if not .metadata.deletionTimestamp }}"+
@@ -384,7 +384,7 @@ var _ = Describe("controller", Ordered, func() {
 			// the sample WorkspaceKind sets spec.podTemplate.statefulSetMetadata, which the controller
 			// applies to the generated StatefulSet's own metadata (alongside the workspace-name label)
 			verifyStatefulSetMetadata := func(g Gomega) {
-				stsSelector := fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName)
+				stsSelector := fmt.Sprintf("workspaces.kubeflow.org/workspace-name=%s", workspaceName)
 
 				cmd := exec.Command("kubectl", "get", "statefulsets",
 					"-l", stsSelector,
@@ -544,7 +544,7 @@ var _ = Describe("controller", Ordered, func() {
 
 			By("recording the existing StatefulSet and Service names")
 			var statefulSetName, serviceName string
-			stsSelector := fmt.Sprintf("notebooks.kubeflow.org/workspace-name=%s", workspaceName)
+			stsSelector := fmt.Sprintf("workspaces.kubeflow.org/workspace-name=%s", workspaceName)
 			cmd := exec.Command("kubectl", "get", "statefulsets",
 				"-l", stsSelector,
 				"-n", workspaceNamespace,

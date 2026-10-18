@@ -51,13 +51,13 @@ var _ = Describe("CopyServiceAccountFields", func() {
 		// ServiceAccount (for example the cloud IAM annotations used by IRSA or GKE
 		// Workload Identity), so the desired metadata is merged, not copied over
 		desired := newServiceAccount(
-			map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"},
+			map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"},
 			nil,
 		)
 		target := newServiceAccount(
 			map[string]string{
-				"notebooks.kubeflow.org/workspace-name": "my-workspace",
-				"my-label":                              "my-value",
+				"workspaces.kubeflow.org/workspace-name": "my-workspace",
+				"my-label":                               "my-value",
 			},
 			map[string]string{"eks.amazonaws.com/role-arn": "arn:aws:iam::000000000000:role/my-role"},
 		)
@@ -69,28 +69,28 @@ var _ = Describe("CopyServiceAccountFields", func() {
 
 	It("should add and overwrite the desired labels and annotations", func() {
 		desired := newServiceAccount(
-			map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"},
+			map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"},
 			map[string]string{"my-annotation": "new-value"},
 		)
 		target := newServiceAccount(
-			map[string]string{"notebooks.kubeflow.org/workspace-name": "other-workspace"},
+			map[string]string{"workspaces.kubeflow.org/workspace-name": "other-workspace"},
 			map[string]string{"my-annotation": "old-value"},
 		)
 
 		Expect(CopyServiceAccountFields(desired, target)).To(BeTrue())
-		Expect(target.Labels).To(HaveKeyWithValue("notebooks.kubeflow.org/workspace-name", "my-workspace"))
+		Expect(target.Labels).To(HaveKeyWithValue("workspaces.kubeflow.org/workspace-name", "my-workspace"))
 		Expect(target.Annotations).To(HaveKeyWithValue("my-annotation", "new-value"))
 	})
 
 	It("should initialize nil maps on the target", func() {
 		desired := newServiceAccount(
-			map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"},
+			map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"},
 			map[string]string{"my-annotation": "my-value"},
 		)
 		target := newServiceAccount(nil, nil)
 
 		Expect(CopyServiceAccountFields(desired, target)).To(BeTrue())
-		Expect(target.Labels).To(HaveKeyWithValue("notebooks.kubeflow.org/workspace-name", "my-workspace"))
+		Expect(target.Labels).To(HaveKeyWithValue("workspaces.kubeflow.org/workspace-name", "my-workspace"))
 		Expect(target.Annotations).To(HaveKeyWithValue("my-annotation", "my-value"))
 	})
 
@@ -132,7 +132,7 @@ var _ = Describe("CopyRoleBindingFields", func() {
 	}
 
 	It("should not require an update when the desired and target match", func() {
-		labels := map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"}
+		labels := map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"}
 		desired := newRoleBinding(labels, "kubeflow-edit", newSubject("ws-my-workspace"))
 		target := newRoleBinding(labels, "kubeflow-edit", newSubject("ws-my-workspace"))
 
@@ -143,14 +143,14 @@ var _ = Describe("CopyRoleBindingFields", func() {
 		// unlike a ServiceAccount, the controller fully owns a RoleBinding it created,
 		// so its metadata is replaced rather than merged
 		desired := newRoleBinding(
-			map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"},
+			map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"},
 			"kubeflow-edit",
 			newSubject("ws-my-workspace"),
 		)
 		target := newRoleBinding(
 			map[string]string{
-				"notebooks.kubeflow.org/workspace-name": "my-workspace",
-				"my-label":                              "my-value",
+				"workspaces.kubeflow.org/workspace-name": "my-workspace",
+				"my-label":                               "my-value",
 			},
 			"kubeflow-edit",
 			newSubject("ws-my-workspace"),
@@ -158,11 +158,11 @@ var _ = Describe("CopyRoleBindingFields", func() {
 
 		Expect(CopyRoleBindingFields(desired, target)).To(BeTrue())
 		Expect(target.Labels).NotTo(HaveKey("my-label"))
-		Expect(target.Labels).To(HaveKeyWithValue("notebooks.kubeflow.org/workspace-name", "my-workspace"))
+		Expect(target.Labels).To(HaveKeyWithValue("workspaces.kubeflow.org/workspace-name", "my-workspace"))
 	})
 
 	It("should copy the desired subjects", func() {
-		labels := map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"}
+		labels := map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"}
 		desired := newRoleBinding(labels, "kubeflow-edit", newSubject("ws-my-workspace"))
 		target := newRoleBinding(labels, "kubeflow-edit", newSubject("default-editor"))
 
@@ -173,7 +173,7 @@ var _ = Describe("CopyRoleBindingFields", func() {
 	It("should not copy the immutable roleRef", func() {
 		// `roleRef` is immutable, the caller is responsible for recreating the RoleBinding
 		// when it has drifted, so a differing roleRef must not be reported as an update
-		labels := map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"}
+		labels := map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"}
 		desired := newRoleBinding(labels, "kubeflow-edit", newSubject("ws-my-workspace"))
 		target := newRoleBinding(labels, "kubeflow-view", newSubject("ws-my-workspace"))
 
@@ -203,7 +203,7 @@ var _ = Describe("CopyStatefulSetFields", func() {
 	}
 
 	It("should not require an update when the desired and target metadata match", func() {
-		labels := map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"}
+		labels := map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"}
 		desired := newStatefulSet(labels, nil)
 		target := newStatefulSet(labels, nil)
 
@@ -215,13 +215,13 @@ var _ = Describe("CopyStatefulSetFields", func() {
 		// labels added to a WorkspaceKind never reach already-running StatefulSets
 		desired := newStatefulSet(
 			map[string]string{
-				"notebooks.kubeflow.org/workspace-name": "my-workspace",
-				"my-label":                              "my-value",
+				"workspaces.kubeflow.org/workspace-name": "my-workspace",
+				"my-label":                               "my-value",
 			},
 			nil,
 		)
 		target := newStatefulSet(
-			map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"},
+			map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"},
 			nil,
 		)
 
@@ -241,13 +241,13 @@ var _ = Describe("CopyStatefulSetFields", func() {
 		// the controller fully owns the StatefulSet it created, so its metadata is
 		// replaced rather than merged
 		desired := newStatefulSet(
-			map[string]string{"notebooks.kubeflow.org/workspace-name": "my-workspace"},
+			map[string]string{"workspaces.kubeflow.org/workspace-name": "my-workspace"},
 			nil,
 		)
 		target := newStatefulSet(
 			map[string]string{
-				"notebooks.kubeflow.org/workspace-name": "my-workspace",
-				"stale-label":                           "stale-value",
+				"workspaces.kubeflow.org/workspace-name": "my-workspace",
+				"stale-label":                            "stale-value",
 			},
 			nil,
 		)
