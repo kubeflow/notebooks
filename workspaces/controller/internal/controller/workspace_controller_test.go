@@ -941,25 +941,43 @@ var _ = Describe("Workspace Controller", func() {
 			}, "2s", interval).Should(Succeed())
 		})
 
-		It("should NOT remove keys from the ServiceAccount when they are removed from the WorkspaceKind", func() {
-			// NOTE: the controller merges rather than replaces ServiceAccount metadata, so it cannot
-			//       tell a key it previously applied from one added by someone else, see the
-			//       `serviceAccount.metadata` field description in the WorkspaceKind CRD
+		It("should remove keys from the ServiceAccount when they are removed from the WorkspaceKind", func() {
+			// NOTE: the controller only removes keys that it owns in the ServiceAccount `metadata.managedFields`,
+			//       so the annotation added out of band by the previous test must be kept
 			By("removing the new label and annotation, and changing an existing annotation value")
 			setServiceAccountMetadata(
 				map[string]string{"my-sa-label": "my-value"},
 				map[string]string{roleArnAnnotation: roleArnV2},
 			)
+
+			By("removing the keys from the ServiceAccount")
 			Eventually(func(g Gomega) {
-				g.Expect(getServiceAccount(g).Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV2))
+				serviceAccount := getServiceAccount(g)
+				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV2))
+				g.Expect(serviceAccount.Labels).NotTo(HaveKey("my-new-sa-label"))
+				g.Expect(serviceAccount.Annotations).NotTo(HaveKey("my-new-sa-annotation"))
 			}, timeout, interval).Should(Succeed())
 
-			By("keeping the removed keys on the ServiceAccount")
+			By("keeping the out of band annotation")
 			Consistently(func(g Gomega) {
-				serviceAccount := getServiceAccount(g)
-				g.Expect(serviceAccount.Labels).To(HaveKeyWithValue("my-new-sa-label", "my-value"))
-				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue("my-new-sa-annotation", "my-value"))
+				g.Expect(getServiceAccount(g).Annotations).To(HaveKeyWithValue("other-tool.example.com/annotation", "other-value"))
 			}, "2s", interval).Should(Succeed())
+		})
+
+		It("should remove all applied keys from the ServiceAccount when `serviceAccount.metadata` is unset", func() {
+			By("unsetting `serviceAccount.metadata` on the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+			patch := client.MergeFrom(workspaceKind.DeepCopy())
+			workspaceKind.Spec.PodTemplate.ServiceAccount.Metadata = nil
+			Expect(k8sClient.Patch(ctx, workspaceKind, patch)).To(Succeed())
+
+			By("removing the applied keys, but keeping the controller-managed label and the out of band annotation")
+			Eventually(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				g.Expect(serviceAccount.Labels).To(Equal(map[string]string{workspaceNameLabel: workspaceName}))
+				g.Expect(serviceAccount.Annotations).To(Equal(map[string]string{"other-tool.example.com/annotation": "other-value"}))
+			}, timeout, interval).Should(Succeed())
 		})
 	})
 

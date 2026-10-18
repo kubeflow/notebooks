@@ -190,8 +190,8 @@ spec:
       ##  - this is an admin-only default for all Workspaces of this WorkspaceKind
       ##  - the controller-managed `workspaces.kubeflow.org/workspace-name` label
       ##    always takes precedence and cannot be overridden here
-      ##  - keys are only ever added or updated on existing ServiceAccounts,
-      ##    removing a key here does NOT remove it from existing ServiceAccounts
+      ##  - removing a key here also removes it from existing ServiceAccounts, but only
+      ##    if the controller was the last to change its value, regardless of who added it
       ##  - Workload Identity examples:
       ##     - EKS IRSA:  "eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role"
       ##     - GKE:       "iam.gke.io/gcp-service-account: my-gsa@my-project.iam.gserviceaccount.com"

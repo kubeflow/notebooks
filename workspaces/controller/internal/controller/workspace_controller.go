@@ -302,7 +302,12 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Error(err, "INTERNAL ERROR: unable to replace controller reference on ServiceAccount")
 			return ctrl.Result{}, err
 		}
-		if helper.CopyServiceAccountFields(serviceAccount, foundServiceAccount) || controllerRefUpdated {
+		serviceAccountFieldsUpdated, err := helper.CopyServiceAccountFields(serviceAccount, foundServiceAccount)
+		if err != nil {
+			log.Error(err, "unable to determine ServiceAccount fields owned by the controller")
+			return ctrl.Result{}, err
+		}
+		if serviceAccountFieldsUpdated || controllerRefUpdated {
 			if err := r.Update(ctx, foundServiceAccount); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while updating ServiceAccount, will requeue")
