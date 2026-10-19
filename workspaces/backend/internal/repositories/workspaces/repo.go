@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +30,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/filterrules"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
@@ -192,7 +191,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.In
 
 	// reject the request (403) if the WorkspaceKind itself is denied by
 	// a WORKSPACE_KIND-scoped filterRule for this namespace.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+	namespaceLabels, err := repoCommon.ResolveNamespaceLabels(ctx, r.client, namespace, field.NewPath(constants.NamespacePathParam))
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +270,7 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	// a WORKSPACE_KIND-scoped filterRule for this namespace. Evaluated on every update,
 	// not just when imageConfig/podConfig changes, since the WorkspaceKind is fixed for
 	// the lifetime of the Workspace and isn't part of what's "changing" here.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+	namespaceLabels, err := repoCommon.ResolveNamespaceLabels(ctx, r.client, namespace, field.NewPath(constants.NamespacePathParam))
 	if err != nil {
 		return nil, err
 	}
@@ -325,16 +324,6 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 
 	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
 	return workspaceUpdateModel, nil
-}
-
-// resolveNamespaceLabels fetches the labels of the given namespace, used to evaluate
-// `matchNamespace` conditions in filterRules.
-func (r *WorkspaceRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string) (map[string]string, error) {
-	ns := &corev1.Namespace{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: namespaceName}, ns); err != nil {
-		return nil, err
-	}
-	return ns.Labels, nil
 }
 
 // enforceWorkspaceKindFilterRules evaluates the WorkspaceKind's WORKSPACE_KIND-scoped

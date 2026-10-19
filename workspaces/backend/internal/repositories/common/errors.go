@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package common holds values shared between repositories.
+// Package common holds values and helpers shared between repositories.
 //
 // Sentinel errors live here when more than one repository can return them, so that callers
 // have a single value to match with errors.Is. Sentinels raised by exactly one repository
