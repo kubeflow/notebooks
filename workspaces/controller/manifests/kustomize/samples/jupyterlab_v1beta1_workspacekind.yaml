@@ -403,7 +403,7 @@ spec:
           ## the id of the default option
           ##  - this will be selected by default in the spawner ui
           ##
-          default: "jupyter-scipy:v1.10.0"
+          default: "jupyter-scipy:v1.11.0"
 
         ## the list of image configs that are available
         ##
@@ -481,8 +481,32 @@ spec:
               labels:
                 - key: "python_version"
                   value: "3.11.11"
+            redirect:
+              to: "jupyter-scipy:v1.11.0"
+              message:
+                level: "Warning"
+                text: >
+                  This update changes the version of Python from 3.11 to 3.12, so packages installed in your home directory may need to be reinstalled.
+                  It also includes breaking changes in common Python packages: numpy (1.26.4 to 2.4.6), pandas (2.2.3 to 3.0.3), and xgboost (2.1.4 to 3.2.0).
             spec:
               image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.10.0"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "jupyterlab"
+                  port: 8888
+
+          ## ================================================================
+          ## jupyter-scipy:v1.11.0
+          ## ================================================================
+          - id: "jupyter-scipy:v1.11.0"
+            spawner:
+              displayName: "jupyter-scipy:v1.11.0"
+              description: "JupyterLab, with SciPy Packages"
+              labels:
+                - key: "python_version"
+                  value: "3.12.13"
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.11.0"
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "jupyterlab"
@@ -534,8 +558,38 @@ spec:
                   value: "12.4"
                 - key: "nccl_version"
                   value: "2.21.5"
+            redirect:
+              to: "jupyter-pytorch-cuda-full:v1.11.0"
+              message:
+                level: "Warning"
+                text: >
+                  This update changes the version of PyTorch from 2.5.1 to 2.12.0, and CUDA from 12.4 to 13.0 (requires a newer NVIDIA driver on the node).
+                  It also changes the version of Python from 3.11 to 3.12, and includes breaking changes in common Python packages: numpy (1.26.4 to 2.4.6), pandas (2.2.3 to 3.0.3), and xgboost (2.1.4 to 3.2.0).
             spec:
               image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda-full:v1.10.0"
+              imagePullPolicy: "IfNotPresent"
+              ports:
+                - id: "jupyterlab"
+                  port: 8888
+
+          ## ================================================================
+          ## jupyter-pytorch-cuda-full:v1.11.0
+          ## ================================================================
+          - id: "jupyter-pytorch-cuda-full:v1.11.0"
+            spawner:
+              displayName: "jupyter-pytorch-cuda-full:v1.11.0"
+              description: "JupyterLab, with PyTorch (CUDA), and Common Python Packages"
+              labels:
+                - key: "python_version"
+                  value: "3.12.13"
+                - key: "pytorch_version"
+                  value: "2.12.0"
+                - key: "cuda_version"
+                  value: "13.0"
+                - key: "nccl_version"
+                  value: "2.29.7"
+            spec:
+              image: "ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda-full:v1.11.0"
               imagePullPolicy: "IfNotPresent"
               ports:
                 - id: "jupyterlab"
