@@ -159,6 +159,10 @@ var _ = Describe("WorkspaceKinds Handler", func() {
 			Expect(item1.PodTemplate.StatefulSetMetadata.Labels).To(HaveKeyWithValue("my-sts-label", "my-value"))
 			Expect(item1.PodTemplate.StatefulSetMetadata.Annotations).To(HaveKeyWithValue("my-sts-annotation", "my-value"))
 
+			By("ensuring the serviceAccount.metadata from the WorkspaceKind is surfaced in the response")
+			Expect(item1.PodTemplate.ServiceAccount.Metadata.Labels).To(HaveKeyWithValue("my-sa-label", "my-value"))
+			Expect(item1.PodTemplate.ServiceAccount.Metadata.Annotations).To(HaveKeyWithValue("eks.amazonaws.com/role-arn", "arn:aws:iam::111122223333:role/my-role"))
+
 			By("ensuring the wrapped data can be marshaled to JSON and back to []WorkspaceKind")
 			dataJSON, err := json.Marshal(response.Data)
 			Expect(err).NotTo(HaveOccurred(), "failed to marshal data to JSON")

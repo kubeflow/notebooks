@@ -248,7 +248,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// generate ServiceAccount
 	// NOTE: this is reconciled before the StatefulSet because the Workspace Pods reference it by name
-	serviceAccount := generateServiceAccount(workspace)
+	serviceAccount := generateServiceAccount(workspace, workspaceKind)
 	if err := ctrl.SetControllerReference(workspace, serviceAccount, r.Scheme); err != nil {
 		log.Error(err, "unable to set controller reference on ServiceAccount")
 		return ctrl.Result{}, err
@@ -302,7 +302,12 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			log.Error(err, "INTERNAL ERROR: unable to replace controller reference on ServiceAccount")
 			return ctrl.Result{}, err
 		}
-		if helper.CopyServiceAccountFields(serviceAccount, foundServiceAccount) || controllerRefUpdated {
+		serviceAccountFieldsUpdated, err := helper.CopyServiceAccountFields(serviceAccount, foundServiceAccount)
+		if err != nil {
+			log.Error(err, "unable to determine ServiceAccount fields owned by the controller")
+			return ctrl.Result{}, err
+		}
+		if serviceAccountFieldsUpdated || controllerRefUpdated {
 			if err := r.Update(ctx, foundServiceAccount); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(2).Info("update conflict while updating ServiceAccount, will requeue")
@@ -832,9 +837,18 @@ func hashName(parts ...string) string {
 }
 
 // generateServiceAccount generates a ServiceAccount for a Workspace
-func generateServiceAccount(workspace *kubefloworgv1beta1.Workspace) *corev1.ServiceAccount {
+func generateServiceAccount(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind) *corev1.ServiceAccount {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxServiceAccountNameLength)
+
+	// generate serviceaccount metadata
+	// NOTE: serviceaccount metadata is only configurable at the WorkspaceKind level
+	saAnnotations := make(map[string]string)
+	saLabels := make(map[string]string)
+	if serviceAccountConfig := workspaceKind.Spec.PodTemplate.ServiceAccount; serviceAccountConfig != nil && serviceAccountConfig.Metadata != nil {
+		maps.Copy(saAnnotations, serviceAccountConfig.Metadata.Annotations)
+		maps.Copy(saLabels, serviceAccountConfig.Metadata.Labels)
+	}
 
 	//
 	// NOTE: if you add new fields, ensure they are reflected in `helper.CopyServiceAccountFields()`
@@ -843,9 +857,14 @@ func generateServiceAccount(workspace *kubefloworgv1beta1.Workspace) *corev1.Ser
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: namePrefix,
 			Namespace:    workspace.Namespace,
-			Labels: map[string]string{
-				workspaceNameLabel: workspace.Name,
-			},
+			Annotations:  saAnnotations,
+			// NOTE: the controller-managed labels take precedence over the admin-provided ones
+			Labels: labels.Merge(
+				saLabels,
+				map[string]string{
+					workspaceNameLabel: workspace.Name,
+				},
+			),
 		},
 	}
 }

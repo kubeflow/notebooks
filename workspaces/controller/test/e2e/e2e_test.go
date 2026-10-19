@@ -55,6 +55,13 @@ const (
 	stsMetadataAnnotationKey   = "my-workspace-kind-sts-annotation"
 	stsMetadataAnnotationValue = "my-value"
 
+	// serviceAccount.metadata configured on the sample WorkspaceKind
+	//  - see manifests/kustomize/samples/jupyterlab_v1beta1_workspacekind.yaml
+	saMetadataLabelKey        = "my-workspace-kind-sa-label"
+	saMetadataLabelValue      = "my-value"
+	saMetadataAnnotationKey   = "my-workspace-kind-sa-annotation"
+	saMetadataAnnotationValue = "my-value"
+
 	// curl image
 	curlImage = "curlimages/curl:8.9.1"
 
@@ -431,6 +438,56 @@ var _ = Describe("controller", Ordered, func() {
 					"expected the rejection to mention the invalid label key")
 			}
 			Eventually(rejectInvalidStatefulSetMetadataLabel, timeout, interval).Should(Succeed())
+
+			By("validating that the ServiceAccount carries the serviceAccount.metadata from the WorkspaceKind")
+			// the sample WorkspaceKind sets spec.podTemplate.serviceAccount.metadata, which the controller
+			// merges onto the generated ServiceAccount's own metadata (alongside the workspace-name label)
+			verifyServiceAccountMetadata := func(g Gomega) {
+				saSelector := fmt.Sprintf("workspaces.kubeflow.org/workspace-name=%s", workspaceName)
+
+				cmd := exec.Command("kubectl", "get", "serviceaccounts",
+					"-l", saSelector,
+					"-n", workspaceNamespace,
+					"-o", fmt.Sprintf("jsonpath={.items[0].metadata.labels['%s']}", saMetadataLabelKey),
+				)
+				labelValue, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(labelValue).To(Equal(saMetadataLabelValue), "expected serviceAccount.metadata label on the ServiceAccount")
+
+				cmd = exec.Command("kubectl", "get", "serviceaccounts",
+					"-l", saSelector,
+					"-n", workspaceNamespace,
+					"-o", fmt.Sprintf("jsonpath={.items[0].metadata.annotations['%s']}", saMetadataAnnotationKey),
+				)
+				annotationValue, err := utils.Run(cmd)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(annotationValue).To(
+					Equal(saMetadataAnnotationValue),
+					"expected serviceAccount.metadata annotation on the ServiceAccount",
+				)
+			}
+			Eventually(verifyServiceAccountMetadata, timeout, interval).Should(Succeed())
+
+			By("ensuring invalid serviceAccount.metadata labels are rejected by the WorkspaceKind webhook")
+			rejectInvalidServiceAccountMetadataLabel := func(g Gomega) {
+				invalidKey := "!bad-key!"
+				labelsPath := "/spec/podTemplate/serviceAccount/metadata/labels"
+				patch := fmt.Sprintf(
+					`[{"op": "replace", "path": %q, "value": {%q: "value"}}]`,
+					labelsPath, invalidKey,
+				)
+				cmd := exec.Command("kubectl", "patch", "workspacekind", workspaceKindName,
+					"--type=json",
+					"-p", patch,
+				)
+				output, err := utils.Run(cmd)
+				g.Expect(err).To(HaveOccurred(), "expected the webhook to reject the invalid serviceAccount.metadata label")
+				g.Expect(output).To(ContainSubstring("spec.podTemplate.serviceAccount.metadata.labels"),
+					"expected the rejection to point at spec.podTemplate.serviceAccount.metadata.labels")
+				g.Expect(output).To(ContainSubstring(invalidKey),
+					"expected the rejection to mention the invalid label key")
+			}
+			Eventually(rejectInvalidServiceAccountMetadataLabel, timeout, interval).Should(Succeed())
 
 			By("ensuring in-use imageConfig values cannot be removed from WorkspaceKind")
 			removeInUseImageConfig := func() error {

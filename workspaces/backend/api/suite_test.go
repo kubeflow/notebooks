@@ -236,6 +236,12 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 					Labels:      map[string]string{"my-sts-label": "my-value"},
 					Annotations: map[string]string{"my-sts-annotation": "my-value"},
 				},
+				ServiceAccount: &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+					Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+						Labels:      map[string]string{"my-sa-label": "my-value"},
+						Annotations: map[string]string{"eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"},
+					},
+				},
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
 					MinProbeIntervalSeconds: new(int32(300)),
 					ProbeIntervalSeconds:    new(int32(3600)),

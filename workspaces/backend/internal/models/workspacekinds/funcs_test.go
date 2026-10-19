@@ -88,6 +88,58 @@ var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
 		item.PodTemplate.StatefulSetMetadata.Annotations["my-sts-annotation"] = "mutated"
 		Expect(wsk.Spec.PodTemplate.StatefulSetMetadata.Annotations["my-sts-annotation"]).To(Equal("my-value"))
 	})
+
+	It("initializes empty ServiceAccount metadata maps when the CRD field is nil", func() {
+		for _, serviceAccount := range []*kubefloworgv1beta1.WorkspaceKindServiceAccount{
+			nil,
+			{Metadata: nil},
+		} {
+			wsk := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: "no-sa-metadata"},
+				Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+					PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
+						ServiceAccount: serviceAccount,
+					},
+				},
+			}
+
+			item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk, nil)
+
+			Expect(apiHide).To(BeFalse())
+			Expect(item.PodTemplate.ServiceAccount.Metadata.Labels).NotTo(BeNil())
+			Expect(item.PodTemplate.ServiceAccount.Metadata.Labels).To(BeEmpty())
+			Expect(item.PodTemplate.ServiceAccount.Metadata.Annotations).NotTo(BeNil())
+			Expect(item.PodTemplate.ServiceAccount.Metadata.Annotations).To(BeEmpty())
+		}
+	})
+
+	It("copies ServiceAccount metadata maps without aliasing the CRD maps", func() {
+		wsk := &kubefloworgv1beta1.WorkspaceKind{
+			ObjectMeta: metav1.ObjectMeta{Name: "with-sa-metadata"},
+			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+				PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
+					ServiceAccount: &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+						Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+							Labels:      map[string]string{"my-sa-label": "my-value"},
+							Annotations: map[string]string{"my-sa-annotation": "my-value"},
+						},
+					},
+				},
+			},
+		}
+
+		item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk, nil)
+
+		Expect(apiHide).To(BeFalse())
+		Expect(item.PodTemplate.ServiceAccount.Metadata.Labels).To(HaveKeyWithValue("my-sa-label", "my-value"))
+		Expect(item.PodTemplate.ServiceAccount.Metadata.Annotations).To(HaveKeyWithValue("my-sa-annotation", "my-value"))
+
+		// mutating the copied maps must not affect the source WorkspaceKind
+		item.PodTemplate.ServiceAccount.Metadata.Labels["my-sa-label"] = "mutated"
+		Expect(wsk.Spec.PodTemplate.ServiceAccount.Metadata.Labels["my-sa-label"]).To(Equal("my-value"))
+		item.PodTemplate.ServiceAccount.Metadata.Annotations["my-sa-annotation"] = "mutated"
+		Expect(wsk.Spec.PodTemplate.ServiceAccount.Metadata.Annotations["my-sa-annotation"]).To(Equal("my-value"))
+	})
 })
 
 var _ = Describe("buildActivityProbe", func() {

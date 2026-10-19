@@ -400,6 +400,37 @@ type WorkspaceKindServiceAccount struct {
 	// +listMapKey:="name"
 	// +kubebuilder:example={{name: "kubeflow-edit"}}
 	ClusterRoles []WorkspaceKindClusterRole `json:"clusterRoles,omitempty"`
+
+	// metadata for the ServiceAccount of each Workspace (MUTABLE)
+	//  - for example, the annotations used by cloud Workload Identity:
+	//     - "eks.amazonaws.com/role-arn" (EKS IRSA)
+	//     - "iam.gke.io/gcp-service-account" (GKE)
+	//     - "azure.workload.identity/client-id" (Azure)
+	//  - the Azure "azure.workload.identity/use" label belongs on the Pod, NOT the
+	//    ServiceAccount, so set it in `spec.podTemplate.podMetadata.labels` instead
+	//  - the controller-managed `workspaces.kubeflow.org/*` labels always take precedence
+	//  - changes are applied to the ServiceAccounts of existing Workspaces without a restart,
+	//    but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the
+	//    ServiceAccount when a Pod is created, so running Workspaces must be restarted
+	//    for those changes to take effect
+	//  - removing a key here also removes it from the ServiceAccounts of existing Workspaces,
+	//    but only if the controller was the last to change its value (ownership is tracked
+	//    with `metadata.managedFields`), regardless of who originally added the key
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example={annotations: {"eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"}}
+	Metadata *WorkspaceKindServiceAccountMetadata `json:"metadata,omitempty"`
+}
+
+// WorkspaceKindServiceAccountMetadata defines labels and annotations applied to the
+// ServiceAccount of each Workspace.
+type WorkspaceKindServiceAccountMetadata struct {
+	// labels to be applied to the Workspace ServiceAccount resource
+	// +kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// annotations to be applied to the Workspace ServiceAccount resource
+	// +kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // WorkspaceKindClusterRole identifies a ClusterRole to bind to a Workspace's ServiceAccount

@@ -105,6 +105,11 @@ var _ = BeforeSuite(func() {
 	By("setting up the controller manager")
 	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
+		// NOTE: matches cmd/main.go, the controller relies on its field owner to find the
+		//       `metadata.managedFields` it owns (e.g. ServiceAccount labels/annotations)
+		Client: client.Options{
+			FieldOwner: helper.ControllerFieldOwner,
+		},
 		Metrics: metricsserver.Options{
 			BindAddress: "0", // disable metrics serving
 		},

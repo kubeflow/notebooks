@@ -7560,6 +7560,33 @@
                     "items": {
                         "$ref": "#/definitions/v1beta1.WorkspaceKindClusterRole"
                     }
+                },
+                "metadata": {
+                    "description": "metadata for the ServiceAccount of each Workspace (MUTABLE)\n - for example, the annotations used by cloud Workload Identity:\n    - \"eks.amazonaws.com/role-arn\" (EKS IRSA)\n    - \"iam.gke.io/gcp-service-account\" (GKE)\n    - \"azure.workload.identity/client-id\" (Azure)\n - the Azure \"azure.workload.identity/use\" label belongs on the Pod, NOT the\n   ServiceAccount, so set it in `spec.podTemplate.podMetadata.labels` instead\n - the controller-managed `workspaces.kubeflow.org/*` labels always take precedence\n - changes are applied to the ServiceAccounts of existing Workspaces without a restart,\n   but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the\n   ServiceAccount when a Pod is created, so running Workspaces must be restarted\n   for those changes to take effect\n - removing a key here also removes it from the ServiceAccounts of existing Workspaces,\n   but only if the controller was the last to change its value (ownership is tracked\n   with `metadata.managedFields`), regardless of who originally added the key\n+kubebuilder:validation:Optional\n+kubebuilder:example={annotations: {\"eks.amazonaws.com/role-arn\": \"arn:aws:iam::111122223333:role/my-role\"}}",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccountMetadata"
+                        }
+                    ]
+                }
+            }
+        },
+        "v1beta1.WorkspaceKindServiceAccountMetadata": {
+            "type": "object",
+            "properties": {
+                "annotations": {
+                    "description": "annotations to be applied to the Workspace ServiceAccount resource\n+kubebuilder:validation:Optional",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "description": "labels to be applied to the Workspace ServiceAccount resource\n+kubebuilder:validation:Optional",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -7794,6 +7821,7 @@
             "required": [
                 "options",
                 "podMetadata",
+                "serviceAccount",
                 "statefulSetMetadata",
                 "volumeMountPaths"
             ],
@@ -7812,6 +7840,9 @@
                 "podMetadata": {
                     "$ref": "#/definitions/workspacekinds.PodMetadata"
                 },
+                "serviceAccount": {
+                    "$ref": "#/definitions/workspacekinds.ServiceAccount"
+                },
                 "statefulSetMetadata": {
                     "$ref": "#/definitions/workspacekinds.StatefulSetMetadata"
                 },
@@ -7828,6 +7859,38 @@
             "properties": {
                 "home": {
                     "type": "string"
+                }
+            }
+        },
+        "workspacekinds.ServiceAccount": {
+            "type": "object",
+            "required": [
+                "metadata"
+            ],
+            "properties": {
+                "metadata": {
+                    "$ref": "#/definitions/workspacekinds.ServiceAccountMetadata"
+                }
+            }
+        },
+        "workspacekinds.ServiceAccountMetadata": {
+            "type": "object",
+            "required": [
+                "annotations",
+                "labels"
+            ],
+            "properties": {
+                "annotations": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },
