@@ -156,6 +156,27 @@ describe('Volumes Management - Attach and Create', () => {
       },
     }),
     buildMockPVC({
+      name: 'mixed-access-pvc',
+      canMount: true,
+      pods: [],
+      workspaces: [
+        {
+          name: 'other-workspace',
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+          stateMessage: '',
+        },
+      ],
+      pvcSpec: {
+        accessModes: [
+          V1PersistentVolumeAccessMode.ReadWriteOnce,
+          V1PersistentVolumeAccessMode.ReadWriteMany,
+        ],
+        requests: { storage: '12Gi' },
+        storageClassName: 'nfs',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
+      },
+    }),
+    buildMockPVC({
       name: 'pod-shared-pvc',
       canMount: true,
       pods: [{ name: 'unrelated-pod', phase: V1PodPhase.PodRunning }],
@@ -322,7 +343,7 @@ describe('Volumes Management - Attach and Create', () => {
 
       volumesAttachModal.assertPVCAriaDisabled('in-use-pvc');
       volumesAttachModal.hoverPVCOption('in-use-pvc');
-      volumesAttachModal.assertPVCTooltipContainsText(
+      volumesAttachModal.assertPVCTooltipText(
         'in-use-pvc',
         'This volume uses ReadWriteOnce access and is already mounted by workspace "other-workspace".',
       );
@@ -366,7 +387,7 @@ describe('Volumes Management - Attach and Create', () => {
 
       volumesAttachModal.assertPVCAriaDisabled('rwop-conflict-pvc');
       volumesAttachModal.hoverPVCOption('rwop-conflict-pvc');
-      volumesAttachModal.assertPVCTooltipContainsText(
+      volumesAttachModal.assertPVCTooltipText(
         'rwop-conflict-pvc',
         'This volume uses ReadWriteOncePod access and is already mounted by pod "other-pod".',
       );
@@ -388,6 +409,25 @@ describe('Volumes Management - Attach and Create', () => {
       volumesAttachModal.clickAttach();
       volumesAttachModal.assertModalNotExists();
       volumesManagement.assertVolumeRowExists('readonly-shared-pvc');
+    });
+
+    it('should allow attaching a mixed ReadWriteOnce/ReadWriteMany PVC mounted by another workspace', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      volumesAttachModal.openPVCDropdown();
+      cy.contains('.pf-v6-c-menu__list-item', 'mixed-access-pvc')
+        .should('not.have.class', 'pf-m-disabled')
+        .and('not.have.class', 'pf-m-aria-disabled')
+        .click();
+
+      volumesAttachModal.assertInUseWarningVisible();
+      volumesAttachModal.findAlert('danger').should('not.exist');
+      volumesAttachModal.assertAttachButtonEnabled();
+
+      volumesAttachModal.clickAttach();
+      volumesAttachModal.assertModalNotExists();
+      volumesManagement.assertVolumeRowExists('mixed-access-pvc');
     });
 
     it('should warn but allow attaching a ReadWriteMany PVC already mounted by an unrelated pod', () => {

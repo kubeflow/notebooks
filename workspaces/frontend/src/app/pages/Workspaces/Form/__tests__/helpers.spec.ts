@@ -1,3 +1,6 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import {
   isPVCMountBlocked,
   getBlockedMountTooltip,
@@ -16,8 +19,8 @@ import {
 const CURRENT_WORKSPACE = 'current-workspace';
 const OTHER_WORKSPACE = 'other-workspace';
 
-const buildSpec = (accessMode: V1PersistentVolumeAccessMode): PvcsPVCSpec => ({
-  accessModes: [accessMode],
+const buildSpec = (...accessModes: V1PersistentVolumeAccessMode[]): PvcsPVCSpec => ({
+  accessModes,
   requests: { storage: '1Gi' },
   storageClassName: 'standard',
   volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
@@ -175,6 +178,58 @@ describe('isPVCMountBlocked', () => {
     });
     expect(isPVCMountBlocked(pvc)).toBe(false);
   });
+
+  describe('mixed access modes', () => {
+    it('does not block [ReadWriteOnce, ReadWriteMany] mounted by another workspace', () => {
+      const pvc = buildMockPVC({
+        pvcSpec: buildSpec(
+          V1PersistentVolumeAccessMode.ReadWriteOnce,
+          V1PersistentVolumeAccessMode.ReadWriteMany,
+        ),
+        pods: [],
+        workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+      });
+      expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(false);
+      expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBeNull();
+    });
+
+    it('does not block [ReadWriteOnce, ReadOnlyMany] mounted by another workspace', () => {
+      const pvc = buildMockPVC({
+        pvcSpec: buildSpec(
+          V1PersistentVolumeAccessMode.ReadWriteOnce,
+          V1PersistentVolumeAccessMode.ReadOnlyMany,
+        ),
+        pods: [],
+        workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+      });
+      expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(false);
+      expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBeNull();
+    });
+
+    it('still blocks a plain [ReadWriteOnce] PVC mounted by another workspace', () => {
+      const pvc = buildMockPVC({
+        pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+        pods: [],
+        workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+      });
+      expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(true);
+    });
+
+    it('still blocks a plain [ReadWriteOncePod] PVC mounted by another pod or workspace', () => {
+      const podPvc = buildMockPVC({
+        pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
+        pods: [{ name: 'other-pod', phase: V1PodPhase.PodRunning }],
+        workspaces: [],
+      });
+      const workspacePvc = buildMockPVC({
+        pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
+        pods: [],
+        workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+      });
+      expect(isPVCMountBlocked(podPvc, CURRENT_WORKSPACE)).toBe(true);
+      expect(isPVCMountBlocked(workspacePvc, CURRENT_WORKSPACE)).toBe(true);
+    });
+  });
 });
 
 describe('getBlockedMountTooltip', () => {
@@ -281,7 +336,10 @@ describe('buildPVCSelectOptions blocking behavior', () => {
     const option = options.find((o) => o.value === 'blocked-pvc');
     expect(option).toBeDefined();
     expect(option?.isAriaDisabled).toBe(true);
-    expect(option?.tooltipProps?.content).toMatch(/ReadWriteOnce/);
+    render(React.createElement(React.Fragment, null, option?.tooltipProps?.content));
+    expect(screen.getByTestId('pvc-option-tooltip-blocked-pvc')).toHaveTextContent(
+      `This volume uses ReadWriteOnce access and is already mounted by workspace "${OTHER_WORKSPACE}".`,
+    );
   });
 
   it('does not disable a PVC mounted only by the current workspace', () => {
@@ -322,6 +380,30 @@ describe('buildPVCSelectOptions blocking behavior', () => {
     const option = options.find((o) => o.value === 'shared-pvc');
     expect(option?.isDisabled).toBeFalsy();
     expect(option?.isAriaDisabled).toBeFalsy();
+  });
+
+  it('does not disable or add a blocked tooltip to a mixed RWO/RWX PVC mounted elsewhere', () => {
+    const mixedPvc = buildMockPVC({
+      name: 'mixed-pvc',
+      pvcSpec: buildSpec(
+        V1PersistentVolumeAccessMode.ReadWriteOnce,
+        V1PersistentVolumeAccessMode.ReadWriteMany,
+      ),
+      pods: [],
+      workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+    });
+
+    const options = buildPVCSelectOptions(
+      [mixedPvc],
+      storageClasses,
+      undefined,
+      undefined,
+      CURRENT_WORKSPACE,
+    );
+    const option = options.find((o) => o.value === 'mixed-pvc');
+    expect(option?.isDisabled).toBeFalsy();
+    expect(option?.isAriaDisabled).toBeFalsy();
+    expect(option?.tooltipProps).toBeUndefined();
   });
 
   it('preserves existing "Already mounted" exclusion behavior independent of blocking', () => {

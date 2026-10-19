@@ -140,7 +140,15 @@ export const getUnmountableTooltip = (pvc: PvcsPVCListItem): string | null => {
   return null;
 };
 
+const SHARED_ACCESS_MODES: V1PersistentVolumeAccessMode[] = [
+  V1PersistentVolumeAccessMode.ReadWriteMany,
+  V1PersistentVolumeAccessMode.ReadOnlyMany,
+];
+
 export const isPVCMountBlocked = (pvc: PvcsPVCListItem, currentWorkspaceName?: string): boolean => {
+  if (pvc.pvcSpec.accessModes.some((mode) => SHARED_ACCESS_MODES.includes(mode))) {
+    return false;
+  }
   const hasOtherWorkspaces = pvc.workspaces.some((ws) => ws.name !== currentWorkspaceName);
   const modes = pvc.pvcSpec.accessModes;
   if (modes.includes(V1PersistentVolumeAccessMode.ReadWriteOncePod)) {
@@ -325,8 +333,7 @@ export const buildPVCSelectOptions = (
         ...(tooltip
           ? {
               tooltipProps: {
-                content: tooltip,
-                'data-testid': `pvc-option-tooltip-${pvc.name}`,
+                content: <span data-testid={`pvc-option-tooltip-${pvc.name}`}>{tooltip}</span>,
               },
             }
           : {}),
