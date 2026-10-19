@@ -928,6 +928,81 @@ class EditWorkspaceKind {
     cy.findByTestId(`toleration-seconds-cell-${index}`).should('have.text', value);
   }
 
+  // Activity Probe
+  toggleActivityProbe() {
+    cy.findByTestId('workspace-kind-pod-template-activity-probe-switch').click({ force: true });
+  }
+
+  assertActivityProbeEnabled(enabled: boolean) {
+    cy.findByTestId('workspace-kind-pod-template-activity-probe-switch').should(
+      enabled ? 'be.checked' : 'not.be.checked',
+    );
+  }
+
+  findProbeTimingInput(label: string) {
+    return cy.findByTestId('workspace-kind-activity-probe-timing').findByLabelText(label);
+  }
+
+  setProbeTiming({ label, value }: { label: string; value: number }) {
+    this.findProbeTimingInput(label).clear().type(String(value));
+  }
+
+  assertProbeTiming({ label, value }: { label: string; value: number }) {
+    this.findProbeTimingInput(label).should('have.value', String(value));
+  }
+
+  findProbeScriptInput() {
+    return cy.findByTestId('workspace-kind-activity-probe-script-editor').findByRole('textbox');
+  }
+
+  setProbeScript(script: string) {
+    this.findProbeScriptInput().type(
+      Cypress.platform === 'darwin' ? '{meta+a}{backspace}' : '{ctrl+a}{backspace}',
+      { force: true },
+    );
+    if (script) {
+      this.findProbeScriptInput().type(script, { parseSpecialCharSequences: false, force: true });
+    }
+  }
+
+  assertProbeScriptContains(text: string) {
+    cy.findByTestId('workspace-kind-activity-probe-script-editor').should(($editor) => {
+      expect($editor.text().replace(/\u00a0/g, ' ')).to.contain(text);
+    });
+  }
+
+  assertProbeDependencyError(visible: boolean) {
+    cy.findByTestId('activity-probe-dependency-error').should(visible ? 'be.visible' : 'not.exist');
+  }
+
+  assertProbeSettingsGrouped() {
+    cy.findByTestId('workspace-kind-activity-probe-settings').within(() => {
+      cy.findByTestId('workspace-kind-activity-probe-timing').should('be.visible');
+      cy.findByTestId('workspace-kind-activity-probe-script-editor').should('be.visible');
+      cy.findByText('Timing', { exact: true }).should('not.exist');
+      cy.findByText('Script', { exact: true }).should('not.exist');
+    });
+  }
+
+  assertProbeTimingLayout(stacked: boolean) {
+    this.findProbeTimingInput('probe interval input').then(($interval) => {
+      const first = $interval[0].getBoundingClientRect();
+      this.findProbeTimingInput('minimum probe interval input').then(($minimum) => {
+        const second = $minimum[0].getBoundingClientRect();
+        this.findProbeTimingInput('probe script timeout input').should(($timeout) => {
+          const third = $timeout[0].getBoundingClientRect();
+          if (stacked) {
+            expect(second.top).to.be.greaterThan(first.bottom);
+            expect(third.top).to.be.greaterThan(second.bottom);
+          } else {
+            expect(Math.abs(first.top - second.top)).to.be.lessThan(2);
+            expect(Math.abs(first.top - third.top)).to.be.lessThan(2);
+          }
+        });
+      });
+    });
+  }
+
   // Activity Rules
   findAddActivityRuleButton() {
     return cy.findByTestId('add-activity-rule-button');
