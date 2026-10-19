@@ -20,10 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"time"
-
-	corev1 "k8s.io/api/core/v1"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -194,7 +191,7 @@ func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.In
 
 	// reject the request (403) if the WorkspaceKind itself is denied by
 	// a WORKSPACE_KIND-scoped filterRule for this namespace.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace, field.NewPath(constants.NamespacePathParam))
+	namespaceLabels, err := repoCommon.ResolveNamespaceLabels(ctx, r.client, namespace, field.NewPath(constants.NamespacePathParam))
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +270,7 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	// a WORKSPACE_KIND-scoped filterRule for this namespace. Evaluated on every update,
 	// not just when imageConfig/podConfig changes, since the WorkspaceKind is fixed for
 	// the lifetime of the Workspace and isn't part of what's "changing" here.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace, field.NewPath(constants.NamespacePathParam))
+	namespaceLabels, err := repoCommon.ResolveNamespaceLabels(ctx, r.client, namespace, field.NewPath(constants.NamespacePathParam))
 	if err != nil {
 		return nil, err
 	}
@@ -327,35 +324,6 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 
 	workspaceUpdateModel := models.NewWorkspaceUpdateModelFromWorkspace(workspace)
 	return workspaceUpdateModel, nil
-}
-
-// resolveNamespaceLabels fetches the labels of the namespace with the given name.
-// It returns nil (and no error) when the name is empty, so that matchNamespace conditions are
-// conservatively treated as non-matching. When a name is given but the namespace does not exist,
-// it returns an internal validation error so the caller can surface a 422 to the client.
-//
-// fieldPath identifies the caller's user-facing input (e.g. the `namespace` path param) so the
-// validation error points at the right field.
-func (r *WorkspaceRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string, fieldPath *field.Path) (map[string]string, error) {
-	if namespaceName == "" {
-		return nil, nil
-	}
-
-	namespace := &corev1.Namespace{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: namespaceName}, namespace); err != nil {
-		if apierrors.IsNotFound(err) {
-			errDetail := fmt.Sprintf("namespace %q not found", namespaceName)
-			valErrs := field.ErrorList{field.Invalid(fieldPath, namespaceName, errDetail)}
-			return nil, helper.NewInternalValidationError(valErrs)
-		}
-		return nil, err
-	}
-
-	// copy the labels into a map we own; also ensures a non-nil map so matchNamespace conditions
-	// are evaluated (namespace present) even when the namespace has no labels.
-	labels := make(map[string]string, len(namespace.Labels))
-	maps.Copy(labels, namespace.Labels)
-	return labels, nil
 }
 
 // enforceWorkspaceKindFilterRules evaluates the WorkspaceKind's WORKSPACE_KIND-scoped
