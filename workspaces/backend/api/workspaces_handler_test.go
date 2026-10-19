@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	commonModels "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
@@ -2081,8 +2082,21 @@ var _ = Describe("Workspaces Handler", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("verifying the validation error points at the namespace path parameter")
-			Expect(response.Error.Cause.ValidationErrors).To(HaveLen(1))
-			Expect(response.Error.Cause.ValidationErrors[0].Field).To(Equal(constants.NamespacePathParam))
+			expectedErr := field.Invalid(
+				field.NewPath(constants.NamespacePathParam),
+				missingNamespace,
+				fmt.Sprintf("namespace %q not found", missingNamespace),
+			)
+			Expect(response.Error.Cause.ValidationErrors).To(BeComparableTo(
+				[]ValidationError{
+					{
+						Origin:  OriginInternal,
+						Type:    field.ErrorTypeInvalid,
+						Field:   constants.NamespacePathParam,
+						Message: expectedErr.ErrorBody(),
+					},
+				},
+			))
 		})
 
 		It("should update a Workspace successfully", func() {
