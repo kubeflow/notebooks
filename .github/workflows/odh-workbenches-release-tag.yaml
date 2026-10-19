@@ -1,0 +1,142 @@
+name: ODH Workbenches Release Tag
+
+on:
+  push:
+    branches:
+      - v2.x
+    paths:
+      # Keep this path in sync with TEKTON_PUSH_FILE in the env block below.
+      - ".tekton/odh-workbenches-controller-push.yaml"
+
+permissions: {}
+
+env:
+  # Derived from the repo where the workflow runs — works correctly on forks.
+  REPO: ${{ github.repository }}
+  # Tekton push file containing the output-image tag (used in steps below).
+  TEKTON_PUSH_FILE: .tekton/odh-workbenches-controller-push.yaml
+  # Full image reference (registry/org/name) without tag.
+  IMAGE_REF: quay.io/opendatahub/odh-workbenches-controller
+  # Runtime image pin: file and the key that holds the promoted (released) version.
+  PARAMS_ENV_FILE: workspaces/controller/manifests/kustomize/overlays/gateway/params.env
+  PARAMS_ENV_KEY: WORKBENCH_CONTROLLER_IMAGE
+
+jobs:
+  # Detect whether this push promoted the runtime image pin.
+  detect-release:
+    name: Detect release commit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      is_release: ${{ steps.check.outputs.is_release }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Fetch pre-push SHA for comparison
+        run: |
+          BEFORE="${{ github.event.before }}"
+          # The zero SHA appears on the very first push to a new branch; nothing to compare.
+          if [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            git fetch --depth=1 origin "$BEFORE"
+          fi
+
+      - name: Check if runtime image pin value was promoted
+        id: check
+        run: |
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "is_release=false" >> $GITHUB_OUTPUT
+            echo "First push to branch — no previous commit to compare against"
+            exit 0
+          fi
+
+          # Extract the pin value at each end of the push range.
+          OLD_PIN=$(git show "${BEFORE}:${PARAMS_ENV_FILE}" 2>/dev/null \
+            | grep -oP "${PARAMS_ENV_KEY}=\K.*" || echo "")
+          NEW_PIN=$(git show "${AFTER}:${PARAMS_ENV_FILE}" 2>/dev/null \
+            | grep -oP "${PARAMS_ENV_KEY}=\K.*" || echo "")
+
+          echo "Pin before push: '${OLD_PIN}'"
+          echo "Pin after push:  '${NEW_PIN}'"
+
+          if [ -n "$NEW_PIN" ] && [ "$OLD_PIN" != "$NEW_PIN" ]; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+            echo "Runtime image pin changed — treating this as a release commit"
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+            echo "Runtime image pin unchanged — skipping release creation"
+          fi
+
+  create-release:
+    name: Create GitHub Release
+    needs: detect-release
+    if: ${{ needs.detect-release.outputs.is_release == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Extract release version
+        id: extract-version
+        run: |
+          # Release version is the image tag promoted into params.env (what we ship),
+          # not the NEXT tag tracked in .tekton for future builds.
+          # Escape dots in IMAGE_REF so they are treated as literals in the regex.
+          ESCAPED_REF="${IMAGE_REF//./\\.}"
+          VERSION=$(grep -oP "${PARAMS_ENV_KEY}=${ESCAPED_REF}:\K[^\s\"]+" "$PARAMS_ENV_FILE")
+
+          if [ -z "$VERSION" ]; then
+            echo "::error::Failed to extract version from ${PARAMS_ENV_FILE}"
+            exit 1
+          fi
+
+          # Validate version format (alphanumeric, dots, underscores, hyphens only)
+          if ! [[ "$VERSION" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            echo "::error::Invalid version format: $VERSION"
+            exit 1
+          fi
+
+          echo "Extracted release version from ${PARAMS_ENV_FILE}: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if release already exists
+        id: check-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.extract-version.outputs.version }}
+        run: |
+          if gh release view "$VERSION" --repo "$REPO" &>/dev/null; then
+            echo "Release $VERSION already exists, skipping"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Release $VERSION does not exist, will create"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        if: steps.check-release.outputs.exists == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.extract-version.outputs.version }}
+        run: |
+          gh release create "$VERSION" \
+            --repo "$REPO" \
+            --title "$VERSION" \
+            --target "${{ github.sha }}" \
+            --generate-notes
+
+          echo "## Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release URL:** https://github.com/$REPO/releases/tag/$VERSION" >> $GITHUB_STEP_SUMMARY
