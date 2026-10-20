@@ -317,10 +317,7 @@ const WorkspaceKindsAdminView: React.FunctionComponent = () => {
   );
 
   if (workspaceKindsError) {
-    if (
-      axios.isAxiosError(workspaceKindsError) &&
-      workspaceKindsError.response?.status === 403
-    ) {
+    if (axios.isAxiosError(workspaceKindsError) && workspaceKindsError.response?.status === 403) {
       return <WorkspaceKindsRestrictedState />;
     }
     return <LoadError title="Failed to load workspace kinds" error={workspaceKindsError} />;
