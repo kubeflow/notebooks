@@ -19,9 +19,12 @@ package helper
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -90,10 +93,11 @@ func NewManager(cfg *rest.Config, scheme *runtime.Scheme) (ctrl.Manager, error) 
 // BuildImageSourceConfigMapClient create a filtered client for ConfigMaps with the label 'workspaces.kubeflow.org/image-source=true'
 // REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
 // WARNING: this client is ONLY able to see ConfigMaps with the 'workspaces.kubeflow.org/image-source=true' label
-func BuildImageSourceConfigMapClient(mgr ctrl.Manager) (client.Client, error) {
+// It also returns the underlying cache, so callers can wait for it to sync (see WarmUpCaches).
+func BuildImageSourceConfigMapClient(mgr ctrl.Manager) (client.Client, cache.Cache, error) {
 	imageSourceLabelReq, err := labels.NewRequirement(LabelImageSource, selection.Equals, []string{"true"})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create label requirement: %w", err)
+		return nil, nil, fmt.Errorf("failed to create label requirement: %w", err)
 	}
 	imageSourceLabelSelector := labels.NewSelector().Add(*imageSourceLabelReq)
 
@@ -114,20 +118,20 @@ func BuildImageSourceConfigMapClient(mgr ctrl.Manager) (client.Client, error) {
 	}
 	configMapCache, err := cache.New(mgr.GetConfig(), configMapCacheOpts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create ConfigMap cache: %w", err)
+		return nil, nil, fmt.Errorf("failed to create ConfigMap cache: %w", err)
 	}
 
 	// start an informer for ConfigMaps
 	// this is required because we set ReaderFailOnMissingInformer to true
 	_, err = configMapCache.GetInformer(context.Background(), &corev1.ConfigMap{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get ConfigMap informer: %w", err)
+		return nil, nil, fmt.Errorf("failed to get ConfigMap informer: %w", err)
 	}
 
 	// add the ConfigMap cache to the manager, so that it starts at the same time
 	err = mgr.Add(configMapCache)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add ConfigMap cache to manager: %w", err)
+		return nil, nil, fmt.Errorf("failed to add ConfigMap cache to manager: %w", err)
 	}
 
 	// create a new client that uses the ConfigMap cache
@@ -140,8 +144,59 @@ func BuildImageSourceConfigMapClient(mgr ctrl.Manager) (client.Client, error) {
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create ConfigMap client: %w", err)
+		return nil, nil, fmt.Errorf("failed to create ConfigMap client: %w", err)
 	}
 
-	return configMapClient, nil
+	return configMapClient, configMapCache, nil
+}
+
+// cachedObjectTypes are the object types that the backend reads through the manager's cached client.
+// Each type gets its own informer, which controller-runtime would otherwise only start (and block on)
+// during the first request that reads that type.
+// NOTE: keep this in sync with the types read via the cached client in `internal/repositories/`.
+var cachedObjectTypes = []client.Object{
+	&corev1.Namespace{},
+	&corev1.Pod{},
+	&corev1.PersistentVolume{},
+	&corev1.PersistentVolumeClaim{},
+	&storagev1.StorageClass{},
+	&kubefloworgv1beta1.Workspace{},
+	&kubefloworgv1beta1.WorkspaceKind{},
+}
+
+// WarmUpCaches starts the informers for all cached object types and waits until they,
+// and the image source ConfigMap cache, have synced.
+// It returns an error if this does not happen within the timeout (e.g. because of missing RBAC permissions),
+// instead of letting the first request for each type block on an informer that never syncs.
+// NOTE: the caches must already be started (e.g. call this from a manager Runnable).
+func WarmUpCaches(ctx context.Context, timeout time.Duration, mgrCache cache.Cache, configMapCache cache.Cache) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// start all informers without blocking, so they sync in parallel
+	informers := make(map[string]cache.Informer, len(cachedObjectTypes))
+	for _, obj := range cachedObjectTypes {
+		informer, err := mgrCache.GetInformer(ctx, obj, cache.BlockUntilSynced(false))
+		if err != nil {
+			return fmt.Errorf("failed to get informer for %T: %w", obj, err)
+		}
+		informers[fmt.Sprintf("%T", obj)] = informer
+	}
+
+	mgrCacheSynced := mgrCache.WaitForCacheSync(ctx)
+	configMapCacheSynced := configMapCache.WaitForCacheSync(ctx)
+	if mgrCacheSynced && configMapCacheSynced {
+		return nil
+	}
+
+	var unsynced []string
+	for name, informer := range informers {
+		if !informer.HasSynced() {
+			unsynced = append(unsynced, name)
+		}
+	}
+	if !configMapCacheSynced {
+		unsynced = append(unsynced, "image source ConfigMaps")
+	}
+	return fmt.Errorf("caches did not sync within %s (unsynced: %s): %w", timeout, strings.Join(unsynced, ", "), ctx.Err())
 }
