@@ -109,3 +109,25 @@ npm run generate:api
 ```
 
 Finally, make any necessary adaptations based on the changes in the generated code.
+
+## Deployment Modes
+
+The frontend image supports two deployment modes via the `DEPLOYMENT_MODE` environment variable:
+
+- **`kubeflow` (default):** Intended for deployment within the Kubeflow platform. The top navigation bar and sidebar are omitted so that the Kubeflow Central Dashboard provides the outer navigation shell and frame.
+- **`standalone`:** Intended for deployment as an independent application. Renders the top navigation masthead (with logo, namespace selector, and user profile) and the left navigation sidebar.
+
+### Configuring Deployment Mode
+
+When deploying the container image (e.g. in Kubernetes), set the `DEPLOYMENT_MODE` environment variable:
+
+```yaml
+containers:
+- name: workspaces-frontend
+  image: ghcr.io/kubeflow/notebooks/workspaces-frontend:<tag>
+  env:
+  - name: DEPLOYMENT_MODE
+    value: "standalone" # or "kubeflow"
+```
+
+If omitted, `DEPLOYMENT_MODE` defaults to `kubeflow`.
