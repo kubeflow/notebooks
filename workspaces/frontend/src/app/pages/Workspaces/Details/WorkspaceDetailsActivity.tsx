@@ -20,6 +20,8 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
   workspace,
 }) => {
   const { activity, pausedTime } = workspace;
+   const pauseRule = activity.rules?.pauseWorkspace;
+  const isPauseEligible = pauseRule?.eligibleAfter !== 0;
   const pendingRestart = hasWorkspacePendingUpdate(workspace);
 
   return (
@@ -38,33 +40,34 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
-      {activity.rules?.pauseWorkspace && (
+      {isPauseEligible && pauseRule ? (
         <>
           <DescriptionListGroup>
             <DescriptionListTerm>Pauses after</DescriptionListTerm>
             <DescriptionListDescription data-testid="pausesIn">
-              {activity.rules.pauseWorkspace.eligibleAfter === 0
-                ? 'not eligible'
-                : format(new Date(activity.rules.pauseWorkspace.eligibleAfter), DATE_FORMAT)}
+              {format(new Date(pauseRule.eligibleAfter), DATE_FORMAT)}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <Divider />
         </>
-      )}
-      <DescriptionListGroup>
-        <DescriptionListTerm>Paused since</DescriptionListTerm>
-        <DescriptionListDescription data-testid="pauseTime">
-          {pausedTime === 0 ? 'Not paused' : format(pausedTime, DATE_FORMAT)}
-        </DescriptionListDescription>
-      </DescriptionListGroup>
-      <Divider />
+      ) : null}
+      {isPauseEligible && pausedTime !== 0 ? (
+        <>
+          <DescriptionListGroup>
+            <DescriptionListTerm>Paused since</DescriptionListTerm>
+            <DescriptionListDescription data-testid="pauseTime">
+              {format(pausedTime, DATE_FORMAT)}
+            </DescriptionListDescription>
+          </DescriptionListGroup>
+          <Divider />
+        </>
+      ) : null}
       <DescriptionListGroup>
         <DescriptionListTerm>Pending restart</DescriptionListTerm>
         <DescriptionListDescription data-testid="pendingRestart">
           {pendingRestart ? 'Yes' : 'No'}
         </DescriptionListDescription>
       </DescriptionListGroup>
-      <Divider />
     </DescriptionList>
   );
 };
