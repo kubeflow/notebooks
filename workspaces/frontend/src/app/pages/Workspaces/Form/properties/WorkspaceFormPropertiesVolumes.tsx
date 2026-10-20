@@ -458,6 +458,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         onVolumeCreated={handleVolumeCreated}
         excludedPvcNames={excludedPvcNames}
         mountedPaths={createModalMountedPaths}
+        isHomeVolume={isHomeVolume}
         fixedMountPath={fixedMountPath}
         volumeToEdit={editIndex !== null ? volumes[editIndex] : undefined}
         onVolumeEdited={handleSaveEdit}

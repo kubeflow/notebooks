@@ -67,6 +67,8 @@ export interface VolumesCreateModalProps {
   excludedPvcNames?: Set<string>;
   /** Set of mount paths already in use across all attached volumes */
   mountedPaths: Set<string>;
+  /** When true the mount path cannot be edited, even before fixedMountPath is available */
+  isHomeVolume?: boolean;
   /** When provided the mount path is locked to this value and cannot be edited */
   fixedMountPath?: string;
   /** When provided, the modal operates in edit mode */
@@ -82,6 +84,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
   namespace,
   excludedPvcNames,
   mountedPaths,
+  isHomeVolume,
   fixedMountPath,
   volumeToEdit,
   onVolumeEdited,
@@ -145,7 +148,7 @@ export const VolumesCreateModal: React.FC<VolumesCreateModalProps> = ({
         onConfirm={handleConfirmMountPathEdit}
         onCancel={handleCancelMountPathEdit}
         error={mountPathError}
-        isFixed={!!fixedMountPath}
+        isFixed={isHomeVolume || !!fixedMountPath}
         fieldId="create-volume-mount-path"
       />
       {!fixedMountPath && (

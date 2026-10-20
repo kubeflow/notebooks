@@ -13,8 +13,9 @@ jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: () => ({ api: { pvc: { deletePvc: jest.fn() } }, apiAvailable: true }),
 }));
 
-jest.mock('~/app/pages/Workspaces/Form/properties/volumes/VolumesCreateModal', () => ({
-  VolumesCreateModal: () => null,
+jest.mock('~/app/hooks/useStorageClasses', () => ({
+  __esModule: true,
+  default: () => ({ storageClasses: [], storageClassLoadError: null }),
 }));
 
 jest.mock('~/app/pages/Workspaces/Form/properties/volumes/VolumesAttachModal', () => ({
@@ -110,5 +111,42 @@ describe('WorkspaceFormPropertiesSelection mount paths', () => {
 
     expect(screen.getByTestId('edit-mount-path-home-pvc')).toBeDisabled();
     expect(screen.getByText('-')).toBeInTheDocument();
+  });
+
+  it('keeps the home mount path locked in the edit volume modal when kind is not loaded yet', () => {
+    const properties: WorkspaceFormProperties = {
+      displayName: 'my-workspace',
+      name: 'my-workspace',
+      homeVolume: {
+        pvcName: 'home-pvc',
+        mountPath: '/home/jovyan',
+        readOnly: false,
+        isAttached: true,
+      },
+      volumes: [],
+      secrets: [],
+    };
+
+    render(
+      <WorkspaceFormPropertiesSelection
+        mode="update"
+        namespace="default"
+        selectedProperties={properties}
+        onSelect={jest.fn()}
+        homeVolumeMountPath={undefined}
+        displayNameError={null}
+        onDisplayNameChange={jest.fn()}
+        resourceNameError={null}
+        isResourceNameEditing={false}
+        onStartResourceNameEdit={jest.fn()}
+        onResourceNameChange={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('volume-kebab-home-pvc'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
+
+    expect(screen.getByTestId('mount-path-input')).toBeDisabled();
+    expect(screen.queryByTestId('mount-path-edit')).not.toBeInTheDocument();
   });
 });
