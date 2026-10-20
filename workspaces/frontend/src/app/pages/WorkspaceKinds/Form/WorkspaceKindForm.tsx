@@ -376,7 +376,7 @@ export const WorkspaceKindForm: React.FC = () => {
                 <Content component={ContentVariants.h1} data-testid="app-page-title">
                   {`${mode === 'create' ? 'Create' : 'Edit'} workspace kind`}
                 </Content>
-                <Content component={ContentVariants.p}>
+                <Content>
                   {mode === 'create' ? (
                     <p>
                       Please upload or drag and drop a Workspace Kind YAML file. Sample Workspace
