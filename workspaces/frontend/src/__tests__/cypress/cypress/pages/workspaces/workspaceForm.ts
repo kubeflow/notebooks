@@ -262,7 +262,9 @@ class WorkspaceForm {
   }
 
   assertNoResultsFound(): void {
-    cy.contains('No results found').should('be.visible');
+    cy.contains(
+      'No Workspace Kinds are available. Contact your administrator for assistance.',
+    ).should('be.visible');
   }
 
   assertVolumesCount(count: number): Cypress.Chainable<JQuery<HTMLElement>> {
