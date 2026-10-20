@@ -192,7 +192,7 @@ export const MountPathField: React.FC<MountPathFieldProps> = (props) => {
 
     return (
       <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-        <FlexItem>{value}</FlexItem>
+        <FlexItem>{value || '-'}</FlexItem>
         <FlexItem>
           {isFixed ? (
             <Tooltip content="The mount path is defined by the workspace kind and cannot be changed.">

@@ -4,6 +4,7 @@ import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspa
 import {
   volumesManagement,
   volumesAttachModal,
+  volumesCreateModal,
   volumesDetachModal,
 } from '~/__tests__/cypress/cypress/pages/workspaces/volumesManagement';
 import {
@@ -14,6 +15,7 @@ import {
   buildMockNamespace,
   buildMockPVC,
   buildMockSecret,
+  buildMockStorageClass,
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
@@ -583,6 +585,58 @@ describe('Edit workspace — volume detach behavior', () => {
     // Volume is removed from the table; delete API must not have been called.
     volumesManagement.assertVolumeRowNotExists('data-volume-1');
     cy.get('@deletePVC.all').should('have.length', 0);
+  });
+});
+
+describe('Edit workspace — home volume mount path', () => {
+  // setupEditWorkspace uses '/home' as the home PVC name, while the workspace kind
+  // defines '/home/jovyan' as the home mount path.
+  const HOME_PVC_NAME = '/home';
+  const HOME_MOUNT_PATH = '/home/jovyan';
+
+  beforeEach(() => {
+    setupEditWorkspace();
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: DEFAULT_NAMESPACE } },
+      mockModArchResponse([]),
+    ).as('listPVCs');
+
+    cy.interceptApi(
+      'GET /api/:apiVersion/storageclasses',
+      { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+      mockModArchResponse([buildMockStorageClass()]),
+    ).as('listStorageClasses');
+
+    visitEditWorkspace();
+    cy.wait('@getWorkspaceKinds');
+    editWorkspace.clickNext(); // workspace kind → image
+    editWorkspace.advancePastRedirectModal(); // image → pod config
+    editWorkspace.advancePastRedirectModal(); // pod config → properties
+  });
+
+  it('should display the home mount path defined by the workspace kind', () => {
+    volumesManagement.assertHomeVolumeMountPath(HOME_PVC_NAME, HOME_MOUNT_PATH);
+  });
+
+  it('should not allow editing the home mount path from the volumes table', () => {
+    volumesManagement.assertHomeVolumeMountPathLocked(HOME_PVC_NAME);
+  });
+
+  it('should not allow editing the home mount path from the edit volume modal', () => {
+    volumesManagement.clickHomeVolumeEditAction(HOME_PVC_NAME);
+    volumesCreateModal.assertModalVisible();
+
+    volumesCreateModal.assertMountPathLocked();
+    volumesCreateModal.assertReadOnlySwitchNotExists();
+  });
+
+  it('should allow editing data volume mount paths', () => {
+    volumesManagement.expandVolumesSection();
+    volumesManagement.clickVolumeMountPathEdit('data-volume-1');
+
+    volumesManagement.assertVolumeMountPathEditing('data-volume-1');
   });
 });
 

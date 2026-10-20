@@ -52,8 +52,16 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
 
   const homeVolumeArray: WorkspacesPodVolumeMountValue[] = useMemo(
-    () => (selectedProperties.homeVolume ? [selectedProperties.homeVolume] : []),
-    [selectedProperties.homeVolume],
+    () =>
+      selectedProperties.homeVolume
+        ? [
+            {
+              ...selectedProperties.homeVolume,
+              mountPath: homeVolumeMountPath || selectedProperties.homeVolume.mountPath,
+            },
+          ]
+        : [],
+    [selectedProperties.homeVolume, homeVolumeMountPath],
   );
 
   const homePvcNames = useMemo(
@@ -208,6 +216,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 volumes={homeVolumeArray}
                 setVolumes={handleSetHomeVolume}
                 namespace={namespace}
+                isHomeVolume
                 fixedMountPath={homeVolumeMountPath}
                 excludedPvcNames={dataPvcNames}
               />
