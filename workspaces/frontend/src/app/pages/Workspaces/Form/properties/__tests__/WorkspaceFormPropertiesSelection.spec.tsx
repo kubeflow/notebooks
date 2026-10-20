@@ -13,10 +13,6 @@ jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: () => ({ api: { pvc: { deletePvc: jest.fn() } }, apiAvailable: true }),
 }));
 
-jest.mock('~/app/hooks/useNamespaceSelectorWrapper', () => ({
-  useNamespaceSelectorWrapper: () => ({ selectedNamespace: 'default' }),
-}));
-
 jest.mock('~/app/pages/Workspaces/Form/properties/volumes/VolumesCreateModal', () => ({
   VolumesCreateModal: () => null,
 }));
@@ -58,6 +54,7 @@ describe('WorkspaceFormPropertiesSelection mount paths', () => {
     render(
       <WorkspaceFormPropertiesSelection
         mode="update"
+        namespace="default"
         selectedProperties={properties}
         onSelect={jest.fn()}
         homeVolumeMountPath="/home/jovyan"
@@ -98,6 +95,7 @@ describe('WorkspaceFormPropertiesSelection mount paths', () => {
     render(
       <WorkspaceFormPropertiesSelection
         mode="update"
+        namespace="default"
         selectedProperties={properties}
         onSelect={jest.fn()}
         homeVolumeMountPath={undefined}
