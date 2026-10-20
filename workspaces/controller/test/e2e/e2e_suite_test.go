@@ -33,25 +33,23 @@ import (
 
 var (
 	// These variables are useful to avoid re-installation and conflicts:
-	//  - PROMETHEUS_INSTALL_SKIP=true: Skips Prometheus installation during test setup.
 	//  - CERT_MANAGER_INSTALL_SKIP=true: Skips CertManager installation during test setup.
 	skipCertManagerInstall = os.Getenv("CERT_MANAGER_INSTALL_SKIP") == "true"
-	// skipPrometheusInstall  = os.Getenv("PROMETHEUS_INSTALL_SKIP") == "true"
 
 	// isCertManagerAlreadyInstalled will be set true when CertManager CRDs be found on the cluster
 	isCertManagerAlreadyInstalled = false
 
-	// isPrometheusOperatorAlreadyInstalled will be set true when prometheus CRDs be found on the cluster
-	// isPrometheusOperatorAlreadyInstalled = false
-
 	skipIstioInstall        = os.Getenv("ISTIO_INSTALL_SKIP") == "true"
 	isIstioAlreadyInstalled = false
+
+	projectDir         = ""
+	workspaceNamespace string
 )
 
 // TestE2E runs the end-to-end (e2e) test suite for the project. These tests execute in an isolated,
 // temporary environment to validate project changes with the purposed to be used in CI jobs.
 // The default setup requires Kind, builds/loads the Manager Docker image locally, and installs
-// CertManager and Prometheus.
+// CertManager.
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
 	_, _ = fmt.Fprintf(GinkgoWriter, "Starting workspace-controller suite\n")
@@ -201,7 +199,7 @@ var _ = SynchronizedAfterSuite(func() {
 
 	workerNs := fmt.Sprintf("workspace-test-%d", GinkgoParallelProcess())
 	By(fmt.Sprintf("deleting workspace namespace for worker %d: %s", GinkgoParallelProcess(), workerNs))
-	cmd := exec.Command("kubectl", "delete", "ns", workerNs)
+	cmd := exec.Command("kubectl", "delete", "ns", workerNs, fmt.Sprintf("--timeout=%s", timeout))
 	_, _ = utils.Run(cmd)
 }, func() {
 
@@ -212,7 +210,7 @@ var _ = SynchronizedAfterSuite(func() {
 	_, _ = utils.Run(cmd)
 
 	By("deleting controller namespace")
-	cmd = exec.Command("kubectl", "delete", "ns", controllerNamespace)
+	cmd = exec.Command("kubectl", "delete", "ns", controllerNamespace, fmt.Sprintf("--timeout=%s", timeout))
 	_, _ = utils.Run(cmd)
 
 	By("deleting CRDs")

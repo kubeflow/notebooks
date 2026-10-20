@@ -95,10 +95,6 @@ const (
 	hasActivityFalseWorkspaceName     = "jupyterlab-workspace-has-activity-false"
 )
 
-var (
-	projectDir         = ""
-	workspaceNamespace string
-)
 var _ = Describe("controller", func() {
 
 	Context("Operator", Ordered, func() {
@@ -111,7 +107,7 @@ var _ = Describe("controller", func() {
 			)
 			_, _ = utils.Run(cmd)
 			cmd = exec.Command("kubectl", "delete", "workspacekind", workspaceKindName,
-				"--ignore-not-found=true",
+				"--ignore-not-found=true", fmt.Sprintf("--timeout=%s", timeout),
 			)
 			_, _ = utils.Run(cmd)
 		})
