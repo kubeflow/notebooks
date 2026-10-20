@@ -262,6 +262,10 @@ class WorkspaceForm {
   }
 
   assertNoResultsFound(): void {
+    cy.contains('No results found').should('be.visible');
+  }
+
+  assertEmptyStateVisible(): void {
     cy.contains(
       'No Workspace Kinds are available. Contact your administrator for assistance.',
     ).should('be.visible');
