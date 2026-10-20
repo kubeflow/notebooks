@@ -265,6 +265,12 @@ class WorkspaceForm {
     cy.contains('No results found').should('be.visible');
   }
 
+  assertEmptyStateVisible(): void {
+    cy.contains(
+      'No Workspace Kinds are available. Contact your administrator for assistance.',
+    ).should('be.visible');
+  }
+
   assertVolumesCount(count: number): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy
       .findAllByTestId('volumes-count')
