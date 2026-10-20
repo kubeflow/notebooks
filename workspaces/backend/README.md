@@ -1,4 +1,5 @@
 # Kubeflow Workspaces Backend
+
 The Kubeflow Workspaces Backend is the _backend for frontend_ (BFF) used by the Kubeflow Workspaces Frontend as part of [Kubeflow Notebooks 2.0](https://github.com/kubeflow/kubeflow/issues/7156).
 
 > ⚠️ __Warning__ ⚠️
@@ -31,4 +32,10 @@ make run PORT=8000
 ```
 
 ### API Documentation
-For the full list of endpoints, see the [Swagger UI](https://editor.swagger.io?url=https://raw.githubusercontent.com/kubeflow/notebooks/notebooks-v2/workspaces/backend/openapi/swagger.json). 
+
+> [!IMPORTANT]
+>
+> This API is intended to be used only by the Kubeflow Workspaces Frontend and is __NOT__ a stable public API.
+> Endpoints, request and response formats may change without notice between releases.
+
+For the full list of endpoints, see the [Swagger UI](https://editor.swagger.io?url=https://raw.githubusercontent.com/kubeflow/notebooks/notebooks-v2/workspaces/backend/openapi/swagger.json).
