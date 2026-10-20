@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import { useNotification } from 'mod-arch-core';
 import {
   Drawer,
@@ -14,8 +15,10 @@ import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { ToolbarItem } from '@patternfly/react-core/dist/esm/components/Toolbar';
+import { EmptyState, EmptyStateBody } from '@patternfly/react-core/dist/esm/components/EmptyState';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
+import { LockIcon } from '@patternfly/react-icons/dist/esm/icons/lock-icon';
 import {
   Table,
   Thead,
@@ -47,12 +50,31 @@ import {
   extractWorkspaceKindStatusColor,
   WorkspaceKindStatus,
 } from '~/shared/utilities/WorkspaceKindUtils';
+import { useAppContext } from '~/app/context/AppContext';
 import { WorkspaceKindDetails } from './details/WorkspaceKindDetails';
 
 export enum ActionType {
   ViewDetails,
   Delete,
 }
+
+const WorkspaceKindsRestrictedState: React.FunctionComponent = () => (
+  <PageSection isFilled>
+    <Bullseye>
+      <EmptyState
+        headingLevel="h4"
+        titleText="WorkspaceKind management is restricted to administrators"
+        icon={LockIcon}
+        status="info"
+        data-testid="workspace-kinds-access-empty-state"
+      >
+        <EmptyStateBody>
+          Please contact your admin if you need changes to workspace configurations.
+        </EmptyStateBody>
+      </EmptyState>
+    </Bullseye>
+  </PageSection>
+);
 
 const filterConfig = {
   name: { type: 'text', label: 'Name', placeholder: 'Filter by name' },
@@ -74,7 +96,7 @@ type WorkspaceKindFilterKey = keyof typeof filterConfig;
 
 const visibleFilterKeys: readonly WorkspaceKindFilterKey[] = ['name', 'description', 'status'];
 
-export const WorkspaceKinds: React.FunctionComponent = () => {
+const WorkspaceKindsAdminView: React.FunctionComponent = () => {
   // Table columns
   const columns: WorkspaceKindsColumns = useMemo(
     () => ({
@@ -295,6 +317,9 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   );
 
   if (workspaceKindsError) {
+    if (axios.isAxiosError(workspaceKindsError) && workspaceKindsError.response?.status === 403) {
+      return <WorkspaceKindsRestrictedState />;
+    }
     return <LoadError title="Failed to load workspace kinds" error={workspaceKindsError} />;
   }
 
@@ -462,11 +487,13 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
                     </Tbody>
                   ))}
               {filteredWorkspaceKinds.length === 0 && (
-                <Tr>
-                  <Td colSpan={8} id="empty-state">
-                    <Bullseye>{emptyState}</Bullseye>
-                  </Td>
-                </Tr>
+                <Tbody>
+                  <Tr>
+                    <Td colSpan={8} id="empty-state">
+                      <Bullseye>{emptyState}</Bullseye>
+                    </Td>
+                  </Tr>
+                </Tbody>
               )}
             </Table>
             <Pagination
@@ -502,4 +529,15 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
       )}
     </Drawer>
   );
+};
+
+export const WorkspaceKinds: React.FunctionComponent = () => {
+  const { user } = useAppContext();
+  const canManageWorkspaceKinds = Boolean(user?.clusterAdmin);
+
+  if (!canManageWorkspaceKinds) {
+    return <WorkspaceKindsRestrictedState />;
+  }
+
+  return <WorkspaceKindsAdminView />;
 };
