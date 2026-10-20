@@ -387,8 +387,16 @@ export const WorkspaceKindForm: React.FC = () => {
                       repository.
                     </p>
                   ) : (
-                    `View and edit the Workspace Kind using the form or the YAML editor.
-                      Changes are synced between the form and YAML when switching tabs.`
+                    <>
+                      <p>
+                        View and edit the Workspace Kind using the form or the YAML editor. Changes
+                        are synced between the form and YAML when switching tabs.
+                      </p>
+                      <p>
+                        <strong>Note:</strong> The form includes a subset of the available settings.
+                        To edit all settings, use the YAML editor.
+                      </p>
+                    </>
                   )}
                 </Content>
               </FlexItem>
