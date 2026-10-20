@@ -670,7 +670,7 @@ describe('Create workspace', () => {
       cy.wait('@getEmptyWorkspaceKinds');
 
       // Verify empty state is shown
-      createWorkspace.assertNoResultsFound();
+      createWorkspace.assertEmptyStateVisible();
     });
 
     it('should handle single workspace kind', () => {

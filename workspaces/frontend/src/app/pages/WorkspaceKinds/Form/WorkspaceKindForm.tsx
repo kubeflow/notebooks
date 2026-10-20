@@ -376,7 +376,7 @@ export const WorkspaceKindForm: React.FC = () => {
                 <Content component={ContentVariants.h1} data-testid="app-page-title">
                   {`${mode === 'create' ? 'Create' : 'Edit'} workspace kind`}
                 </Content>
-                <Content component={ContentVariants.p}>
+                <Content>
                   {mode === 'create' ? (
                     <p>
                       Please upload or drag and drop a Workspace Kind YAML file. Sample Workspace
@@ -387,8 +387,16 @@ export const WorkspaceKindForm: React.FC = () => {
                       repository.
                     </p>
                   ) : (
-                    `View and edit the Workspace Kind using the form or the YAML editor.
-                      Changes are synced between the form and YAML when switching tabs.`
+                    <>
+                      <p>
+                        View and edit the Workspace Kind using the form or the YAML editor. Changes
+                        are synced between the form and YAML when switching tabs.
+                      </p>
+                      <p>
+                        <strong>Note:</strong> The form includes a subset of the available settings.
+                        To edit all settings, use the YAML editor.
+                      </p>
+                    </>
                   )}
                 </Content>
               </FlexItem>
