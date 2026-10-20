@@ -35,13 +35,20 @@ const (
 	maxBodyBytes   = 1 << 22 // 4 MiB - default is unlimited
 )
 
+// WarmUpFunc is run by the server before it starts serving requests.
+// If it returns an error, the server (and therefore the manager) fails to start.
+type WarmUpFunc func(ctx context.Context) error
+
 type Server struct {
 	logger   *slog.Logger
 	listener net.Listener
 	server   *http.Server
+	warmUp   WarmUpFunc
 }
 
-func NewServer(app *api.App, logger *slog.Logger) (*Server, error) {
+// NewServer creates a new server for the app.
+// The optional warmUp function is run in Start, before any request is served.
+func NewServer(app *api.App, logger *slog.Logger, warmUp WarmUpFunc) (*Server, error) {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", app.Config.Port))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create listener: %w", err)
@@ -61,6 +68,7 @@ func NewServer(app *api.App, logger *slog.Logger) (*Server, error) {
 		logger:   logger,
 		listener: listener,
 		server:   svc,
+		warmUp:   warmUp,
 	}
 
 	return svr, nil
@@ -78,6 +86,19 @@ func (s *Server) SetupWithManager(mgr ctrl.Manager) error {
 // Start starts the server
 // Blocks until the context is canceled
 func (s *Server) Start(ctx context.Context) error {
+	if s.warmUp != nil {
+		s.logger.Info("warming up server")
+		if err := s.warmUp(ctx); err != nil {
+			_ = s.listener.Close()
+			if ctx.Err() != nil {
+				// we are shutting down, so this is not a startup failure
+				return nil
+			}
+			return fmt.Errorf("failed to warm up server: %w", err)
+		}
+		s.logger.Info("server warm up complete")
+	}
+
 	serverShutdown := make(chan struct{})
 	go func() {
 		<-ctx.Done()

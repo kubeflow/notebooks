@@ -146,7 +146,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("creating the image source ConfigMap client")
-	imageSourceConfigMapClient, err := helper.BuildImageSourceConfigMapClient(k8sManager)
+	imageSourceConfigMapClient, _, err := helper.BuildImageSourceConfigMapClient(k8sManager)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("creating the Kubernetes clientset")
