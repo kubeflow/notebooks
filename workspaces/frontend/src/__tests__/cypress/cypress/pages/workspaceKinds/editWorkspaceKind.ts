@@ -977,7 +977,9 @@ class EditWorkspaceKind {
 
   assertProbeSettingsGrouped() {
     cy.findByTestId('workspace-kind-activity-probe-settings').within(() => {
+      cy.findByTestId('workspace-kind-activity-probe-timing').scrollIntoView();
       cy.findByTestId('workspace-kind-activity-probe-timing').should('be.visible');
+      cy.findByTestId('workspace-kind-activity-probe-script-editor').scrollIntoView();
       cy.findByTestId('workspace-kind-activity-probe-script-editor').should('be.visible');
       cy.findByText('Timing', { exact: true }).should('not.exist');
       cy.findByText('Script', { exact: true }).should('not.exist');

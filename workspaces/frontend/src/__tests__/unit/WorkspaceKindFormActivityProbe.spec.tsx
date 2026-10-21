@@ -19,11 +19,13 @@ jest.mock('~/app/routerHelper', () => ({
   useTypedParams: () => ({ kind: 'test-kind' }),
 }));
 jest.mock('~/app/hooks/useNotebookAPI', () => ({
-  useNotebookAPI: () => ({ api: { workspaceKinds: {} } }),
+  useNotebookAPI: () => ({
+    api: { workspaceKinds: { updateWorkspaceKind: mockUpdateWorkspaceKind } },
+  }),
 }));
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
-  useNotification: () => ({ success: jest.fn(), error: jest.fn() }),
+  useNotification: () => ({ success: jest.fn(), error: mockNotificationError }),
 }));
 jest.mock('~/app/pages/WorkspaceKinds/Form/properties/WorkspaceKindFormProperties', () => ({
   WorkspaceKindFormProperties: () => null,
@@ -58,6 +60,8 @@ jest.mock('@patternfly/react-code-editor', () => ({
 
 const pauseRule = { config: { secondsSinceActive: 3600 }, effect: { pauseWorkspace: true } };
 const probe = { podExec: { script: '#!/bin/sh\nexit 0', timeoutSeconds: 30 } };
+const mockUpdateWorkspaceKind = jest.fn();
+const mockNotificationError = jest.fn();
 
 const setup = async (withProbe = false) => {
   const update = buildMockWorkspaceKindUpdate(buildMockWorkspaceKind());
@@ -70,27 +74,40 @@ const setup = async (withProbe = false) => {
   return { user, update };
 };
 
-describe('Workspace Kind activity probe dependency', () => {
-  it('blocks an invalid loaded configuration and clears the error when a probe is enabled', async () => {
-    const { user } = await setup();
-    expect(screen.getByTestId('activity-probe-dependency-error')).toBeVisible();
-    expect(screen.getByTestId('submit-button')).toBeDisabled();
+describe('Workspace Kind activity probe', () => {
+  it('submits pause rules without a probe and surfaces API validation errors', async () => {
+    const { user } = await setup(true);
+    mockUpdateWorkspaceKind.mockRejectedValueOnce(new Error('Activity Probe is required'));
     await user.click(screen.getByTestId('workspace-kind-pod-template-activity-probe-switch'));
     expect(screen.queryByTestId('activity-probe-dependency-error')).not.toBeInTheDocument();
     expect(screen.getByTestId('submit-button')).toBeEnabled();
+    await user.click(screen.getByTestId('submit-button'));
+    expect(mockUpdateWorkspaceKind).toHaveBeenCalledWith(
+      'test-kind',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          activityRules: [pauseRule],
+          podTemplate: expect.objectContaining({ activityProbe: undefined }),
+        }),
+      }),
+    );
+    expect(mockNotificationError).toHaveBeenCalledWith(
+      'Failed to edit workspace kind',
+      'Activity Probe is required',
+    );
   });
 
   it('preserves pause rules when disabling a probe and allows saving after removing the last rule', async () => {
     const { user } = await setup(true);
     await user.click(screen.getByTestId('workspace-kind-pod-template-activity-probe-switch'));
     expect(screen.getByTestId('activity-rule-row-0')).toBeInTheDocument();
-    expect(screen.getByTestId('submit-button')).toBeDisabled();
+    expect(screen.getByTestId('submit-button')).toBeEnabled();
     await user.click(screen.getByTestId('activity-rule-remove-0'));
     expect(screen.queryByTestId('activity-probe-dependency-error')).not.toBeInTheDocument();
     expect(screen.getByTestId('submit-button')).toBeEnabled();
   });
 
-  it('checks the current YAML draft rather than stale form state', async () => {
+  it('allows saving pause rules without a probe in YAML and form views', async () => {
     const { user, update } = await setup(true);
     await user.click(screen.getByTestId('yaml-tab'));
     fireEvent.change(screen.getByLabelText('Workspace Kind YAML'), {
@@ -101,16 +118,16 @@ describe('Workspace Kind activity probe dependency', () => {
         }),
       },
     });
-    expect(screen.getByTestId('activity-probe-dependency-error')).toBeVisible();
-    expect(screen.getByTestId('submit-button')).toBeDisabled();
+    expect(screen.queryByTestId('activity-probe-dependency-error')).not.toBeInTheDocument();
+    expect(screen.getByTestId('submit-button')).toBeEnabled();
     await user.click(screen.getByTestId('form-tab'));
     expect(
       screen.getByTestId('workspace-kind-pod-template-activity-probe-switch'),
     ).not.toBeChecked();
-    expect(screen.getByTestId('submit-button')).toBeDisabled();
+    expect(screen.getByTestId('submit-button')).toBeEnabled();
   });
 
-  it('clears the error when YAML adds a probe and preserves its settings in the form', async () => {
+  it('preserves probe settings added in YAML when switching to the form', async () => {
     const { user, update } = await setup();
     await user.click(screen.getByTestId('yaml-tab'));
     fireEvent.change(screen.getByLabelText('Workspace Kind YAML'), {
@@ -147,7 +164,7 @@ describe('Workspace Kind activity probe dependency', () => {
     expect(screen.getByLabelText('probe script timeout input')).toHaveValue(15);
   });
 
-  it('defers malformed YAML errors to the editor without crashing dependency validation', async () => {
+  it('keeps saving disabled when the YAML draft is malformed', async () => {
     const { user } = await setup();
     await user.click(screen.getByTestId('yaml-tab'));
     fireEvent.change(screen.getByLabelText('Workspace Kind YAML'), {

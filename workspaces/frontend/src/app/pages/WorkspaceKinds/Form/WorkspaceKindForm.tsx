@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import isEqual from 'lodash-es/isEqual';
 import yaml from 'js-yaml';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import { Alert } from '@patternfly/react-core/dist/esm/components/Alert';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
@@ -42,7 +41,6 @@ import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormPrope
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
 import { WorkspaceKindFormPodConfig } from './podConfig/WorkspaceKindFormPodConfig';
 import { WorkspaceKindFormPodTemplate } from './podTemplate/WorkspaceKindFormPodTemplate';
-import { getActivityProbeDependencyError } from './podTemplate/activityProbeValidation';
 import {
   convertFormDataToUpdate,
   EMPTY_WORKSPACE_KIND_FORM_DATA,
@@ -259,28 +257,7 @@ export const WorkspaceKindForm: React.FC = () => {
     }
   }, []);
 
-  const activityProbeDependencyError = useMemo(() => {
-    if (mode === 'edit' && activeTabKey === FORM_TAB_KEY) {
-      return getActivityProbeDependencyError(data);
-    }
-    try {
-      const parsed: unknown = yaml.load(mode === 'create' ? yamlValue : editYamlValue);
-      if (mode === 'create') {
-        return getActivityProbeDependencyError(
-          parsed && typeof parsed === 'object' && 'spec' in parsed ? parsed.spec : undefined,
-        );
-      }
-      return getActivityProbeDependencyError(parsed);
-    } catch {
-      // YAML syntax errors are reported by the upload or editor controls.
-      return null;
-    }
-  }, [mode, activeTabKey, data, yamlValue, editYamlValue]);
-
   const handleSubmit = useCallback(async () => {
-    if (activityProbeDependencyError) {
-      return;
-    }
     setIsSubmitting(true);
     // TODO: Complete handleCreate with API call to create a new WS kind
     try {
@@ -360,7 +337,6 @@ export const WorkspaceKindForm: React.FC = () => {
     notification,
     yamlValue,
     editYamlValue,
-    activityProbeDependencyError,
   ]);
 
   const hasChanges = useMemo(() => {
@@ -371,7 +347,7 @@ export const WorkspaceKindForm: React.FC = () => {
   }, [mode, activeTabKey, editYamlValue, originalYaml, data, originalFormData]);
 
   const canSubmit = useMemo(() => {
-    if (isSubmitting || activityProbeDependencyError) {
+    if (isSubmitting) {
       return false;
     }
     if (mode === 'create') {
@@ -381,15 +357,7 @@ export const WorkspaceKindForm: React.FC = () => {
       return hasChanges && yamlParseError === null;
     }
     return validated === 'success' && hasChanges;
-  }, [
-    isSubmitting,
-    activityProbeDependencyError,
-    validated,
-    mode,
-    hasChanges,
-    activeTabKey,
-    yamlParseError,
-  ]);
+  }, [isSubmitting, validated, mode, hasChanges, activeTabKey, yamlParseError]);
 
   const cancel = useCallback(() => {
     navigate('workspaceKinds');
@@ -430,18 +398,6 @@ export const WorkspaceKindForm: React.FC = () => {
       </PageGroup>
       <PageSection isFilled>
         <Stack hasGutter>
-          {activityProbeDependencyError && (
-            <StackItem>
-              <Alert
-                isInline
-                variant="danger"
-                title="Activity Probe required"
-                data-testid="activity-probe-dependency-error"
-              >
-                {activityProbeDependencyError}
-              </Alert>
-            </StackItem>
-          )}
           {mode === 'create' && (
             <StackItem style={{ height: '100%' }}>
               <WorkspaceKindFileUpload

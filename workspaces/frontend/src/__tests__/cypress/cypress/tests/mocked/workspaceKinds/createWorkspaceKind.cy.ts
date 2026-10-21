@@ -78,7 +78,13 @@ describe('Create workspace kind', () => {
       createWorkspaceKind.verifyPageURL();
     });
 
-    it('requires a probe for uploaded pause rules and accepts a corrected configuration', () => {
+    it('submits uploaded pause rules without a probe and surfaces API validation errors', () => {
+      const message = 'activityProbe must be configured when pause rules exist';
+      cy.interceptApi(
+        'POST /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        { error: { code: '422', message } },
+      ).as('createWithoutProbe');
       const config = yaml.load(validWorkspaceKindYaml) as {
         spec: WorkspacekindsWorkspaceKindCreate;
       };
@@ -87,13 +93,11 @@ describe('Create workspace kind', () => {
       ];
       createWorkspaceKind.visit();
       createWorkspaceKind.uploadYamlContent(yaml.dump(config));
-      createWorkspaceKind.assertProbeDependencyError(true);
-      createWorkspaceKind.assertSubmitButtonDisabled();
-      config.spec.podTemplate.activityProbe = { podExec: { script: '#!/bin/sh\nexit 0' } };
-      createWorkspaceKind.clearYamlContent();
-      createWorkspaceKind.uploadYamlContent(yaml.dump(config));
       createWorkspaceKind.assertProbeDependencyError(false);
       createWorkspaceKind.assertSubmitButtonEnabled();
+      createWorkspaceKind.clickSubmit();
+      cy.wait('@createWithoutProbe');
+      createWorkspaceKind.assertErrorAlertContainsMessage(message);
     });
 
     it('should cancel creation and navigate back to workspace kinds list', () => {

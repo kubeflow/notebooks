@@ -1063,22 +1063,24 @@ describe('Edit workspace kind', () => {
         workspaceKinds.verifyPageURL();
       });
 
-      it('retains pause rules and blocks saving until the probe is re-enabled', () => {
+      it('retains pause rules and submits after the probe is disabled', () => {
         setupProbe({ activityProbe: probe, activityRules: [pauseRule] });
         editWorkspaceKind.toggleActivityProbe();
         editWorkspaceKind.assertActivityRuleRowCount(1);
-        editWorkspaceKind.assertProbeDependencyError(true);
-        editWorkspaceKind.assertSubmitButtonDisabled(true);
-        editWorkspaceKind.toggleActivityProbe();
         editWorkspaceKind.assertProbeDependencyError(false);
         editWorkspaceKind.assertSubmitButtonDisabled(false);
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@saveProbe').then(({ request }) => {
+          expect(request.body.data.podTemplate.activityProbe).to.equal(undefined);
+          expect(request.body.data.activityRules).to.deep.equal([pauseRule]);
+        });
       });
 
-      it('validates an existing pause rule without a probe in both form and YAML views', () => {
+      it('preserves an existing pause rule without a probe in both form and YAML views', () => {
         setupProbe({ activityRules: [pauseRule] });
-        editWorkspaceKind.assertProbeDependencyError(true);
+        editWorkspaceKind.assertProbeDependencyError(false);
         editWorkspaceKind.clickYamlTab();
-        editWorkspaceKind.assertProbeDependencyError(true);
+        editWorkspaceKind.assertProbeDependencyError(false);
         editWorkspaceKind.assertSubmitButtonDisabled(true);
         editWorkspaceKind.clickFormTab();
         editWorkspaceKind.clickRemoveActivityRule(0);
