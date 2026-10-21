@@ -52,7 +52,7 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
       <DescriptionListGroup>
         <DescriptionListTerm>Paused since</DescriptionListTerm>
         <DescriptionListDescription data-testid="pauseTime">
-          {pausedTime === 0 ? 'unknown' : format(pausedTime, DATE_FORMAT)}
+          {pausedTime === 0 ? 'Not paused' : format(pausedTime, DATE_FORMAT)}
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />

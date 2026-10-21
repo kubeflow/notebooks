@@ -39,15 +39,17 @@ const getLevelIcon = (level: string | undefined) => {
 };
 
 export const WorkspaceRedirectInformationViewTitle: React.FC = () => (
-  <Content>
-    There are pending redirect updates for that workspace. Are you sure you want to proceed?
+  <>
+    <Content>
+      There are pending redirect updates for that workspace. Are you sure you want to proceed?
+    </Content>
     <Alert
       variant="info"
       isInline
       isPlain
-      title="Applying the pending redirect updates will delete and recreate the workspace. Any data not saved to persistent storage will be lost. "
+      title="Applying the pending redirect updates will delete and recreate the workspace. Any data not saved to persistent storage will be lost."
     />
-  </Content>
+  </>
 );
 
 interface WorkspaceRedirectInformationViewProps {
