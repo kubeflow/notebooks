@@ -35,6 +35,7 @@ const (
 	LabelCanUpdate     = "notebooks.kubeflow.org/can-update"
 	LabelCanUse        = "notebooks.kubeflow.org/can-use"
 	LabelWorkspaceName = "notebooks.kubeflow.org/workspace-name"
+	LabelOdhDashboard  = "opendatahub.io/dashboard"
 )
 
 // NewAuditFromObjectMeta creates an Audit instance from Kubernetes ObjectMeta.

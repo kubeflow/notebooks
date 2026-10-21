@@ -223,8 +223,9 @@ func (r *PVCRepository) CreatePVC(ctx context.Context, actor user.Info, pvcCreat
 			Name:      pvcCreate.Name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				modelsCommon.LabelCanMount:  "true",
-				modelsCommon.LabelCanUpdate: "true",
+				modelsCommon.LabelCanMount:     "true",
+				modelsCommon.LabelCanUpdate:    "true",
+				modelsCommon.LabelOdhDashboard: "true",
 			},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
