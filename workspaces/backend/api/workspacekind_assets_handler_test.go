@@ -178,6 +178,8 @@ var _ = Describe("WorkspaceKind Asset Handlers", func() {
 			configMapName = "wsk-asset-test-icons"
 			wskCMName     = "wsk-asset-test-cm"
 			wskURLName    = "wsk-asset-test-url"
+			wskNoCMName   = "wsk-asset-test-no-cm"
+			wskNoKeyName  = "wsk-asset-test-no-key"
 			iconKey       = "icon.svg"
 			logoKey       = "logo.svg"
 			svgContent    = "<svg>test</svg>"
@@ -205,6 +207,14 @@ var _ = Describe("WorkspaceKind Asset Handlers", func() {
 			wkURL := NewExampleWorkspaceKind(wskURLName)
 			Expect(k8sClient.Create(ctx, wkURL)).To(Succeed())
 
+			By("creating a WorkspaceKind that references a missing ConfigMap")
+			wkNoCM := newConfigMapWorkspaceKind(wskNoCMName, "wsk-asset-test-missing", namespaceName, iconKey, logoKey)
+			Expect(k8sClient.Create(ctx, wkNoCM)).To(Succeed())
+
+			By("creating a WorkspaceKind that references missing ConfigMap keys")
+			wkNoKey := newConfigMapWorkspaceKind(wskNoKeyName, configMapName, namespaceName, "missing-icon.svg", "missing-logo.svg")
+			Expect(k8sClient.Create(ctx, wkNoKey)).To(Succeed())
+
 			By("waiting for the filtered ConfigMap cache to sync")
 			Eventually(func() int {
 				req, err := http.NewRequest(http.MethodGet, "/api/v1/workspacekinds/"+wskCMName+"/assets/icon", http.NoBody)
@@ -230,6 +240,14 @@ var _ = Describe("WorkspaceKind Asset Handlers", func() {
 			By("deleting the URL-based WorkspaceKind")
 			Expect(k8sClient.Delete(ctx, &kubefloworgv1beta1.WorkspaceKind{
 				ObjectMeta: metav1.ObjectMeta{Name: wskURLName},
+			})).To(Succeed())
+
+			By("deleting the WorkspaceKinds with missing ConfigMap assets")
+			Expect(k8sClient.Delete(ctx, &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: wskNoCMName},
+			})).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: wskNoKeyName},
 			})).To(Succeed())
 
 			By("deleting the ConfigMap")
@@ -278,6 +296,20 @@ var _ = Describe("WorkspaceKind Asset Handlers", func() {
 			Entry("should return 404 for URL-based icon", assetTestCase{
 				assetType:        wskAssetTypeIcon,
 				wskName:          wskURLName,
+				user:             adminUser,
+				expectedStatus:   http.StatusNotFound,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
+			}),
+			Entry("should return 404 when the referenced ConfigMap does not exist", assetTestCase{
+				assetType:        wskAssetTypeIcon,
+				wskName:          wskNoCMName,
+				user:             adminUser,
+				expectedStatus:   http.StatusNotFound,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
+			}),
+			Entry("should return 404 when the referenced ConfigMap key does not exist", assetTestCase{
+				assetType:        wskAssetTypeIcon,
+				wskName:          wskNoKeyName,
 				user:             adminUser,
 				expectedStatus:   http.StatusNotFound,
 				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
@@ -355,6 +387,20 @@ var _ = Describe("WorkspaceKind Asset Handlers", func() {
 			Entry("should return 404 for URL-based logo", assetTestCase{
 				assetType:        wskAssetTypeLogo,
 				wskName:          wskURLName,
+				user:             adminUser,
+				expectedStatus:   http.StatusNotFound,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
+			}),
+			Entry("should return 404 when the referenced ConfigMap does not exist", assetTestCase{
+				assetType:        wskAssetTypeLogo,
+				wskName:          wskNoCMName,
+				user:             adminUser,
+				expectedStatus:   http.StatusNotFound,
+				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
+			}),
+			Entry("should return 404 when the referenced ConfigMap key does not exist", assetTestCase{
+				assetType:        wskAssetTypeLogo,
+				wskName:          wskNoKeyName,
 				user:             adminUser,
 				expectedStatus:   http.StatusNotFound,
 				validateBodyFunc: newErrorMessageValidationFunc(errMsgNotFound),
