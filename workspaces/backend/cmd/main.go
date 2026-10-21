@@ -121,6 +121,7 @@ func main() {
 		getEnvAsStr("SWAGGER_SCHEME", "http"),
 		"Scheme used in the Swagger UI (http or https)",
 	)
+	flag.Parse()
 
 	// Override Swagger metadata with runtime config
 	if cfg.SwaggerEnabled {
