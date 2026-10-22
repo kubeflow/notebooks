@@ -260,21 +260,21 @@ describe('Filter Images by Labels', () => {
       },
     ].forEach(({ key, label, tooltip }) => {
       it(`should explain "${label}" on hover and focus without changing the filter`, () => {
-        cy.findByRole('button', { name: `About ${label}` }).trigger('mouseenter');
-        cy.findByRole('tooltip').should('be.visible').and('have.text', tooltip);
-        cy.findByRole('button', { name: `About ${label}` }).trigger('mouseleave');
-        cy.findByRole('tooltip').should('not.exist');
+        createWorkspace.hoverExtraFilterHelp(label);
+        createWorkspace.assertExtraFilterTooltipVisible(label, tooltip);
+        createWorkspace.leaveExtraFilterHelp(label);
+        createWorkspace.assertExtraFilterTooltipHidden(label);
 
-        cy.findByRole('button', { name: `About ${label}` }).focus();
-        cy.findByRole('tooltip').should('be.visible').and('have.text', tooltip);
-        cy.findByRole('button', { name: `About ${label}` }).click();
+        createWorkspace.focusExtraFilterHelp(label);
+        createWorkspace.assertExtraFilterTooltipVisible(label, tooltip);
+        createWorkspace.clickExtraFilterHelp(label);
         createWorkspace.assertExtraFilterNotChecked(key);
 
-        cy.findByRole('button', { name: `About ${label}` }).blur();
+        createWorkspace.blurExtraFilterHelp(label);
         createWorkspace.clickExtraFilter(key);
         createWorkspace.assertExtraFilterChecked(key);
-        cy.findByRole('button', { name: `About ${label}` }).focus();
-        cy.findByRole('tooltip').should('be.visible').and('have.text', tooltip);
+        createWorkspace.focusExtraFilterHelp(label);
+        createWorkspace.assertExtraFilterTooltipVisible(label, tooltip);
       });
     });
 

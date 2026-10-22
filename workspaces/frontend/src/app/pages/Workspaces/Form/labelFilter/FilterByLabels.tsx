@@ -223,10 +223,14 @@ export const FilterByLabels = <T,>(props: FilterByLabelsProps<T>): React.ReactEl
                 {extraFilter.label}
               </FilterSidePanelCategoryItem>
               {extraFilter.tooltip && (
-                <Tooltip content={extraFilter.tooltip}>
+                <Tooltip
+                  content={extraFilter.tooltip}
+                  data-testid={`extra-${extraFilter.label}-filter-tooltip`}
+                >
                   <Button
                     variant="plain"
                     hasNoPadding
+                    data-testid={`about-${extraFilter.label}-button`}
                     aria-label={`About ${extraFilter.label}`}
                     icon={<QuestionCircleIcon />}
                   />
