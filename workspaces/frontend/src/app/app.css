@@ -76,6 +76,11 @@ html:not(.mui-theme) .pf-v6-c-card.summary-card--clickable:hover {
   height: 100%;
 }
 
+.workspace-form__full-height .workspace-form__main-content {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
 .workspace-form__filter-sidebar {
   min-width: 200px;
 }
