@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import {
   isPVCMountBlocked,
   getBlockedMountTooltip,
+  getRWOInUseWarning,
   buildPVCSelectOptions,
 } from '~/app/pages/Workspaces/Form/helpers';
 import { buildMockPVC, buildMockStorageClass } from '~/shared/mock/mockBuilder';
@@ -45,14 +46,14 @@ describe('isPVCMountBlocked', () => {
     expect(isPVCMountBlocked(pvc)).toBe(false);
   });
 
-  it('blocks a ReadWriteOnce PVC already mounted by another workspace', () => {
+  it('does not block a ReadWriteOnce PVC already mounted by another workspace', () => {
     const pvc = buildMockPVC({
       pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
       pods: [],
       workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
     });
-    expect(isPVCMountBlocked(pvc)).toBe(true);
-    expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(true);
+    expect(isPVCMountBlocked(pvc)).toBe(false);
+    expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(false);
   });
 
   it('does not block a ReadWriteOnce PVC mounted only by the current workspace', () => {
@@ -64,13 +65,13 @@ describe('isPVCMountBlocked', () => {
     expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(false);
   });
 
-  it('blocks when mounted by the current workspace AND another workspace', () => {
+  it('does not block a ReadWriteOnce PVC mounted by the current workspace AND another workspace', () => {
     const pvc = buildMockPVC({
       pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
       pods: [],
       workspaces: [buildWorkspaceInfo(CURRENT_WORKSPACE), buildWorkspaceInfo(OTHER_WORKSPACE)],
     });
-    expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(true);
+    expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(false);
   });
 
   it('blocks a ReadWriteOncePod PVC already mounted by a pod', () => {
@@ -206,9 +207,22 @@ describe('isPVCMountBlocked', () => {
       expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBeNull();
     });
 
-    it('still blocks a plain [ReadWriteOnce] PVC mounted by another workspace', () => {
+    it('does not block a plain [ReadWriteOnce] PVC mounted by another workspace', () => {
       const pvc = buildMockPVC({
         pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+        pods: [],
+        workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+      });
+      expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(false);
+      expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBeNull();
+    });
+
+    it('blocks a [ReadWriteOncePod, ReadWriteOnce] PVC mounted by another workspace', () => {
+      const pvc = buildMockPVC({
+        pvcSpec: buildSpec(
+          V1PersistentVolumeAccessMode.ReadWriteOncePod,
+          V1PersistentVolumeAccessMode.ReadWriteOnce,
+        ),
         pods: [],
         workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
       });
@@ -238,33 +252,31 @@ describe('getBlockedMountTooltip', () => {
     expect(getBlockedMountTooltip(pvc)).toBeNull();
   });
 
-  it('returns an explanatory message when blocked', () => {
+  it('returns an explanatory message for a blocked ReadWriteOncePod PVC', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
+      pods: [],
+      workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+    });
+    expect(getBlockedMountTooltip(pvc)).toMatch(/ReadWriteOncePod/);
+  });
+
+  it('returns null for an in-use ReadWriteOnce PVC (RWO is not blocked)', () => {
     const pvc = buildMockPVC({
       pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
       pods: [],
       workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
-    });
-    expect(getBlockedMountTooltip(pvc)).toMatch(/ReadWriteOnce/);
-  });
-
-  it('returns null when the only mount is the current workspace itself', () => {
-    const pvc = buildMockPVC({
-      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
-      pods: [],
-      workspaces: [buildWorkspaceInfo(CURRENT_WORKSPACE)],
     });
     expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBeNull();
   });
 
-  it('includes the conflicting workspace name for a blocked ReadWriteOnce PVC', () => {
+  it('returns null when the only RWOP mount is the current workspace itself', () => {
     const pvc = buildMockPVC({
-      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
       pods: [],
-      workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+      workspaces: [buildWorkspaceInfo(CURRENT_WORKSPACE)],
     });
-    expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBe(
-      `This volume uses ReadWriteOnce access and is already mounted by workspace "${OTHER_WORKSPACE}".`,
-    );
+    expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBeNull();
   });
 
   it('includes the conflicting workspace name for a ReadWriteOncePod PVC blocked by another workspace', () => {
@@ -292,15 +304,13 @@ describe('getBlockedMountTooltip', () => {
     );
   });
 
-  it('falls back to a generic message for ReadWriteOnce when the conflicting workspace has no name', () => {
+  it('returns null for a ReadWriteOnce PVC even when the conflicting workspace has no name', () => {
     const pvc = buildMockPVC({
       pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
       pods: [],
       workspaces: [buildWorkspaceInfo('')],
     });
-    expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBe(
-      'This volume uses ReadWriteOnce access and is already mounted by another workspace.',
-    );
+    expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBeNull();
   });
 
   it('falls back to a generic message for ReadWriteOncePod when neither workspace nor pod name is available', () => {
@@ -315,13 +325,95 @@ describe('getBlockedMountTooltip', () => {
   });
 });
 
+describe('getRWOInUseWarning', () => {
+  it('returns null when the PVC has no ReadWriteOnce access mode', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteMany),
+      pods: [],
+      workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+    });
+    expect(getRWOInUseWarning(pvc, CURRENT_WORKSPACE)).toBeNull();
+  });
+
+  it('returns null when the RWO PVC is not in use by others', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pods: [],
+      workspaces: [buildWorkspaceInfo(CURRENT_WORKSPACE)],
+    });
+    expect(getRWOInUseWarning(pvc, CURRENT_WORKSPACE)).toBeNull();
+  });
+
+  it('returns null when the RWO PVC has no mounts at all', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pods: [],
+      workspaces: [],
+    });
+    expect(getRWOInUseWarning(pvc, CURRENT_WORKSPACE)).toBeNull();
+  });
+
+  it('returns a node-scope warning when RWO PVC is mounted by another workspace', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pods: [],
+      workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+    });
+    const warning = getRWOInUseWarning(pvc, CURRENT_WORKSPACE);
+    expect(warning).not.toBeNull();
+    expect(warning).toMatch(/single node/i);
+  });
+
+  it('returns a node-scope warning when RWO PVC is mounted by an unrelated pod', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pods: [{ name: 'other-pod', phase: V1PodPhase.PodRunning }],
+      workspaces: [],
+    });
+    const warning = getRWOInUseWarning(pvc, CURRENT_WORKSPACE);
+    expect(warning).not.toBeNull();
+    expect(warning).toMatch(/single node/i);
+  });
+
+  it('mentions that Pods on different nodes may not mount it simultaneously', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pods: [],
+      workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+    });
+    const warning = getRWOInUseWarning(pvc, CURRENT_WORKSPACE);
+    expect(warning).toMatch(/different nodes/i);
+  });
+
+  it('returns null for RWOP PVCs (only RWOP blocking applies, not the RWO warning)', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
+      pods: [],
+      workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+    });
+    expect(getRWOInUseWarning(pvc, CURRENT_WORKSPACE)).toBeNull();
+  });
+
+  it('returns a warning for a mixed [ReadWriteOnce, ReadWriteMany] PVC in use', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(
+        V1PersistentVolumeAccessMode.ReadWriteOnce,
+        V1PersistentVolumeAccessMode.ReadWriteMany,
+      ),
+      pods: [],
+      workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+    });
+    expect(getRWOInUseWarning(pvc, CURRENT_WORKSPACE)).not.toBeNull();
+  });
+});
+
 describe('buildPVCSelectOptions blocking behavior', () => {
   const storageClasses = [buildMockStorageClass({ name: 'standard', canUse: true })];
 
-  it('disables (soft) a blocked PVC option with an explanatory tooltip', () => {
+  it('disables (soft) a blocked RWOP PVC option with an explanatory tooltip', () => {
     const blockedPvc = buildMockPVC({
       name: 'blocked-pvc',
-      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
       pods: [],
       workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
     });
@@ -338,8 +430,28 @@ describe('buildPVCSelectOptions blocking behavior', () => {
     expect(option?.isAriaDisabled).toBe(true);
     render(React.createElement(React.Fragment, null, option?.tooltipProps?.content));
     expect(screen.getByTestId('pvc-option-tooltip-blocked-pvc')).toHaveTextContent(
-      `This volume uses ReadWriteOnce access and is already mounted by workspace "${OTHER_WORKSPACE}".`,
+      `This volume uses ReadWriteOncePod access and is already mounted by workspace "${OTHER_WORKSPACE}".`,
     );
+  });
+
+  it('does not disable an in-use ReadWriteOnce PVC option (RWO is selectable)', () => {
+    const rwoPvc = buildMockPVC({
+      name: 'rwo-in-use-pvc',
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pods: [],
+      workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
+    });
+
+    const options = buildPVCSelectOptions(
+      [rwoPvc],
+      storageClasses,
+      undefined,
+      undefined,
+      CURRENT_WORKSPACE,
+    );
+    const option = options.find((o) => o.value === 'rwo-in-use-pvc');
+    expect(option?.isDisabled).toBeFalsy();
+    expect(option?.isAriaDisabled).toBeFalsy();
   });
 
   it('does not disable a PVC mounted only by the current workspace', () => {
@@ -425,10 +537,10 @@ describe('buildPVCSelectOptions blocking behavior', () => {
     expect(option?.isDisabled).toBe(true);
   });
 
-  it('hard-disables an excluded PVC without the blocked tooltip, even if it is also blocked', () => {
+  it('hard-disables an excluded PVC without the blocked tooltip, even if it is also RWOP-blocked', () => {
     const excludedBlockedPvc = buildMockPVC({
       name: 'excluded-blocked-pvc',
-      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
       pods: [],
       workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
     });

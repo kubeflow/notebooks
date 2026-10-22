@@ -23,6 +23,7 @@ import {
   buildPVCSelectOptions,
   isPVCMountBlocked,
   getBlockedMountTooltip,
+  getRWOInUseWarning,
 } from '~/app/pages/Workspaces/Form/helpers';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import usePVCs from '~/app/hooks/usePVCs';
@@ -144,7 +145,15 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
       return {
         variant: AlertVariant.danger,
         title: 'Volume cannot be attached',
-        body: `${getBlockedMountTooltip(selectedPvc, currentWorkspaceName) ?? 'This volume uses ReadWriteOnce or ReadWriteOncePod access mode and is already mounted by another workspace or pod.'} Detach it there before attaching it here.`,
+        body: `${getBlockedMountTooltip(selectedPvc, currentWorkspaceName) ?? 'This volume uses ReadWriteOncePod access mode and is already mounted by another pod or workspace.'} Detach it there before attaching it here.`,
+      };
+    }
+    const rwoWarning = getRWOInUseWarning(selectedPvc, currentWorkspaceName);
+    if (rwoWarning) {
+      return {
+        variant: AlertVariant.warning,
+        title: 'Node-scoped volume in use',
+        body: rwoWarning,
       };
     }
     if (isMountedByOther(selectedPvc, currentWorkspaceName)) {

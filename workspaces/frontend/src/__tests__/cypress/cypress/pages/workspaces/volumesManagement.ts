@@ -159,8 +159,9 @@ class VolumesAttachModal {
   assertPVCAriaDisabled(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
     this.openPVCDropdown();
     return cy
-      .contains('.pf-v6-c-menu__list-item', pvcName)
-      .should('have.class', 'pf-m-aria-disabled') as unknown as Cypress.Chainable<
+      .findByTestId(`pvc-option-${pvcName}`)
+      .closest('button, a')
+      .should('have.attr', 'aria-disabled', 'true') as unknown as Cypress.Chainable<
       JQuery<HTMLElement>
     >;
   }
@@ -179,6 +180,20 @@ class VolumesAttachModal {
       .and('have.text', text)
       .closest('[role="tooltip"]')
       .should('be.visible');
+  }
+
+  /**
+   * Asserts that a PVC option is enabled (not disabled or aria-disabled) and selects it.
+   * Uses the stable data-testid selector added to the option description.
+   */
+  assertEnabledAndSelectPVC(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.openPVCDropdown();
+    return cy
+      .findByTestId(`pvc-option-${pvcName}`)
+      .closest('li')
+      .should('not.have.class', 'pf-m-disabled')
+      .and('not.have.class', 'pf-m-aria-disabled')
+      .click() as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
   }
 
   clickDisabledPVCOption(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {

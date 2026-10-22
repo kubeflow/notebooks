@@ -337,21 +337,19 @@ describe('Volumes Management - Attach and Create', () => {
   });
 
   describe('Blocking PVCs already mounted elsewhere (#1472)', () => {
-    it('should not allow selecting a ReadWriteOnce PVC already mounted by another workspace', () => {
+    it('should allow selecting a ReadWriteOnce PVC already mounted by another workspace, with a node-scope warning', () => {
       volumesManagement.clickAttachExistingPVC();
       volumesAttachModal.assertModalVisible();
 
-      volumesAttachModal.assertPVCAriaDisabled('in-use-pvc');
-      volumesAttachModal.hoverPVCOption('in-use-pvc');
-      volumesAttachModal.assertPVCTooltipText(
-        'in-use-pvc',
-        'This volume uses ReadWriteOnce access and is already mounted by workspace "other-workspace".',
-      );
-      volumesAttachModal.clickDisabledPVCOption('in-use-pvc');
-
+      volumesAttachModal.selectPVC('in-use-pvc');
+      volumesAttachModal.assertInUseWarningVisible();
       volumesAttachModal.findAlert('danger').should('not.exist');
-      volumesAttachModal.assertMountPathValue('/data/');
-      volumesAttachModal.assertAttachButtonDisabled();
+      volumesAttachModal.assertMountPathValue('/data/in-use-pvc');
+      volumesAttachModal.assertAttachButtonEnabled();
+
+      volumesAttachModal.clickAttach();
+      volumesAttachModal.assertModalNotExists();
+      volumesManagement.assertVolumeRowExists('in-use-pvc');
     });
 
     it('should allow attaching a ReadWriteMany PVC even when mounted by another workspace', () => {
@@ -415,11 +413,7 @@ describe('Volumes Management - Attach and Create', () => {
       volumesManagement.clickAttachExistingPVC();
       volumesAttachModal.assertModalVisible();
 
-      volumesAttachModal.openPVCDropdown();
-      cy.contains('.pf-v6-c-menu__list-item', 'mixed-access-pvc')
-        .should('not.have.class', 'pf-m-disabled')
-        .and('not.have.class', 'pf-m-aria-disabled')
-        .click();
+      volumesAttachModal.assertEnabledAndSelectPVC('mixed-access-pvc');
 
       volumesAttachModal.assertInUseWarningVisible();
       volumesAttachModal.findAlert('danger').should('not.exist');
