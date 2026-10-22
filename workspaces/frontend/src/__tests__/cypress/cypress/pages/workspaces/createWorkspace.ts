@@ -78,6 +78,42 @@ class CreateWorkspace extends WorkspaceForm {
     return cy.findByTestId('image-filter-toolbar');
   }
 
+  findExtraFilterHelpButton(label: string) {
+    return cy.findByTestId(`about-${label}-button`);
+  }
+
+  findExtraFilterTooltip(label: string) {
+    return cy.findByTestId(`extra-${label}-filter-tooltip`);
+  }
+
+  hoverExtraFilterHelp(label: string) {
+    return this.findExtraFilterHelpButton(label).trigger('mouseenter');
+  }
+
+  leaveExtraFilterHelp(label: string) {
+    return this.findExtraFilterHelpButton(label).trigger('mouseleave');
+  }
+
+  focusExtraFilterHelp(label: string) {
+    return this.findExtraFilterHelpButton(label).focus();
+  }
+
+  blurExtraFilterHelp(label: string) {
+    return this.findExtraFilterHelpButton(label).blur();
+  }
+
+  clickExtraFilterHelp(label: string) {
+    return this.findExtraFilterHelpButton(label).click();
+  }
+
+  assertExtraFilterTooltipVisible(label: string, text: string) {
+    return this.findExtraFilterTooltip(label).should('be.visible').and('have.text', text);
+  }
+
+  assertExtraFilterTooltipHidden(label: string) {
+    return this.findExtraFilterTooltip(label).should('not.exist');
+  }
+
   findPodConfigFilterInput() {
     return cy.findByTestId('pod-config-filter-name-input');
   }
