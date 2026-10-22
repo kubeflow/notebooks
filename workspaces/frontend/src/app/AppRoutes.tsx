@@ -1,9 +1,13 @@
 import React from 'react';
+import axios from 'axios';
 import { Route, Routes, Navigate, Outlet } from 'react-router-dom';
 import { AppRoutePaths } from '~/app/routes';
 import { WorkspaceKindSummaryWrapper } from '~/app/pages/WorkspaceKinds/summary/WorkspaceKindSummaryWrapper';
 import { WorkspaceForm } from '~/app/pages/Workspaces/Form/WorkspaceForm';
 import { useAppContext } from '~/app/context/AppContext';
+import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
+import { LoadError } from '~/app/components/LoadError';
+import { LoadingSpinner } from '~/app/components/LoadingSpinner';
 import { WorkspaceKindsRestrictedAccess } from '~/app/components/WorkspaceKindsRestrictedAccess';
 import { DEV_MODE } from '~/shared/utilities/const';
 import { Debug } from './pages/Debug/Debug';
@@ -60,10 +64,24 @@ export const useNavData = (): NavDataItem[] => [
   ...useAdminDebugSettings(),
 ];
 
+// Uses the backend's `list workspacekinds` check as the access signal. The shipped RBAC
+// grants list together with create/update, but custom RBAC may not. Don't pass a
+// namespaceFilter: the backend then checks workspace create permission instead.
 const WorkspaceKindAdminRoute: React.FC = () => {
-  const { user } = useAppContext();
+  const [, loaded, error] = useWorkspaceKinds();
 
-  return user?.clusterAdmin ? <Outlet /> : <WorkspaceKindsRestrictedAccess />;
+  if (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 403) {
+      return <WorkspaceKindsRestrictedAccess />;
+    }
+    return <LoadError title="Failed to load workspace kinds" error={error} />;
+  }
+
+  if (!loaded) {
+    return <LoadingSpinner />;
+  }
+
+  return <Outlet />;
 };
 
 const AppRoutes: React.FC = () => {
