@@ -16,11 +16,15 @@ limitations under the License.
 
 package config
 
+import "time"
+
 type EnvConfig struct {
 	Port int
 
 	ClientQPS   float64
 	ClientBurst int
+
+	CacheSyncTimeout time.Duration
 
 	UserIdHeader string
 	UserIdPrefix string

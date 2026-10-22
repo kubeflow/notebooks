@@ -17,10 +17,12 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"log/slog"
 	"os"
 	"strconv"
+	"time"
 
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -71,6 +73,12 @@ func main() {
 		"client-burst",
 		getEnvAsInt("CLIENT_BURST", 100),
 		"Maximum Burst configuration passed to rest.Client",
+	)
+	flag.DurationVar(
+		&cfg.CacheSyncTimeout,
+		"cache-sync-timeout",
+		getEnvAsDuration("CACHE_SYNC_TIMEOUT", 2*time.Minute),
+		"Maximum time to wait for the Kubernetes informer caches to sync at startup, before failing",
 	)
 	flag.StringVar(
 		&cfg.UserIdHeader,
@@ -177,7 +185,7 @@ func main() {
 	}
 
 	// Create a filtered cache client for ConfigMaps with the label 'workspaces.kubeflow.org/image-source=true'
-	imageSourceConfigMapClient, err := helper.BuildImageSourceConfigMapClient(mgr)
+	imageSourceConfigMapClient, imageSourceConfigMapCache, err := helper.BuildImageSourceConfigMapClient(mgr)
 	if err != nil {
 		logger.Error("failed to create 'workspaces.kubeflow.org/image-source=true' label "+
 			"filtered ConfigMap client", "error", err)
@@ -199,7 +207,12 @@ func main() {
 		logger.Error("failed to create app", "error", err)
 		os.Exit(1)
 	}
-	svr, err := server.NewServer(app, logger)
+	// Sync the informer caches before serving requests, so that a cache which cannot sync
+	// (e.g. due to missing RBAC permissions) fails startup instead of blocking requests.
+	warmUpCaches := func(ctx context.Context) error {
+		return helper.WarmUpCaches(ctx, cfg.CacheSyncTimeout, mgr.GetCache(), imageSourceConfigMapCache)
+	}
+	svr, err := server.NewServer(app, logger, warmUpCaches)
 	if err != nil {
 		logger.Error("failed to create server", "error", err)
 		os.Exit(1)
@@ -221,6 +234,15 @@ func getEnvAsInt(name string, defaultVal int) int {
 	if value, exists := os.LookupEnv(name); exists {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
+		}
+	}
+	return defaultVal
+}
+
+func getEnvAsDuration(name string, defaultVal time.Duration) time.Duration {
+	if value, exists := os.LookupEnv(name); exists {
+		if durationValue, err := time.ParseDuration(value); err == nil {
+			return durationValue
 		}
 	}
 	return defaultVal
