@@ -76,12 +76,10 @@ export const WorkspaceKindFormActivityRules: React.FC<WorkspaceKindFormActivityR
             id: 'workspace-kind-activity-rules',
           }}
           titleDescription={
-            // TODO: Remove the "configure Activity Probe in the YAML" note once the Activity Probe
-            // panel is re-enabled (SHOW_ACTIVITY_PROBE_PANEL in WorkspaceKindFormPodTemplate.tsx).
             <HelperText>
               Define rules that automatically pause idle workspaces based on inactivity thresholds.
-              Rules are evaluated in order; the first matching rule applies. Note: In order for
-              rules to take effect, an Activity Probe must be configured in the YAML
+              Rules are evaluated in order; the first matching rule applies. Enable Activity Probe
+              above or in the YAML editor to detect workspace activity.
             </HelperText>
           }
         />

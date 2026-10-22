@@ -2,12 +2,12 @@ import React, { useCallback, useState } from 'react';
 import {
   Form,
   FormFieldGroup,
-  FormFieldGroupExpandable,
   FormFieldGroupHeader,
   FormGroup,
 } from '@patternfly/react-core/dist/esm/components/Form';
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circle-icon';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
@@ -17,12 +17,6 @@ import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsT
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormActivityRules } from '~/app/pages/WorkspaceKinds/Form/activityRules/WorkspaceKindFormActivityRules';
-
-// The Activity Probe panel is hidden until its UX has been reviewed. An existing activityProbe
-// is still preserved on save.
-// TODO: When re-enabling this panel, remove the "configure Activity Probe in the YAML" note from
-// the HelperText in WorkspaceKindFormActivityRules.tsx.
-const SHOW_ACTIVITY_PROBE_PANEL = false;
 
 // Display fallbacks mirroring the CRD defaults for unset fields.
 const DEFAULT_PROBE_INTERVAL_SECONDS = 3600;
@@ -98,6 +92,7 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
       onToggle={() => setIsExpanded((prev) => !prev)}
       isExpanded={isExpanded}
       isIndented
+      data-testid="workspace-kind-pod-template-section"
     >
       <Form>
         <FormFieldGroup
@@ -159,62 +154,56 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
             }}
           />
         </FormFieldGroup>
-        <WorkspaceKindFormActivityRules
-          activityRules={activityRules}
-          updateActivityRules={updateActivityRules}
-        />
-        {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
-        {SHOW_ACTIVITY_PROBE_PANEL && (
-          <FormFieldGroup
-            aria-label="Activity Probe"
-            header={
-              <FormFieldGroupHeader
-                titleText={{
-                  text: 'Activity Probe',
-                  id: 'workspace-kind-activity-probe',
-                }}
-                titleDescription={
-                  <HelperText>
-                    Configure activity probe settings to determine Workspace activity for culling
-                    inactive workspaces.
-                  </HelperText>
-                }
-              />
-            }
-          >
-            <FormGroup>
-              <Switch
-                isChecked={activityProbe != null}
-                label="Enabled"
-                aria-label="pod template enable activity probe controlled check"
-                onChange={(_, checked) => toggleActivityProbeEnabled(checked)}
-                id="workspace-kind-pod-template-activity-probe-enabled"
-                name="activity-probe-enabled"
-                data-testid="workspace-kind-pod-template-activity-probe-switch"
-              />
-            </FormGroup>
-            {activityProbe && (
-              <>
-                <FormFieldGroupExpandable
-                  isExpanded
-                  toggleAriaLabel="Schedule"
-                  header={
-                    <FormFieldGroupHeader
-                      titleText={{
-                        text: 'Schedule',
-                        id: 'workspace-kind-activity-probe-schedule',
-                      }}
-                    />
-                  }
-                >
+        <FormFieldGroup
+          aria-label="Activity Probe"
+          data-testid="workspace-kind-activity-probe"
+          header={
+            <FormFieldGroupHeader
+              titleText={{
+                text: 'Activity Probe',
+                id: 'workspace-kind-activity-probe',
+              }}
+              titleDescription={
+                <HelperText>
+                  Configure how workspace activity is detected with a Bash script. Activity Rules
+                  use these results to determine when to pause idle workspaces.
+                </HelperText>
+              }
+            />
+          }
+        >
+          <FormGroup>
+            <Switch
+              isChecked={activityProbe != null}
+              label="Enabled"
+              aria-label="pod template enable activity probe controlled check"
+              onChange={(_, checked) => toggleActivityProbeEnabled(checked)}
+              id="workspace-kind-pod-template-activity-probe-enabled"
+              name="activity-probe-enabled"
+              data-testid="workspace-kind-pod-template-activity-probe-switch"
+            />
+          </FormGroup>
+          {activityProbe && (
+            <FormFieldGroup
+              aria-label="Activity Probe settings"
+              data-testid="workspace-kind-activity-probe-settings"
+            >
+              <Flex
+                direction={{ default: 'column', xl: 'row' }}
+                flexWrap={{ default: 'wrap' }}
+                spaceItems={{ default: 'spaceItemsLg' }}
+                data-testid="workspace-kind-activity-probe-timing"
+              >
+                <FlexItem flex={{ default: 'flex_1' }}>
                   <ThemeAwareFormGroupWrapper
-                    label="Probe Interval"
+                    label="Activity Check Interval"
                     fieldId="workspace-kind-activity-probe-interval"
                     skipFieldset
                     helperTextNode={
                       <HelperText>
                         <HelperTextItem icon={<InfoCircleIcon />}>
-                          Desired time between successful probes.
+                          After a successful check, wait this long before checking workspace
+                          activity again.
                         </HelperTextItem>
                       </HelperText>
                     }
@@ -232,14 +221,17 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
                       aria-label="probe interval input"
                     />
                   </ThemeAwareFormGroupWrapper>
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
                   <ThemeAwareFormGroupWrapper
-                    label="Minimum Probe Interval"
+                    label="Minimum Time Between Checks"
                     fieldId="workspace-kind-activity-probe-min-interval"
                     skipFieldset
                     helperTextNode={
                       <HelperText>
                         <HelperTextItem icon={<InfoCircleIcon />}>
-                          Minimum time between any two probes, including retries after a failure.
+                          Wait at least this long between checks. If a check fails, retry after this
+                          delay.
                         </HelperTextItem>
                       </HelperText>
                     }
@@ -257,19 +249,8 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
                       aria-label="minimum probe interval input"
                     />
                   </ThemeAwareFormGroupWrapper>
-                </FormFieldGroupExpandable>
-                <FormFieldGroupExpandable
-                  isExpanded
-                  toggleAriaLabel="Script"
-                  header={
-                    <FormFieldGroupHeader
-                      titleText={{
-                        text: 'Script',
-                        id: 'workspace-kind-activity-probe-script-group',
-                      }}
-                    />
-                  }
-                >
+                </FlexItem>
+                <FlexItem flex={{ default: 'flex_1' }}>
                   <ThemeAwareFormGroupWrapper
                     label="Timeout"
                     fieldId="workspace-kind-activity-probe-timeout"
@@ -293,41 +274,46 @@ export const WorkspaceKindFormPodTemplate: React.FC<WorkspaceKindFormPodTemplate
                       aria-label="probe script timeout input"
                     />
                   </ThemeAwareFormGroupWrapper>
-                  <ThemeAwareFormGroupWrapper
-                    label="Probe Script"
-                    isRequired
-                    fieldId="workspace-kind-activity-probe-script"
-                    skipFieldset
-                    helperTextNode={
-                      <HelperText>
-                        <HelperTextItem icon={<InfoCircleIcon />}>
-                          Runs inside the Workspace Pod and must start with a shebang and exit 0. To
-                          report inactivity, write a JSON object with either{' '}
-                          <code>has_activity</code> or <code>last_activity</code> to the file at{' '}
-                          <code>$OUTPUT_JSON_PATH</code>.
-                        </HelperTextItem>
-                      </HelperText>
-                    }
-                  >
-                    <CodeEditor
-                      isLineNumbersVisible
-                      isLanguageLabelVisible={false}
-                      height="300px"
-                      code={activityProbe.podExec.script}
-                      onChange={(value) => updatePodExec({ script: value })}
-                      language={Language.shell}
-                      options={{
-                        minimap: { enabled: false },
-                        scrollBeyondLastLine: false,
-                      }}
-                      data-testid="workspace-kind-activity-probe-script-editor"
-                    />
-                  </ThemeAwareFormGroupWrapper>
-                </FormFieldGroupExpandable>
-              </>
-            )}
-          </FormFieldGroup>
-        )}
+                </FlexItem>
+              </Flex>
+              <ThemeAwareFormGroupWrapper
+                label="Probe Script"
+                isRequired
+                fieldId="workspace-kind-activity-probe-script"
+                skipFieldset
+                helperTextNode={
+                  <HelperText>
+                    <HelperTextItem icon={<InfoCircleIcon />}>
+                      Runs inside the Workspace Pod and must start with a shebang and exit 0. To
+                      report inactivity, write a JSON object with either <code>has_activity</code>{' '}
+                      or <code>last_activity</code> to the file at <code>$OUTPUT_JSON_PATH</code>.
+                    </HelperTextItem>
+                  </HelperText>
+                }
+              >
+                <div data-testid="workspace-kind-activity-probe-script-editor">
+                  <CodeEditor
+                    isLineNumbersVisible
+                    isLanguageLabelVisible={false}
+                    height="300px"
+                    code={activityProbe.podExec.script}
+                    onChange={(value) => updatePodExec({ script: value })}
+                    language={Language.shell}
+                    options={{
+                      ariaLabel: 'Probe Script',
+                      minimap: { enabled: false },
+                      scrollBeyondLastLine: false,
+                    }}
+                  />
+                </div>
+              </ThemeAwareFormGroupWrapper>
+            </FormFieldGroup>
+          )}
+        </FormFieldGroup>
+        <WorkspaceKindFormActivityRules
+          activityRules={activityRules}
+          updateActivityRules={updateActivityRules}
+        />
       </Form>
     </ExpandableSection>
   );

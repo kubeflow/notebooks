@@ -23,6 +23,17 @@ describe('WorkspaceKindFormActivityRules', () => {
     jest.clearAllMocks();
   });
 
+  it('explains the probe dependency without directing users to YAML', () => {
+    render(
+      <WorkspaceKindFormActivityRules
+        activityRules={[]}
+        updateActivityRules={updateActivityRules}
+      />,
+    );
+    expect(screen.getByText(/Enable Activity Probe above/)).toBeInTheDocument();
+    expect(screen.queryByText(/configured in the YAML/)).not.toBeInTheDocument();
+  });
+
   it('renders no table when activity rules list is empty', () => {
     render(
       <WorkspaceKindFormActivityRules

@@ -1,9 +1,11 @@
 /* eslint-disable camelcase */
+import yaml from 'js-yaml';
 import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspaceKinds/createWorkspaceKind';
 import { workspaceKinds } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { FieldErrorType } from '~/generated/data-contracts';
+import type { WorkspacekindsWorkspaceKindCreate } from '~/generated/data-contracts';
 import {
   buildMockNamespace,
   buildMockWorkspaceKind,
@@ -74,6 +76,28 @@ describe('Create workspace kind', () => {
       createWorkspaceKind.findPageTitle();
       createWorkspaceKind.assertUploadFileFieldExists();
       createWorkspaceKind.verifyPageURL();
+    });
+
+    it('submits uploaded pause rules without a probe and surfaces API validation errors', () => {
+      const message = 'activityProbe must be configured when pause rules exist';
+      cy.interceptApi(
+        'POST /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        { error: { code: '422', message } },
+      ).as('createWithoutProbe');
+      const config = yaml.load(validWorkspaceKindYaml) as {
+        spec: WorkspacekindsWorkspaceKindCreate;
+      };
+      config.spec.activityRules = [
+        { config: { secondsSinceActive: 3600 }, effect: { pauseWorkspace: true } },
+      ];
+      createWorkspaceKind.visit();
+      createWorkspaceKind.uploadYamlContent(yaml.dump(config));
+      createWorkspaceKind.assertProbeDependencyError(false);
+      createWorkspaceKind.assertSubmitButtonEnabled();
+      createWorkspaceKind.clickSubmit();
+      cy.wait('@createWithoutProbe');
+      createWorkspaceKind.assertErrorAlertContainsMessage(message);
     });
 
     it('should cancel creation and navigate back to workspace kinds list', () => {

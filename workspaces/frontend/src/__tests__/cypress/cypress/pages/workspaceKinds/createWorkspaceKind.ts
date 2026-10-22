@@ -85,6 +85,10 @@ class CreateWorkspaceKind {
     return this;
   }
 
+  assertProbeDependencyError(visible: boolean) {
+    cy.findByTestId('activity-probe-dependency-error').should(visible ? 'be.visible' : 'not.exist');
+  }
+
   assertSubmitButtonEnabled() {
     this.findSubmitButton().should('not.be.disabled');
     return this;
