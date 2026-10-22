@@ -35,8 +35,10 @@ import (
 
 //	@title			Kubeflow Notebooks API
 //	@version		1.0.0
-//	@description	This API provides endpoints to manage notebooks in a Kubernetes cluster.
-//	@description	For more information, visit https://www.kubeflow.org/docs/components/notebooks/
+//	@description	This API is the backend-for-frontend (BFF) of the Kubeflow Notebooks web UI.
+//	@description	It is intended to be used only by the Kubeflow Notebooks frontend and is NOT a stable public API:
+//	@description	endpoints, request and response formats may change without notice between releases.
+//	@description	For more information, visit https://www.kubeflow.org/docs/components/workspaces/
 
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html

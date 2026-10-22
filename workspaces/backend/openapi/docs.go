@@ -8551,7 +8551,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{"http", "https"},
 	Title:            "Kubeflow Notebooks API",
-	Description:      "This API provides endpoints to manage notebooks in a Kubernetes cluster.\nFor more information, visit https://www.kubeflow.org/docs/components/notebooks/",
+	Description:      "This API is the backend-for-frontend (BFF) of the Kubeflow Notebooks web UI.\nIt is intended to be used only by the Kubeflow Notebooks frontend and is NOT a stable public API:\nendpoints, request and response formats may change without notice between releases.\nFor more information, visit https://www.kubeflow.org/docs/components/workspaces/",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{{{",
