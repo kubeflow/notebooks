@@ -9,7 +9,10 @@ import {
   buildMockWorkspaceKind,
   buildMockWorkspaceKindUpdate,
 } from '~/shared/mock/mockBuilder';
-import type { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
+import type {
+  WorkspacekindsWorkspaceKindListItem,
+  WorkspacekindsWorkspaceKindUpdate,
+} from '~/generated/data-contracts';
 
 const DEFAULT_NAMESPACE = 'default';
 const TEST_WORKSPACE_KIND_NAME = 'test-workspace-kind';
@@ -989,6 +992,160 @@ describe('Edit workspace kind', () => {
         editWorkspaceKind.assertAnnotationValue(0, 'value1');
         editWorkspaceKind.assertAnnotationKey(1, 'annotation2');
         editWorkspaceKind.assertAnnotationValue(1, 'value2');
+      });
+    });
+
+    describe('Activity Probe', () => {
+      const probe = {
+        probeIntervalSeconds: 7200,
+        minProbeIntervalSeconds: 120,
+        podExec: { timeoutSeconds: 30, script: '#!/bin/sh\nexit 0' },
+      };
+      const pauseRule = { config: { secondsSinceActive: 3600 }, effect: { pauseWorkspace: true } };
+
+      const setupProbe = (
+        overrides: Pick<WorkspacekindsWorkspaceKindUpdate, 'activityRules'> & {
+          activityProbe?: WorkspacekindsWorkspaceKindUpdate['podTemplate']['activityProbe'];
+        } = {},
+      ) => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+        const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind);
+        update.podTemplate.activityProbe = overrides.activityProbe;
+        update.activityRules = overrides.activityRules;
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspacekinds/:kind',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+          mockModArchResponse(update),
+        ).as('getWorkspaceKind');
+        cy.interceptApi(
+          'PUT /api/:apiVersion/workspacekinds/:kind',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+          mockModArchResponse(update),
+        ).as('saveProbe');
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+        editWorkspaceKind.expandPodTemplateSection();
+        return { update, mockWorkspaceKind };
+      };
+
+      it('exposes probe defaults and groups timing fields responsively', () => {
+        cy.viewport(1600, 1000);
+        setupProbe();
+        editWorkspaceKind.assertActivityProbeEnabled(false);
+        editWorkspaceKind.toggleActivityProbe();
+        editWorkspaceKind.assertProbeTiming({ label: 'probe interval input', value: 1 });
+        editWorkspaceKind.assertProbeTiming({ label: 'minimum probe interval input', value: 5 });
+        editWorkspaceKind.assertProbeTiming({ label: 'probe script timeout input', value: 1 });
+        editWorkspaceKind.assertProbeSettingsGrouped();
+        editWorkspaceKind.assertProbeScriptContains('has_activity');
+        editWorkspaceKind.assertProbeTimingLayout(false);
+        cy.viewport(768, 1000);
+        editWorkspaceKind.assertProbeTimingLayout(true);
+      });
+
+      it('saves independent timing and script changes together with a pause rule', () => {
+        setupProbe({ activityProbe: probe });
+        editWorkspaceKind.setProbeTiming({ label: 'probe interval input', value: 3 });
+        editWorkspaceKind.setProbeTiming({ label: 'minimum probe interval input', value: 4 });
+        editWorkspaceKind.setProbeTiming({ label: 'probe script timeout input', value: 15 });
+        const script = '#!/bin/sh\n# custom activity detection\nexit 0';
+        editWorkspaceKind.setProbeScript(script);
+        editWorkspaceKind.clickAddActivityRule();
+        editWorkspaceKind.submitActivityRuleModal();
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@saveProbe').then(({ request }) => {
+          expect(request.body.data.podTemplate.activityProbe).to.deep.equal({
+            probeIntervalSeconds: 10800,
+            minProbeIntervalSeconds: 240,
+            podExec: { timeoutSeconds: 15, script },
+          });
+          expect(request.body.data.activityRules[0].effect.pauseWorkspace).to.equal(true);
+        });
+        workspaceKinds.verifyPageURL();
+      });
+
+      it('retains pause rules and submits after the probe is disabled', () => {
+        setupProbe({ activityProbe: probe, activityRules: [pauseRule] });
+        editWorkspaceKind.toggleActivityProbe();
+        editWorkspaceKind.assertActivityRuleRowCount(1);
+        editWorkspaceKind.assertProbeDependencyError(false);
+        editWorkspaceKind.assertSubmitButtonDisabled(false);
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@saveProbe').then(({ request }) => {
+          expect(request.body.data.podTemplate.activityProbe).to.equal(undefined);
+          expect(request.body.data.activityRules).to.deep.equal([pauseRule]);
+        });
+      });
+
+      it('preserves an existing pause rule without a probe in both form and YAML views', () => {
+        setupProbe({ activityRules: [pauseRule] });
+        editWorkspaceKind.assertProbeDependencyError(false);
+        editWorkspaceKind.clickYamlTab();
+        editWorkspaceKind.assertProbeDependencyError(false);
+        editWorkspaceKind.assertSubmitButtonDisabled(true);
+        editWorkspaceKind.clickFormTab();
+        editWorkspaceKind.clickRemoveActivityRule(0);
+        editWorkspaceKind.assertProbeDependencyError(false);
+        editWorkspaceKind.assertSubmitButtonDisabled(false);
+      });
+
+      it('allows rules without the pause effect when no probe is enabled', () => {
+        setupProbe({
+          activityProbe: probe,
+          activityRules: [{ ...pauseRule, effect: { pauseWorkspace: false } }],
+        });
+        editWorkspaceKind.toggleActivityProbe();
+        editWorkspaceKind.assertProbeDependencyError(false);
+        editWorkspaceKind.assertSubmitButtonDisabled(false);
+      });
+
+      it('preserves probe edits when switching between form and YAML', () => {
+        setupProbe({ activityProbe: probe });
+        editWorkspaceKind.setProbeTiming({ label: 'probe script timeout input', value: 20 });
+        editWorkspaceKind.clickYamlTab();
+        editWorkspaceKind.clickFormTab();
+        editWorkspaceKind.assertProbeTiming({ label: 'probe script timeout input', value: 20 });
+        editWorkspaceKind.assertProbeScriptContains('exit 0');
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@saveProbe').then(({ request }) => {
+          expect(request.body.data.podTemplate.activityProbe.podExec.timeoutSeconds).to.equal(20);
+          expect(request.body.data.podTemplate.activityProbe.probeIntervalSeconds).to.equal(7200);
+        });
+      });
+
+      it('preserves an empty script draft when the API rejects it', () => {
+        const { mockWorkspaceKind } = setupProbe({ activityProbe: probe });
+        cy.interceptApi(
+          'PUT /api/:apiVersion/workspacekinds/:kind',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+          { error: { code: '422', message: 'activityProbe.podExec.script must not be empty' } },
+        ).as('emptyProbeScript');
+        editWorkspaceKind.setProbeScript('');
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@emptyProbeScript').then(({ request }) => {
+          expect(request.body.data.podTemplate.activityProbe.podExec.script).to.equal('');
+        });
+        editWorkspaceKind.assertErrorToastVisible();
+        editWorkspaceKind.assertProbeTiming({ label: 'probe script timeout input', value: 30 });
+      });
+
+      it('surfaces invalid interval errors and preserves the draft for correction', () => {
+        const { mockWorkspaceKind } = setupProbe({ activityProbe: probe });
+        cy.interceptApi(
+          'PUT /api/:apiVersion/workspacekinds/:kind',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+          {
+            error: {
+              code: '422',
+              message: 'minProbeIntervalSeconds must be less than or equal to probeIntervalSeconds',
+            },
+          },
+        ).as('invalidProbe');
+        editWorkspaceKind.setProbeTiming({ label: 'minimum probe interval input', value: 121 });
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@invalidProbe');
+        editWorkspaceKind.assertErrorToastVisible();
+        editWorkspaceKind.assertProbeTiming({ label: 'minimum probe interval input', value: 121 });
+        editWorkspaceKind.assertProbeScriptContains('exit 0');
       });
     });
 
