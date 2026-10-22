@@ -628,7 +628,7 @@ const WorkspaceForm: React.FC = () => {
                 </Stack>
               </PageSection>
             </FlexItem>
-            <FlexItem flex={{ default: 'flex_1' }}>
+            <FlexItem flex={{ default: 'flex_1' }} className="workspace-form__main-content">
               <PageSection className="workspace-form__full-height" isFilled>
                 <Stack hasGutter>
                   {error && (
