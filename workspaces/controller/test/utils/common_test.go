@@ -17,6 +17,7 @@ limitations under the License.
 package utils
 
 import (
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -60,5 +61,16 @@ var _ = Describe("Render functions", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(found).To(BeTrue())
 		Expect(kind).To(Equal("custom-kind-name"))
+	})
+
+	It("should unmarshal YAML output with RunYAML", func() {
+		cmd := exec.Command("echo", "key: value\nnumber: 42")
+		var result struct {
+			Key    string `json:"key"`
+			Number int    `json:"number"`
+		}
+		Expect(RunYAML(cmd, &result)).To(Succeed())
+		Expect(result.Key).To(Equal("value"))
+		Expect(result.Number).To(Equal(42))
 	})
 })
