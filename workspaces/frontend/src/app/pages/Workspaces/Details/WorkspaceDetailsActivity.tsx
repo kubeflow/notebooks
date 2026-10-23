@@ -20,8 +20,8 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
   workspace,
 }) => {
   const { activity, pausedTime } = workspace;
-   const pauseRule = activity.rules?.pauseWorkspace;
-  const isPauseEligible = pauseRule?.eligibleAfter !== 0;
+  const pauseRule = activity.rules?.pauseWorkspace;
+  const isNotEligibleForPause = pauseRule?.eligibleAfter === 0;
   const pendingRestart = hasWorkspacePendingUpdate(workspace);
 
   return (
@@ -40,7 +40,7 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
         </DescriptionListDescription>
       </DescriptionListGroup>
       <Divider />
-      {isPauseEligible && pauseRule ? (
+      {pauseRule && !isNotEligibleForPause ? (
         <>
           <DescriptionListGroup>
             <DescriptionListTerm>Pauses after</DescriptionListTerm>
@@ -51,12 +51,12 @@ export const WorkspaceDetailsActivity: React.FunctionComponent<WorkspaceDetailsA
           <Divider />
         </>
       ) : null}
-      {isPauseEligible && pausedTime !== 0 ? (
+      {!isNotEligibleForPause ? (
         <>
           <DescriptionListGroup>
             <DescriptionListTerm>Paused since</DescriptionListTerm>
             <DescriptionListDescription data-testid="pauseTime">
-              {format(pausedTime, DATE_FORMAT)}
+              {pausedTime === 0 ? 'Not paused' : format(pausedTime, DATE_FORMAT)}
             </DescriptionListDescription>
           </DescriptionListGroup>
           <Divider />

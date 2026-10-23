@@ -6,16 +6,17 @@ import { WorkspaceDetailsActivity } from '~/app/pages/Workspaces/Details/Workspa
 import { buildMockWorkspace } from '~/shared/mock/mockBuilder';
 
 const DATE_FORMAT = 'PPpp';
+const TEST_TIMESTAMP = 1791662049404;
 
 describe('WorkspaceDetailsActivity', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('hides pauses after and paused since when not applicable (timestamps are 0)', () => {
+  it('hides pauses after and paused since when automatic pausing is not eligible', () => {
     const mockWorkspace = buildMockWorkspace({
       name: 'test-workspace',
-      pausedTime: 0,
+      pausedTime: TEST_TIMESTAMP,
       activity: {
         lastActivity: 0,
         lastUpdate: 0,
@@ -35,19 +36,18 @@ describe('WorkspaceDetailsActivity', () => {
     expect(screen.getByTestId('lastUpdate')).toHaveTextContent('unknown');
   });
 
-  it('renders formatted date when eligibleAfter and pausedTime are valid timestamps', () => {
-    const testTimestamp = 1791662049404;
-    const expectedDate = format(new Date(testTimestamp), DATE_FORMAT);
+  it('renders formatted dates when eligibleAfter and pausedTime are valid timestamps', () => {
+    const expectedDate = format(new Date(TEST_TIMESTAMP), DATE_FORMAT);
 
     const mockWorkspace = buildMockWorkspace({
       name: 'test-workspace',
-      pausedTime: testTimestamp,
+      pausedTime: TEST_TIMESTAMP,
       activity: {
-        lastActivity: testTimestamp,
-        lastUpdate: testTimestamp,
+        lastActivity: TEST_TIMESTAMP,
+        lastUpdate: TEST_TIMESTAMP,
         rules: {
           pauseWorkspace: {
-            eligibleAfter: testTimestamp,
+            eligibleAfter: TEST_TIMESTAMP,
           },
         },
       },
@@ -57,5 +57,28 @@ describe('WorkspaceDetailsActivity', () => {
 
     expect(screen.getByTestId('pausesIn')).toHaveTextContent(expectedDate);
     expect(screen.getByTestId('pauseTime')).toHaveTextContent(expectedDate);
+  });
+
+  it('renders "Not paused" when the workspace is eligible but not currently paused', () => {
+    const expectedDate = format(new Date(TEST_TIMESTAMP), DATE_FORMAT);
+
+    const mockWorkspace = buildMockWorkspace({
+      name: 'test-workspace',
+      pausedTime: 0,
+      activity: {
+        lastActivity: TEST_TIMESTAMP,
+        lastUpdate: TEST_TIMESTAMP,
+        rules: {
+          pauseWorkspace: {
+            eligibleAfter: TEST_TIMESTAMP,
+          },
+        },
+      },
+    });
+
+    render(<WorkspaceDetailsActivity workspace={mockWorkspace} />);
+
+    expect(screen.getByTestId('pausesIn')).toHaveTextContent(expectedDate);
+    expect(screen.getByTestId('pauseTime')).toHaveTextContent('Not paused');
   });
 });
