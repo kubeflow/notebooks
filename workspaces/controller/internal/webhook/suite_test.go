@@ -202,9 +202,8 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
 					MinProbeIntervalSeconds: new(int32(300)),
 					ProbeIntervalSeconds:    new(int32(3600)),
-					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-						LastActivity: true,
-						PortId:       "jupyterlab",
+					PodExec: kubefloworgv1beta1.ActivityProbePodExec{
+						Script: "#!/usr/bin/env bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 					},
 				},
 				VolumeMountPaths: kubefloworgv1beta1.WorkspaceKindVolumeMountPaths{
@@ -565,6 +564,101 @@ func NewExampleWorkspaceKindWithInvalidStatefulSetMetadataAnnotationKey(name str
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithServiceAccountMetadata returns a WorkspaceKind with valid ServiceAccount metadata,
+// using the Workload Identity annotations of the major cloud providers.
+func NewExampleWorkspaceKindWithServiceAccountMetadata(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+		Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+			Labels: map[string]string{
+				"my-sa-label": "my-value",
+			},
+			Annotations: map[string]string{
+				"eks.amazonaws.com/role-arn":         "arn:aws:iam::111122223333:role/my-role",
+				"iam.gke.io/gcp-service-account":     "my-gsa@my-project.iam.gserviceaccount.com",
+				"azure.workload.identity/client-id":  "00000000-0000-0000-0000-000000000000",
+				"azure.workload.identity/tenant-id":  "00000000-0000-0000-0000-000000000000",
+				"eks.amazonaws.com/token-expiration": "86400",
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidServiceAccountMetadataLabelKey returns a WorkspaceKind with an invalid ServiceAccount metadata label key.
+func NewExampleWorkspaceKindWithInvalidServiceAccountMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+		Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+			Labels: map[string]string{
+				"!bad_key!": "value",
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidServiceAccountMetadataAnnotationKey returns a WorkspaceKind with an invalid ServiceAccount metadata annotation key.
+func NewExampleWorkspaceKindWithInvalidServiceAccountMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+		Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+			Annotations: map[string]string{
+				"!bad_key!": "value",
+			},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey returns a WorkspaceKind whose first
+// podConfig value has an invalid PodMetadata label key.
+func NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+		Labels: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataAnnotationKey returns a WorkspaceKind whose first
+// podConfig value has an invalid PodMetadata annotation key.
+func NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+		Annotations: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataLabelKey returns a WorkspaceKind whose first
+// podConfig value has an invalid StatefulSetMetadata label key.
+func NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataLabelKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+		Labels: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataAnnotationKey returns a WorkspaceKind whose first
+// podConfig value has an invalid StatefulSetMetadata annotation key.
+func NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataAnnotationKey(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+		Annotations: map[string]string{
+			"!bad_key!": "value",
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspaceKindWithImageConfigCycle returns a WorkspaceKind with a cycle in the ImageConfig options.
 func NewExampleWorkspaceKindWithImageConfigCycle(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
@@ -690,6 +784,46 @@ func NewExampleWorkspaceKindWithInvalidExtraEnvValue(name string) *kubefloworgv1
 	return workspaceKind
 }
 
+// NewExampleWorkspaceKindWithValidPodConfigExtraEnvValue returns a WorkspaceKind with a valid podConfig extraEnv value.
+func NewExampleWorkspaceKindWithValidPodConfigExtraEnvValue(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.ExtraEnv = []v1.EnvVar{
+		{
+			Name:  "POD_CONFIG_PREFIX",
+			Value: `{{ httpPathPrefix "jupyterlab" }}`,
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithInvalidPodConfigExtraEnvValue returns a WorkspaceKind with an invalid podConfig extraEnv value.
+func NewExampleWorkspaceKindWithInvalidPodConfigExtraEnvValue(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.ExtraEnv = []v1.EnvVar{
+		{
+			Name:  "POD_CONFIG_PREFIX",
+			Value: `{{ httpPathPrefix "jupyterlab" }`,
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithDuplicatePodConfigExtraEnvNames returns a WorkspaceKind with duplicate env names in a podConfig extraEnv.
+func NewExampleWorkspaceKindWithDuplicatePodConfigExtraEnvNames(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.ExtraEnv = []v1.EnvVar{
+		{
+			Name:  "DUP_ENV",
+			Value: "val-1",
+		},
+		{
+			Name:  "DUP_ENV",
+			Value: "val-2",
+		},
+	}
+	return workspaceKind
+}
+
 // NewExampleWorkspaceKindWithInvalidRequestHeadersValue returns a WorkspaceKind with an invalid requestHeaders value.
 func NewExampleWorkspaceKindWithInvalidRequestHeadersValue(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
@@ -705,7 +839,7 @@ func NewExampleWorkspaceKindWithInvalidRequestHeadersValue(name string) *kubeflo
 func NewExampleWorkspaceKindWithExecScript(name string, script string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
+		PodExec: kubefloworgv1beta1.ActivityProbePodExec{
 			Script: script,
 		},
 	}
@@ -717,54 +851,14 @@ func NewExampleWorkspaceKindWithInvalidExecShebang(name string) *kubefloworgv1be
 	return NewExampleWorkspaceKindWithExecScript(name, "echo '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"")
 }
 
-// NewExampleWorkspaceKindWithInvalidJupyterPort returns a WorkspaceKind with a jupyter portId that is invalid.
-func NewExampleWorkspaceKindWithInvalidJupyterPort(name string) *kubefloworgv1beta1.WorkspaceKind {
-	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: true,
-			PortId:       "invalid-port",
-		},
-	}
-	return workspaceKind
-}
-
-// NewExampleWorkspaceKindWithBothProbeTypes returns a WorkspaceKind with both podExec and jupyter probe types set.
-func NewExampleWorkspaceKindWithBothProbeTypes(name string) *kubefloworgv1beta1.WorkspaceKind {
-	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
-			Script: "#!/bin/bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
-		},
-		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: true,
-			PortId:       "jupyterlab",
-		},
-	}
-	return workspaceKind
-}
-
 // NewExampleWorkspaceKindWithInvalidProbeIntervals returns a WorkspaceKind with minProbeIntervalSeconds > probeIntervalSeconds.
 func NewExampleWorkspaceKindWithInvalidProbeIntervals(name string) *kubefloworgv1beta1.WorkspaceKind {
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
 		MinProbeIntervalSeconds: new(int32(100)),
 		ProbeIntervalSeconds:    new(int32(50)),
-		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: true,
-			PortId:       "jupyterlab",
-		},
-	}
-	return workspaceKind
-}
-
-// NewExampleWorkspaceKindWithJupyterLastActivityFalse returns a WorkspaceKind with Jupyter activityProbe where lastActivity is false.
-func NewExampleWorkspaceKindWithJupyterLastActivityFalse(name string) *kubefloworgv1beta1.WorkspaceKind {
-	workspaceKind := NewExampleWorkspaceKind(name)
-	workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
-		Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-			LastActivity: false,
-			PortId:       "jupyterlab",
+		PodExec: kubefloworgv1beta1.ActivityProbePodExec{
+			Script: "#!/bin/bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 		},
 	}
 	return workspaceKind
@@ -935,6 +1029,28 @@ func NewExampleWorkspaceKindWithFilterRuleNoMatchCondition(name string) *kubeflo
 				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
 			},
 			Match: []kubefloworgv1beta1.FilterRuleMatch{{}},
+		},
+	}
+	return workspaceKind
+}
+
+// NewExampleWorkspaceKindWithFilterRuleEmptySelector returns a WorkspaceKind whose filter rule has a
+// match condition with an empty label selector, which is rejected by the CRD validation rule.
+func NewExampleWorkspaceKindWithFilterRuleEmptySelector(name string) *kubefloworgv1beta1.WorkspaceKind {
+	workspaceKind := NewExampleWorkspaceKind(name)
+	workspaceKind.Spec.FilterRules = []kubefloworgv1beta1.FilterRule{
+		{
+			Scope: kubefloworgv1beta1.FilterRuleScopeWorkspaceKind,
+			Effect: kubefloworgv1beta1.FilterRuleEffect{
+				UI: &kubefloworgv1beta1.FilterRuleEffectUI{Hide: true},
+			},
+			Match: []kubefloworgv1beta1.FilterRuleMatch{
+				{
+					MatchNamespace: &kubefloworgv1beta1.FilterRuleSelector{
+						Selector: metav1.LabelSelector{},
+					},
+				},
+			},
 		},
 	}
 	return workspaceKind

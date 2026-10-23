@@ -3,6 +3,16 @@ import { WorkspaceForm } from '~/__tests__/cypress/cypress/pages/workspaces/work
 class EditWorkspace extends WorkspaceForm {
   readonly EDIT_WORKSPACE_ROUTE = '/workspaces/edit';
 
+  visitWithState(state: {
+    namespace: string;
+    workspaceName: string;
+    workspaceKindName: string;
+  }): void {
+    cy.visit(this.EDIT_WORKSPACE_ROUTE, {
+      onBeforeLoad: (win) => win.history.pushState({ usr: state }, '', this.EDIT_WORKSPACE_ROUTE),
+    });
+  }
+
   verifyPageURL(): Cypress.Chainable<string> {
     return cy.verifyRelativeURL(this.EDIT_WORKSPACE_ROUTE);
   }

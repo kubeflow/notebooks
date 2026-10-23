@@ -21,6 +21,7 @@ import { WorkspaceFormPropertiesSecrets } from './WorkspaceFormPropertiesSecrets
 
 interface WorkspaceFormPropertiesSelectionProps {
   mode: WorkspaceFormMode;
+  namespace: string;
   selectedProperties: WorkspaceFormProperties;
   onSelect: (properties: WorkspaceFormProperties) => void;
   homeVolumeMountPath?: string;
@@ -36,6 +37,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   WorkspaceFormPropertiesSelectionProps
 > = ({
   mode,
+  namespace,
   selectedProperties,
   onSelect,
   homeVolumeMountPath,
@@ -50,8 +52,16 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
 
   const homeVolumeArray: WorkspacesPodVolumeMountValue[] = useMemo(
-    () => (selectedProperties.homeVolume ? [selectedProperties.homeVolume] : []),
-    [selectedProperties.homeVolume],
+    () =>
+      selectedProperties.homeVolume
+        ? [
+            {
+              ...selectedProperties.homeVolume,
+              mountPath: homeVolumeMountPath || selectedProperties.homeVolume.mountPath,
+            },
+          ]
+        : [],
+    [selectedProperties.homeVolume, homeVolumeMountPath],
   );
 
   const homePvcNames = useMemo(
@@ -205,6 +215,8 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
               <WorkspaceFormPropertiesVolumes
                 volumes={homeVolumeArray}
                 setVolumes={handleSetHomeVolume}
+                namespace={namespace}
+                isHomeVolume
                 fixedMountPath={homeVolumeMountPath}
                 excludedPvcNames={dataPvcNames}
               />
@@ -235,6 +247,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 <WorkspaceFormPropertiesVolumes
                   volumes={selectedProperties.volumes}
                   setVolumes={(volumes) => onSelect({ ...selectedProperties, volumes })}
+                  namespace={namespace}
                   excludedPvcNames={homePvcNames}
                 />
               </FormGroup>
@@ -256,6 +269,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
                 <WorkspaceFormPropertiesSecrets
                   secrets={selectedProperties.secrets}
                   setSecrets={(secrets) => onSelect({ ...selectedProperties, secrets })}
+                  namespace={namespace}
                 />
               </FormGroup>
             )}

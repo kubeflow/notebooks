@@ -11,7 +11,6 @@ import { NotebookContextProvider } from '~/app/context/NotebookContext';
 import ToastNotifications from '~/app/standalone/ToastNotifications';
 import NavBar from '~/app/standalone/NavBar';
 import NavSidebar from '~/app/standalone/NavSidebar';
-import PreGABanner from '~/app/standalone/PreGABanner';
 import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 
 const App: React.FC = () => {
@@ -44,7 +43,6 @@ const App: React.FC = () => {
                 sidebar={isStandalone ? <NavSidebar /> : undefined}
                 isManagedSidebar={isStandalone}
               >
-                <PreGABanner />
                 <AppRoutes />
                 <ToastNotifications />
               </Page>

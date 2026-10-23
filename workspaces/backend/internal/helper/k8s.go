@@ -35,7 +35,8 @@ import (
 )
 
 const (
-	LabelImageSource = "notebooks.kubeflow.org/image-source"
+	BackendAPIFieldOwner = "kubeflow-workspaces-backend-api"
+	LabelImageSource     = "workspaces.kubeflow.org/image-source"
 )
 
 // BuildScheme returns builds a new runtime scheme with all the necessary types registered.
@@ -72,6 +73,7 @@ func NewManager(cfg *rest.Config, scheme *runtime.Scheme) (ctrl.Manager, error) 
 					&metricsv1beta1.PodMetrics{},
 				},
 			},
+			FieldOwner: BackendAPIFieldOwner,
 		},
 		Metrics: metricsserver.Options{
 			BindAddress: "0", // disable metrics serving
@@ -85,9 +87,9 @@ func NewManager(cfg *rest.Config, scheme *runtime.Scheme) (ctrl.Manager, error) 
 	return mgr, nil
 }
 
-// BuildImageSourceConfigMapClient create a filtered client for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
+// BuildImageSourceConfigMapClient create a filtered client for ConfigMaps with the label 'workspaces.kubeflow.org/image-source=true'
 // REFERENCE: https://github.com/kubernetes-sigs/controller-runtime/issues/244#issuecomment-2466564541
-// WARNING: this client is ONLY able to see ConfigMaps with the 'notebooks.kubeflow.org/image-source=true' label
+// WARNING: this client is ONLY able to see ConfigMaps with the 'workspaces.kubeflow.org/image-source=true' label
 func BuildImageSourceConfigMapClient(mgr ctrl.Manager) (client.Client, error) {
 	imageSourceLabelReq, err := labels.NewRequirement(LabelImageSource, selection.Equals, []string{"true"})
 	if err != nil {

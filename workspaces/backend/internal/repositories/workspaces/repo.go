@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +30,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/filterrules"
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
@@ -63,7 +62,7 @@ var (
 // to know exists. DenyMessage is therefore only ever non-empty when Hidden is false.
 type WorkspaceKindRestrictedError struct {
 	Kind        string
-	Mutation    wsMutationType
+	mutation    wsMutationType
 	Hidden      bool
 	DenyMessage string
 }
@@ -73,7 +72,7 @@ func (e *WorkspaceKindRestrictedError) Error() string {
 	if e.Hidden {
 		suffix = "is hidden"
 	}
-	msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q %s", e.Mutation, e.Kind, suffix)
+	msg := fmt.Sprintf("workspace %s not allowed: workspace kind %q %s", e.mutation, e.Kind, suffix)
 	if !e.Hidden && e.DenyMessage != "" {
 		msg = fmt.Sprintf("%s: %s", msg, e.DenyMessage)
 	}
@@ -175,17 +174,24 @@ func (r *WorkspaceRepository) getWorkspaceModels(ctx context.Context, listOption
 
 func (r *WorkspaceRepository) CreateWorkspace(ctx context.Context, actor user.Info, workspaceCreate *models.WorkspaceCreate, namespace string) (*models.WorkspaceCreate, error) {
 	// get the WorkspaceKind referenced by this Workspace - required to evaluate its
-	// filterRules below. Any failure here (including the WorkspaceKind not existing)
-	// is a hard failure (root 500): we cannot evaluate filterRules without it, and a
-	// create request should always reference a real WorkspaceKind.
+	// filterRules below. A WorkspaceKind which does not exist is bad user input, so we
+	// reject the request (422) with a field error on `spec.kind`. Any other failure is
+	// a hard failure (root 500): we cannot evaluate filterRules without the WorkspaceKind.
+	workspaceKindName := workspaceCreate.Kind
+	workspaceKindNameField := field.NewPath("spec", "kind")
 	workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: workspaceCreate.Kind}, workspaceKind); err != nil {
+	if err := r.client.Get(ctx, client.ObjectKey{Name: workspaceKindName}, workspaceKind); err != nil {
+		if apierrors.IsNotFound(err) {
+			errDetail := fmt.Sprintf("workspace kind %q not found", workspaceKindName)
+			valErrs := field.ErrorList{field.Invalid(workspaceKindNameField, workspaceKindName, errDetail)}
+			return nil, helper.NewInternalValidationError(valErrs)
+		}
 		return nil, err
 	}
 
 	// reject the request (403) if the WorkspaceKind itself is denied by
 	// a WORKSPACE_KIND-scoped filterRule for this namespace.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+	namespaceLabels, err := repoCommon.ResolveNamespaceLabels(ctx, r.client, namespace, field.NewPath(constants.NamespacePathParam))
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +270,7 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	// a WORKSPACE_KIND-scoped filterRule for this namespace. Evaluated on every update,
 	// not just when imageConfig/podConfig changes, since the WorkspaceKind is fixed for
 	// the lifetime of the Workspace and isn't part of what's "changing" here.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespace)
+	namespaceLabels, err := repoCommon.ResolveNamespaceLabels(ctx, r.client, namespace, field.NewPath(constants.NamespacePathParam))
 	if err != nil {
 		return nil, err
 	}
@@ -320,16 +326,6 @@ func (r *WorkspaceRepository) UpdateWorkspace(ctx context.Context, actor user.In
 	return workspaceUpdateModel, nil
 }
 
-// resolveNamespaceLabels fetches the labels of the given namespace, used to evaluate
-// `matchNamespace` conditions in filterRules.
-func (r *WorkspaceRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string) (map[string]string, error) {
-	ns := &corev1.Namespace{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: namespaceName}, ns); err != nil {
-		return nil, err
-	}
-	return ns.Labels, nil
-}
-
 // enforceWorkspaceKindFilterRules evaluates the WorkspaceKind's WORKSPACE_KIND-scoped
 // filterRules against the given namespace labels and returns a WorkspaceKindRestrictedError
 // if the WorkspaceKind is hidden or denied for this namespace.
@@ -346,7 +342,7 @@ func (r *WorkspaceRepository) enforceWorkspaceKindFilterRules(
 	if result.APIHide {
 		return &WorkspaceKindRestrictedError{
 			Kind:     workspaceKind.Name,
-			Mutation: mutation,
+			mutation: mutation,
 			Hidden:   true,
 		}
 	}
@@ -358,7 +354,7 @@ func (r *WorkspaceRepository) enforceWorkspaceKindFilterRules(
 		}
 		return &WorkspaceKindRestrictedError{
 			Kind:        workspaceKind.Name,
-			Mutation:    mutation,
+			mutation:    mutation,
 			DenyMessage: denyMsg,
 		}
 	}

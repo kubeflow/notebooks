@@ -28,8 +28,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/structured-merge-diff/v6/fieldpath"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
+)
+
+const (
+	ControllerFieldOwner = "kubeflow-workspaces-controller"
 )
 
 // copyLabelFields copies metadata.labels from desired to target, returning the updated map and whether an update is required.
@@ -156,11 +161,47 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 	return requireUpdate
 }
 
+// getFieldsOwnedByController returns the fields of obj that are owned by the controller,
+// according to its `metadata.managedFields`.
+// Only `Update` operations on the main resource are considered, because the controller never
+// uses server-side apply and never writes to subresources of the objects it merges metadata into.
+func getFieldsOwnedByController(obj metav1.Object) (*fieldpath.Set, error) {
+	owned := &fieldpath.Set{}
+	for _, entry := range obj.GetManagedFields() {
+		if entry.Manager != ControllerFieldOwner ||
+			entry.Operation != metav1.ManagedFieldsOperationUpdate ||
+			entry.Subresource != "" ||
+			entry.FieldsV1 == nil {
+			continue
+		}
+		entryFields := &fieldpath.Set{}
+		if err := entryFields.FromJSON(entry.FieldsV1.GetRawReader()); err != nil {
+			return nil, fmt.Errorf("unable to parse managedFields entry for manager %q (apiVersion %q): %w", entry.Manager, entry.APIVersion, err)
+		}
+		owned = owned.Union(entryFields)
+	}
+	return owned, nil
+}
+
 // mergeStringMapFields sets every key of desired on target, returning the updated map and whether an update is required.
-// NOTE: unlike copyLabelFields/copyAnnotationFields, keys that are only present on the target are preserved.
-func mergeStringMapFields(desired map[string]string, target map[string]string) (map[string]string, bool) {
+// Keys that are only present on the target are preserved, unless they are owned by the controller
+// (i.e. `metadata.{mapField}.{key}` is in owned), in which case they are removed.
+func mergeStringMapFields(desired map[string]string, target map[string]string, owned *fieldpath.Set, mapField string) (map[string]string, bool) {
 	requireUpdate := false
 
+	// remove keys which are no longer desired, but only if the controller owns them
+	// (i.e. it was the last manager to change their value)
+	for k := range target {
+		if _, ok := desired[k]; ok {
+			continue
+		}
+		if owned.Has(fieldpath.MakePathOrDie("metadata", mapField, k)) {
+			delete(target, k)
+			requireUpdate = true
+		}
+	}
+
+	// add or update the desired keys
 	for k, v := range desired {
 		if target == nil {
 			target = make(map[string]string, len(desired))
@@ -174,24 +215,33 @@ func mergeStringMapFields(desired map[string]string, target map[string]string) (
 }
 
 // CopyServiceAccountFields updates a target ServiceAccount with the fields from a desired ServiceAccount, returning true if an update is required.
-func CopyServiceAccountFields(desired *corev1.ServiceAccount, target *corev1.ServiceAccount) bool {
+func CopyServiceAccountFields(desired *corev1.ServiceAccount, target *corev1.ServiceAccount) (bool, error) {
 	requireUpdate := false
 
 	// NOTE: we merge rather than replace, because administrators and other controllers attach
-	//       their own metadata to a ServiceAccount (e.g. the IAM annotations used by IRSA)
+	//       their own metadata to a ServiceAccount (e.g. the IAM annotations used by IRSA).
+	//       A key that is no longer desired is only removed if the controller owns it in `metadata.managedFields`.
+	//       Because we use `Update` (not server-side apply), the API server only gives us ownership of a key
+	//       only when our write changes its value, and moves it to another manager when they change the
+	//       value. As such, a key is removed only if we were the last to change its value, regardless of who
+	//       first added it.
+	owned, err := getFieldsOwnedByController(target)
+	if err != nil {
+		return false, err
+	}
 
 	var updated bool
-	target.Labels, updated = mergeStringMapFields(desired.Labels, target.Labels)
+	target.Labels, updated = mergeStringMapFields(desired.Labels, target.Labels, owned, "labels")
 	if updated {
 		requireUpdate = true
 	}
 
-	target.Annotations, updated = mergeStringMapFields(desired.Annotations, target.Annotations)
+	target.Annotations, updated = mergeStringMapFields(desired.Annotations, target.Annotations, owned, "annotations")
 	if updated {
 		requireUpdate = true
 	}
 
-	return requireUpdate
+	return requireUpdate, nil
 }
 
 // CopyRoleBindingFields updates a target RoleBinding with the fields from a desired RoleBinding, returning true if an update is required.

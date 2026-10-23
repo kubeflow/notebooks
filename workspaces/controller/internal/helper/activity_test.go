@@ -35,7 +35,7 @@ const (
 
 var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 
-	pauseRule := func(secondsSinceActive int32, minRunning *int32, match *kubefloworgv1beta1.ActivityRuleMatch, pause bool) kubefloworgv1beta1.ActivityRule {
+	pauseRule := func(secondsSinceActive int32, minRunning *int32, match []kubefloworgv1beta1.ActivityRuleMatch, pause bool) kubefloworgv1beta1.ActivityRule {
 		return kubefloworgv1beta1.ActivityRule{
 			Config: kubefloworgv1beta1.ActivityRuleConfig{
 				SecondsSinceActive: secondsSinceActive,
@@ -48,23 +48,23 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 		}
 	}
 
-	namespaceMatch := func(labels map[string]string) *kubefloworgv1beta1.ActivityRuleMatch {
-		return &kubefloworgv1beta1.ActivityRuleMatch{
-			MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
+	namespaceMatch := func(labels map[string]string) kubefloworgv1beta1.ActivityRuleMatch {
+		return kubefloworgv1beta1.ActivityRuleMatch{
+			MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
 				Selector: metav1.LabelSelector{MatchLabels: labels},
 			},
 		}
 	}
 
-	podConfigMatch := func(labels map[string]string) *kubefloworgv1beta1.ActivityRuleMatch {
-		return &kubefloworgv1beta1.ActivityRuleMatch{
-			MatchPodConfig: &kubefloworgv1beta1.PodConfigMatch{
+	podConfigMatch := func(labels map[string]string) kubefloworgv1beta1.ActivityRuleMatch {
+		return kubefloworgv1beta1.ActivityRuleMatch{
+			MatchPodConfig: &kubefloworgv1beta1.ActivityRuleSelector{
 				Selector: metav1.LabelSelector{MatchLabels: labels},
 			},
 		}
 	}
 
-	It("should match a catch-all rule when match is nil", func() {
+	It("should match a catch-all rule when match is omitted", func() {
 		rules := []kubefloworgv1beta1.ActivityRule{
 			pauseRule(testSecondsSinceActive1Hour, nil, nil, true),
 		}
@@ -78,7 +78,7 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 
 	It("should match the first applicable rule (first-match-wins)", func() {
 		rules := []kubefloworgv1beta1.ActivityRule{
-			pauseRule(testSecondsSinceActive1Hour, new(testMinRunningSeconds5Min), namespaceMatch(map[string]string{"tier": "development"}), true),
+			pauseRule(testSecondsSinceActive1Hour, new(testMinRunningSeconds5Min), []kubefloworgv1beta1.ActivityRuleMatch{namespaceMatch(map[string]string{"tier": "development"})}, true),
 			pauseRule(testSecondsSinceActive1Day, nil, nil, true),
 		}
 
@@ -92,7 +92,7 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 
 	It("should fall through to the catch-all when the namespace does not match", func() {
 		rules := []kubefloworgv1beta1.ActivityRule{
-			pauseRule(testSecondsSinceActive1Hour, nil, namespaceMatch(map[string]string{"tier": "development"}), true),
+			pauseRule(testSecondsSinceActive1Hour, nil, []kubefloworgv1beta1.ActivityRuleMatch{namespaceMatch(map[string]string{"tier": "development"})}, true),
 			pauseRule(testSecondsSinceActive1Day, nil, nil, true),
 		}
 
@@ -103,13 +103,9 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 	})
 
 	It("should require both namespace and podConfig selectors to match (AND semantics)", func() {
-		match := &kubefloworgv1beta1.ActivityRuleMatch{
-			MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-				Selector: metav1.LabelSelector{MatchLabels: map[string]string{"tier": "development"}},
-			},
-			MatchPodConfig: &kubefloworgv1beta1.PodConfigMatch{
-				Selector: metav1.LabelSelector{MatchLabels: map[string]string{"gpu": "true"}},
-			},
+		match := []kubefloworgv1beta1.ActivityRuleMatch{
+			namespaceMatch(map[string]string{"tier": "development"}),
+			podConfigMatch(map[string]string{"gpu": "true"}),
 		}
 		rules := []kubefloworgv1beta1.ActivityRule{
 			pauseRule(testSecondsSinceActive1Hour, nil, match, true),
@@ -128,7 +124,7 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 
 	It("should match by podConfig selector", func() {
 		rules := []kubefloworgv1beta1.ActivityRule{
-			pauseRule(testSecondsSinceActive1Hour, nil, podConfigMatch(map[string]string{"gpu": "true"}), true),
+			pauseRule(testSecondsSinceActive1Hour, nil, []kubefloworgv1beta1.ActivityRuleMatch{podConfigMatch(map[string]string{"gpu": "true"})}, true),
 		}
 		decision, err := EvaluatePauseWorkspaceRule(rules, nil, map[string]string{"gpu": "true"})
 		Expect(err).ToNot(HaveOccurred())
@@ -151,7 +147,7 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 
 	It("should honor a matched rule with pauseWorkspace: false (exemption)", func() {
 		rules := []kubefloworgv1beta1.ActivityRule{
-			pauseRule(testSecondsSinceActive1Hour, nil, namespaceMatch(map[string]string{"protected": "true"}), false),
+			pauseRule(testSecondsSinceActive1Hour, nil, []kubefloworgv1beta1.ActivityRuleMatch{namespaceMatch(map[string]string{"protected": "true"})}, false),
 			pauseRule(testSecondsSinceActive1Day, nil, nil, true),
 		}
 		decision, err := EvaluatePauseWorkspaceRule(rules, map[string]string{"protected": "true"}, nil)
@@ -162,7 +158,7 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 
 	It("should return not-matched when no rule applies", func() {
 		rules := []kubefloworgv1beta1.ActivityRule{
-			pauseRule(testSecondsSinceActive1Hour, nil, namespaceMatch(map[string]string{"tier": "development"}), true),
+			pauseRule(testSecondsSinceActive1Hour, nil, []kubefloworgv1beta1.ActivityRuleMatch{namespaceMatch(map[string]string{"tier": "development"})}, true),
 		}
 		decision, err := EvaluatePauseWorkspaceRule(rules, map[string]string{"tier": "production"}, nil)
 		Expect(err).ToNot(HaveOccurred())
@@ -186,25 +182,34 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 		Expect(decision.Value).To(BeTrue())
 	})
 
-	It("should match when match is non-nil but both MatchNamespace and MatchPodConfig are nil", func() {
+	It("should match a catch-all rule when match is an empty list", func() {
 		rules := []kubefloworgv1beta1.ActivityRule{
-			pauseRule(testSecondsSinceActive1Hour, nil, &kubefloworgv1beta1.ActivityRuleMatch{}, true),
+			pauseRule(testSecondsSinceActive1Hour, nil, []kubefloworgv1beta1.ActivityRuleMatch{}, true),
 		}
 		decision, err := EvaluatePauseWorkspaceRule(rules, nil, nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(decision.Matched).To(BeTrue())
 	})
 
+	It("should return an error when a match condition specifies no matcher", func() {
+		rules := []kubefloworgv1beta1.ActivityRule{
+			pauseRule(testSecondsSinceActive1Hour, nil, []kubefloworgv1beta1.ActivityRuleMatch{{}}, true),
+		}
+		_, err := EvaluatePauseWorkspaceRule(rules, nil, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to evaluate match for activityRule[0]"))
+	})
+
 	It("should return an error on an invalid namespace label selector", func() {
-		invalidMatch := &kubefloworgv1beta1.ActivityRuleMatch{
-			MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
+		invalidMatch := []kubefloworgv1beta1.ActivityRuleMatch{{
+			MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
 				Selector: metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{Key: "tier", Operator: "InvalidOp"},
 					},
 				},
 			},
-		}
+		}}
 		rules := []kubefloworgv1beta1.ActivityRule{
 			pauseRule(testSecondsSinceActive1Hour, nil, invalidMatch, true),
 			pauseRule(testSecondsSinceActive1Day, nil, nil, true),
@@ -215,15 +220,15 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 	})
 
 	It("should return an error on an invalid podConfig label selector", func() {
-		invalidMatch := &kubefloworgv1beta1.ActivityRuleMatch{
-			MatchPodConfig: &kubefloworgv1beta1.PodConfigMatch{
+		invalidMatch := []kubefloworgv1beta1.ActivityRuleMatch{{
+			MatchPodConfig: &kubefloworgv1beta1.ActivityRuleSelector{
 				Selector: metav1.LabelSelector{
 					MatchExpressions: []metav1.LabelSelectorRequirement{
 						{Key: "gpu", Operator: "InvalidOp"},
 					},
 				},
 			},
-		}
+		}}
 		rules := []kubefloworgv1beta1.ActivityRule{
 			pauseRule(testSecondsSinceActive1Hour, nil, invalidMatch, true),
 		}
@@ -239,9 +244,9 @@ var _ = Describe("EvaluatePauseWorkspaceRule", func() {
 		selector := metav1.LabelSelector{MatchLabels: origLabels}
 		cacheKey := metav1.FormatLabelSelector(&selector)
 		rules := []kubefloworgv1beta1.ActivityRule{
-			pauseRule(testSecondsSinceActive1Hour, nil, &kubefloworgv1beta1.ActivityRuleMatch{
-				MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{Selector: selector},
-			}, true),
+			pauseRule(testSecondsSinceActive1Hour, nil, []kubefloworgv1beta1.ActivityRuleMatch{{
+				MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{Selector: selector},
+			}}, true),
 		}
 
 		// 1. Verify key does not exist in cache initially

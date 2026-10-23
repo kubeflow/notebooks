@@ -113,12 +113,20 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: annotations to be applied to the Pod resource
+                        description: |-
+                          annotations to be applied to the Pod resource
+                           - entries are currently NOT allowed, until the security model
+                             for Workspace-level Pod metadata is defined
+                        maxProperties: 0
                         type: object
                       labels:
                         additionalProperties:
                           type: string
-                        description: labels to be applied to the Pod resource
+                        description: |-
+                          labels to be applied to the Pod resource
+                           - entries are currently NOT allowed, until the security model
+                             for Workspace-level Pod metadata is defined
+                        maxProperties: 0
                         type: object
                     type: object
                   volumes:
@@ -253,7 +261,7 @@ spec:
                         description: |-
                           a human-readable message about the probe result
                            - WARNING: this field is NOT FOR MACHINE USE, subject to change without notice
-                        example: Jupyter probe succeeded
+                        example: PodExec probe succeeded
                         type: string
                       result:
                         description: the result of the last probe execution
@@ -438,9 +446,9 @@ spec:
                     description: |-
                       the name of the ServiceAccount that the Pod runs as
                        - this ServiceAccount is created and owned by the Workspace, and is stable for its lifetime
-                       - it is reported here so that Roles, RoleBindings, and Istio AuthorizationPolicies
-                         which reference the ServiceAccount do not have to recompute its name
-                    example: ws-my-workspace
+                       - the name has a random suffix, so it is reported here for Roles, RoleBindings,
+                         and Istio AuthorizationPolicies which need to reference the ServiceAccount
+                    example: ws-my-workspace-abcde
                     type: string
                 required:
                 - name

@@ -46,7 +46,7 @@ var _ = Describe("buildLastProbeInfo", func() {
 			StartTime: testStartTime,
 			EndTime:   testEndTime,
 			Result:    kubefloworgv1beta1.WorkspaceProbeResultSuccess,
-			Message:   "Jupyter probe succeeded",
+			Message:   "PodExec probe succeeded",
 		}
 
 		apiProbe := buildLastProbeInfo(crdProbe)
@@ -54,7 +54,7 @@ var _ = Describe("buildLastProbeInfo", func() {
 		Expect(apiProbe.StartTime).To(Equal(testStartTime))
 		Expect(apiProbe.EndTime).To(Equal(testEndTime))
 		Expect(apiProbe.Result).To(Equal(ProbeResultSuccess))
-		Expect(apiProbe.Message).To(Equal("Jupyter probe succeeded"))
+		Expect(apiProbe.Message).To(Equal("PodExec probe succeeded"))
 	})
 
 	It("converts a failed WorkspaceActivityLastProbe correctly", func() {
@@ -62,7 +62,7 @@ var _ = Describe("buildLastProbeInfo", func() {
 			StartTime: testStartTime,
 			EndTime:   testEndTime,
 			Result:    kubefloworgv1beta1.WorkspaceProbeResultFailure,
-			Message:   "Jupyter probe failed",
+			Message:   "PodExec probe failed",
 		}
 
 		apiProbe := buildLastProbeInfo(crdProbe)
@@ -70,7 +70,7 @@ var _ = Describe("buildLastProbeInfo", func() {
 		Expect(apiProbe.StartTime).To(Equal(testStartTime))
 		Expect(apiProbe.EndTime).To(Equal(testEndTime))
 		Expect(apiProbe.Result).To(Equal(ProbeResultFailure))
-		Expect(apiProbe.Message).To(Equal("Jupyter probe failed"))
+		Expect(apiProbe.Message).To(Equal("PodExec probe failed"))
 	})
 })
 

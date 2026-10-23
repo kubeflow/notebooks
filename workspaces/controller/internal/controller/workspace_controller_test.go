@@ -55,6 +55,9 @@ var _ = Describe("Workspace Controller", func() {
 
 		// tolerance for timestamp comparisons (in milliseconds)
 		tolerance = int64(5000)
+
+		// the ServiceAccount name passed to generators in tests which do not create a ServiceAccount
+		exampleServiceAccountName = "ws-example-abcde"
 	)
 
 	Context("When updating a Workspace", Ordered, func() {
@@ -171,12 +174,18 @@ var _ = Describe("Workspace Controller", func() {
 			}, timeout, interval).Should(BeZero())
 
 			By("creating a ServiceAccount owned by the Workspace")
-			serviceAccountName := generateServiceAccountName(workspaceName)
-			serviceAccount := &corev1.ServiceAccount{}
-			Eventually(func() error {
-				return k8sClient.Get(ctx, types.NamespacedName{Name: serviceAccountName, Namespace: namespaceName}, serviceAccount)
-			}, timeout, interval).Should(Succeed())
-			Expect(serviceAccount.Labels).To(HaveKeyWithValue(workspaceNameLabel, workspaceName))
+			serviceAccountList := &corev1.ServiceAccountList{}
+			Eventually(func() ([]corev1.ServiceAccount, error) {
+				err := k8sClient.List(ctx, serviceAccountList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				if err != nil {
+					return nil, err
+				}
+				return serviceAccountList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
+
+			serviceAccount := serviceAccountList.Items[0]
+			serviceAccountName := serviceAccount.Name
+			Expect(serviceAccountName).To(HavePrefix(generateNamePrefix(workspaceName, maxServiceAccountNameLength)))
 			Expect(serviceAccount.OwnerReferences).To(HaveLen(1))
 			Expect(serviceAccount.OwnerReferences[0].Kind).To(Equal("Workspace"))
 			Expect(serviceAccount.OwnerReferences[0].Name).To(Equal(workspaceName))
@@ -252,6 +261,99 @@ var _ = Describe("Workspace Controller", func() {
 		})
 	})
 
+	Context("When the selected podConfig changes", Serial, Ordered, func() {
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+		)
+
+		// podTemplateLabels lists the current Pod-template labels of the Workspace's StatefulSet.
+		podTemplateLabels := func() (map[string]string, error) {
+			stsList := &appsv1.StatefulSetList{}
+			if err := k8sClient.List(ctx, stsList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err != nil {
+				return nil, err
+			}
+			if len(stsList.Items) != 1 {
+				return nil, fmt.Errorf("expected exactly 1 StatefulSet, got %d", len(stsList.Items))
+			}
+			return stsList.Items[0].Spec.Template.Labels, nil
+		}
+
+		BeforeAll(func() {
+			uniqueName := fmt.Sprintf("ws-podconfig-switch-%d", time.Now().UnixNano())
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+
+			By("creating a WorkspaceKind whose tiny_cpu and small_cpu podConfigs carry distinct podMetadata")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			pods := workspaceKind.Spec.PodTemplate.Options.PodConfig.Values
+			for i := range pods {
+				switch pods[i].Id {
+				case "tiny_cpu":
+					pods[i].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+						Labels: map[string]string{"tier": "tiny", "tiny-exclusive": "yes"},
+					}
+				case "small_cpu":
+					pods[i].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+						Labels: map[string]string{"tier": "small"},
+					}
+				}
+			}
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating a Workspace that selects tiny_cpu")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the StatefulSet")
+			stsList := &appsv1.StatefulSetList{}
+			if err := k8sClient.List(ctx, stsList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err == nil {
+				for i := range stsList.Items {
+					_ = k8sClient.Delete(ctx, &stsList.Items[i])
+				}
+			}
+
+			By("deleting the Workspace")
+			_ = k8sClient.Delete(ctx, &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			})
+
+			By("deleting the WorkspaceKind")
+			_ = k8sClient.Delete(ctx, &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			})
+		})
+
+		It("re-derives Pod metadata on the live StatefulSet when the selected podConfig changes", func() {
+			By("waiting for the StatefulSet to carry the tiny_cpu podMetadata")
+			Eventually(podTemplateLabels, timeout, interval).Should(SatisfyAll(
+				HaveKeyWithValue("tier", "tiny"),
+				HaveKeyWithValue("tiny-exclusive", "yes"),
+			))
+
+			By("switching the Workspace's selected podConfig to small_cpu")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+			patch := client.MergeFrom(workspace.DeepCopy())
+			workspace.Spec.PodTemplate.Options.PodConfig = "small_cpu"
+			Expect(k8sClient.Patch(ctx, workspace, patch)).To(Succeed())
+
+			By("observing the StatefulSet gain the small_cpu key and drop the tiny_cpu-only key")
+			Eventually(podTemplateLabels, timeout, interval).Should(SatisfyAll(
+				HaveKeyWithValue("tier", "small"), // added by the newly-selected podConfig
+				Not(HaveKey("tiny-exclusive")),    // contributed only by the previous podConfig, now removed
+			))
+			By("keeping the controller-owned label authoritative throughout")
+			labels, err := podTemplateLabels()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(labels).To(HaveKeyWithValue(workspaceNameLabel, workspaceName))
+		})
+	})
+
 	Context("When activity rules pause an inactive Workspace", Serial, Ordered, func() {
 		var (
 			workspaceName     string
@@ -274,7 +376,7 @@ var _ = Describe("Workspace Controller", func() {
 			workspaceKind.Spec.PodTemplate.ActivityProbe = &kubefloworgv1beta1.ActivityProbe{
 				MinProbeIntervalSeconds: new(int32(1)),
 				ProbeIntervalSeconds:    new(int32(10)),
-				PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
+				PodExec: kubefloworgv1beta1.ActivityProbePodExec{
 					TimeoutSeconds: new(int32(30)),
 					Script:         "exit 0",
 				},
@@ -285,7 +387,7 @@ var _ = Describe("Workspace Controller", func() {
 						SecondsSinceActive: 16,
 						MinRunningSeconds:  new(int32(0)),
 					},
-					Match:  &kubefloworgv1beta1.ActivityRuleMatch{},
+					Match:  []kubefloworgv1beta1.ActivityRuleMatch{},
 					Effect: kubefloworgv1beta1.ActivityRuleEffect{PauseWorkspace: new(true)},
 				},
 			}
@@ -379,7 +481,6 @@ var _ = Describe("Workspace Controller", func() {
 			}
 			Expect(k8sClient.Create(ctx, pod)).To(Succeed())
 			pod.Status.Phase = corev1.PodRunning
-			pod.Status.PodIP = "10.0.0.1"
 			pod.Status.Conditions = []corev1.PodCondition{
 				{Type: corev1.PodReady, Status: corev1.ConditionTrue},
 				{Type: corev1.PodScheduled, Status: corev1.ConditionTrue},
@@ -554,7 +655,6 @@ var _ = Describe("Workspace Controller", func() {
 			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
 			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
 			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
-			serviceAccountName = generateServiceAccountName(workspaceName)
 
 			By("creating the WorkspaceKind")
 			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
@@ -590,8 +690,9 @@ var _ = Describe("Workspace Controller", func() {
 				if err != nil {
 					return "", err
 				}
-				return workspace.Status.PodTemplatePod.ServiceAccountName, nil
-			}, timeout, interval).Should(Equal(serviceAccountName))
+				serviceAccountName = workspace.Status.PodTemplatePod.ServiceAccountName
+				return serviceAccountName, nil
+			}, timeout, interval).Should(HavePrefix(generateNamePrefix(workspaceName, maxServiceAccountNameLength)))
 
 			By("checking no RoleBindings exist")
 			Consistently(listOwnedRoleBindings, "2s", interval).Should(BeEmpty())
@@ -681,6 +782,205 @@ var _ = Describe("Workspace Controller", func() {
 		})
 	})
 
+	Context("When a WorkspaceKind sets metadata for the Workspace ServiceAccount", Serial, Ordered, func() {
+
+		const (
+			roleArnAnnotation = "eks.amazonaws.com/role-arn"
+			roleArnV1         = "arn:aws:iam::111122223333:role/my-role-v1"
+			roleArnV2         = "arn:aws:iam::111122223333:role/my-role-v2"
+		)
+
+		// Define utility variables for object names.
+		// NOTE: to avoid conflicts between parallel tests, resource names are unique to each test
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+			workspaceKindKey  types.NamespacedName
+		)
+
+		// getServiceAccount returns the ServiceAccount labeled for the Workspace under test.
+		getServiceAccount := func(g Gomega) *corev1.ServiceAccount {
+			serviceAccountList := &corev1.ServiceAccountList{}
+			g.Expect(k8sClient.List(ctx, serviceAccountList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})).To(Succeed())
+			g.Expect(serviceAccountList.Items).To(HaveLen(1))
+			return &serviceAccountList.Items[0]
+		}
+
+		// getStatefulSetGeneration returns the `metadata.generation` of the StatefulSet of the Workspace under test.
+		getStatefulSetGeneration := func(g Gomega) int64 {
+			statefulSetList := &appsv1.StatefulSetList{}
+			g.Expect(k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})).To(Succeed())
+			g.Expect(statefulSetList.Items).To(HaveLen(1))
+			return statefulSetList.Items[0].Generation
+		}
+
+		// pendingRestart returns the `status.pendingRestart` of the Workspace under test.
+		pendingRestart := func() (bool, error) {
+			workspace := &kubefloworgv1beta1.Workspace{}
+			if err := k8sClient.Get(ctx, workspaceKey, workspace); err != nil {
+				return false, err
+			}
+			return workspace.Status.PendingRestart, nil
+		}
+
+		// setServiceAccountMetadata patches the WorkspaceKind `spec.podTemplate.serviceAccount.metadata`.
+		setServiceAccountMetadata := func(labels, annotations map[string]string) {
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+			patch := client.MergeFrom(workspaceKind.DeepCopy())
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+				Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+					Labels:      labels,
+					Annotations: annotations,
+				},
+			}
+			Expect(k8sClient.Patch(ctx, workspaceKind, patch)).To(Succeed())
+		}
+
+		BeforeAll(func() {
+			uniqueName := "ws-sa-metadata-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
+
+			By("creating the WorkspaceKind")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+				Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+					Labels:      map[string]string{"my-sa-label": "my-value"},
+					Annotations: map[string]string{roleArnAnnotation: roleArnV1},
+				},
+			}
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating the Workspace")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			// NOTE: the default imageConfig of the example Workspace has a redirect, which would make
+			//       `status.pendingRestart` true from the start and hide any change caused by the metadata
+			workspace.Spec.PodTemplate.Options.ImageConfig = "jupyterlab_scipy_190"
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			}
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+		})
+
+		It("should apply the metadata when the ServiceAccount is created", func() {
+			Eventually(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				g.Expect(serviceAccount.Labels).To(HaveKeyWithValue("my-sa-label", "my-value"))
+				g.Expect(serviceAccount.Labels).To(HaveKeyWithValue(workspaceNameLabel, workspaceName))
+				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV1))
+			}, timeout, interval).Should(Succeed())
+		})
+
+		It("should propagate added keys and changed values to the existing ServiceAccount without a restart", func() {
+			By("waiting for `status.pendingRestart` to be false")
+			Eventually(pendingRestart, timeout, interval).Should(BeFalse())
+			var statefulSetGeneration int64
+			Eventually(func(g Gomega) {
+				statefulSetGeneration = getStatefulSetGeneration(g)
+			}, timeout, interval).Should(Succeed())
+
+			By("adding a new label and annotation, and changing an existing annotation value")
+			setServiceAccountMetadata(
+				map[string]string{"my-sa-label": "my-value", "my-new-sa-label": "my-value"},
+				map[string]string{roleArnAnnotation: roleArnV2, "my-new-sa-annotation": "my-value"},
+			)
+
+			By("updating the existing ServiceAccount")
+			Eventually(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				g.Expect(serviceAccount.Labels).To(HaveKeyWithValue("my-new-sa-label", "my-value"))
+				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue("my-new-sa-annotation", "my-value"))
+				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV2))
+			}, timeout, interval).Should(Succeed())
+
+			By("leaving `status.pendingRestart` false and the StatefulSet spec unchanged")
+			// the ServiceAccount metadata is not part of the Pod template, so changing it
+			// never requires a Workspace restart
+			Consistently(pendingRestart, "2s", interval).Should(BeFalse())
+			Consistently(getStatefulSetGeneration, "2s", interval).Should(Equal(statefulSetGeneration))
+		})
+
+		It("should preserve metadata added to the ServiceAccount out of band", func() {
+			By("adding an annotation to the ServiceAccount directly, as another controller would")
+			Eventually(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				if serviceAccount.Annotations == nil {
+					serviceAccount.Annotations = map[string]string{}
+				}
+				serviceAccount.Annotations["other-tool.example.com/annotation"] = "other-value"
+				g.Expect(k8sClient.Update(ctx, serviceAccount)).To(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			By("triggering a reconcile with a WorkspaceKind change")
+			setServiceAccountMetadata(
+				map[string]string{"my-sa-label": "my-value", "my-new-sa-label": "my-value"},
+				map[string]string{roleArnAnnotation: roleArnV1, "my-new-sa-annotation": "my-value"},
+			)
+			Eventually(func(g Gomega) {
+				g.Expect(getServiceAccount(g).Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV1))
+			}, timeout, interval).Should(Succeed())
+
+			By("keeping the out of band annotation")
+			Consistently(func(g Gomega) {
+				g.Expect(getServiceAccount(g).Annotations).To(HaveKeyWithValue("other-tool.example.com/annotation", "other-value"))
+			}, "2s", interval).Should(Succeed())
+		})
+
+		It("should remove keys from the ServiceAccount when they are removed from the WorkspaceKind", func() {
+			// NOTE: the controller only removes keys that it owns in the ServiceAccount `metadata.managedFields`,
+			//       so the annotation added out of band by the previous test must be kept
+			By("removing the new label and annotation, and changing an existing annotation value")
+			setServiceAccountMetadata(
+				map[string]string{"my-sa-label": "my-value"},
+				map[string]string{roleArnAnnotation: roleArnV2},
+			)
+
+			By("removing the keys from the ServiceAccount")
+			Eventually(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				g.Expect(serviceAccount.Annotations).To(HaveKeyWithValue(roleArnAnnotation, roleArnV2))
+				g.Expect(serviceAccount.Labels).NotTo(HaveKey("my-new-sa-label"))
+				g.Expect(serviceAccount.Annotations).NotTo(HaveKey("my-new-sa-annotation"))
+			}, timeout, interval).Should(Succeed())
+
+			By("keeping the out of band annotation")
+			Consistently(func(g Gomega) {
+				g.Expect(getServiceAccount(g).Annotations).To(HaveKeyWithValue("other-tool.example.com/annotation", "other-value"))
+			}, "2s", interval).Should(Succeed())
+		})
+
+		It("should remove all applied keys from the ServiceAccount when `serviceAccount.metadata` is unset", func() {
+			By("unsetting `serviceAccount.metadata` on the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+			patch := client.MergeFrom(workspaceKind.DeepCopy())
+			workspaceKind.Spec.PodTemplate.ServiceAccount.Metadata = nil
+			Expect(k8sClient.Patch(ctx, workspaceKind, patch)).To(Succeed())
+
+			By("removing the applied keys, but keeping the controller-managed label and the out of band annotation")
+			Eventually(func(g Gomega) {
+				serviceAccount := getServiceAccount(g)
+				g.Expect(serviceAccount.Labels).To(Equal(map[string]string{workspaceNameLabel: workspaceName}))
+				g.Expect(serviceAccount.Annotations).To(Equal(map[string]string{"other-tool.example.com/annotation": "other-value"}))
+			}, timeout, interval).Should(Succeed())
+		})
+	})
+
 	Context("When generating the RoleBinding name for a Workspace", func() {
 
 		It("should be stable across calls", func() {
@@ -706,29 +1006,80 @@ var _ = Describe("Workspace Controller", func() {
 		})
 	})
 
-	Context("When generating the ServiceAccount name for a Workspace", func() {
+	Context("When generating a ServiceAccount for a Workspace", func() {
 
-		It("should be the Workspace name with a `ws-` prefix", func() {
-			Expect(generateServiceAccountName("my-workspace")).To(Equal("ws-my-workspace"))
+		// NOTE: these tests call generateServiceAccount directly and do not create any
+		//       resources in the cluster, so no teardown is required.
+		var workspaceKind *kubefloworgv1beta1.WorkspaceKind
+
+		BeforeEach(func() {
+			workspaceKind = NewExampleWorkspaceKind1("my-workspacekind")
+
+			// ensure the field starts unset, so each test only sets what it exercises
+			workspaceKind.Spec.PodTemplate.ServiceAccount = nil
 		})
 
-		It("should be stable across calls", func() {
-			longName := strings.Repeat("a", 253)
-			Expect(generateServiceAccountName(longName)).To(Equal(generateServiceAccountName(longName)))
+		It("should use `generateName` with the Workspace name prefix", func() {
+			workspace := NewExampleWorkspace1("my-workspace", namespaceName, "my-workspacekind")
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
+			Expect(serviceAccount.Name).To(BeEmpty())
+			Expect(serviceAccount.GenerateName).To(Equal("ws-my-workspace-"))
+			Expect(serviceAccount.Labels).To(HaveKeyWithValue(workspaceNameLabel, "my-workspace"))
 		})
 
-		It("should fit within the max ServiceAccount name length", func() {
-			for _, workspaceName := range []string{"a", strings.Repeat("a", 250), strings.Repeat("a", 253)} {
-				name := generateServiceAccountName(workspaceName)
-				Expect(len(name)).To(BeNumerically("<=", maxServiceAccountNameLength))
-				Expect(name).To(MatchRegexp(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`))
+		It("should leave room for the `generateName` suffix within the max ServiceAccount name length", func() {
+			workspace := NewExampleWorkspace1(strings.Repeat("a", 253), namespaceName, "my-workspacekind")
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
+			Expect(len(serviceAccount.GenerateName)).To(BeNumerically("<=", maxServiceAccountNameLength-generateNameSuffixLength))
+			Expect(serviceAccount.GenerateName).To(HaveSuffix("-"))
+		})
+
+		It("should set only the controller-managed label when `serviceAccount.metadata` is unset", func() {
+			workspace := NewExampleWorkspace1("my-workspace", namespaceName, "my-workspacekind")
+
+			By("generating the ServiceAccount with `serviceAccount` unset")
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
+			Expect(serviceAccount.Labels).To(Equal(map[string]string{workspaceNameLabel: "my-workspace"}))
+			Expect(serviceAccount.Annotations).To(BeEmpty())
+
+			By("generating the ServiceAccount with `serviceAccount` set but `metadata` unset")
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{}
+			serviceAccount = generateServiceAccount(workspace, workspaceKind)
+			Expect(serviceAccount.Labels).To(Equal(map[string]string{workspaceNameLabel: "my-workspace"}))
+			Expect(serviceAccount.Annotations).To(BeEmpty())
+		})
+
+		It("should apply the WorkspaceKind `serviceAccount.metadata` labels and annotations", func() {
+			workspace := NewExampleWorkspace1("my-workspace", namespaceName, "my-workspacekind")
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+				Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+					Labels:      map[string]string{"my-label": "my-value"},
+					Annotations: map[string]string{"eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"},
+				},
 			}
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
+
+			By("checking the admin labels/annotations are present alongside the controller label")
+			Expect(serviceAccount.Labels).To(HaveKeyWithValue("my-label", "my-value"))
+			Expect(serviceAccount.Labels).To(HaveKeyWithValue(workspaceNameLabel, "my-workspace"))
+			Expect(serviceAccount.Annotations).To(HaveKeyWithValue("eks.amazonaws.com/role-arn", "arn:aws:iam::111122223333:role/my-role"))
+
+			By("checking the generated maps do not alias the WorkspaceKind maps")
+			serviceAccount.Annotations["eks.amazonaws.com/role-arn"] = "mutated"
+			Expect(workspaceKind.Spec.PodTemplate.ServiceAccount.Metadata.Annotations).To(HaveKeyWithValue("eks.amazonaws.com/role-arn", "arn:aws:iam::111122223333:role/my-role"))
 		})
 
-		It("should not collide for Workspace names that share a truncated prefix", func() {
-			nameA := strings.Repeat("a", 252) + "1"
-			nameB := strings.Repeat("a", 252) + "2"
-			Expect(generateServiceAccountName(nameA)).NotTo(Equal(generateServiceAccountName(nameB)))
+		It("should not let `serviceAccount.metadata` override the controller-managed label", func() {
+			workspace := NewExampleWorkspace1("my-workspace", namespaceName, "my-workspacekind")
+			workspaceKind.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+				Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+					Labels: map[string]string{workspaceNameLabel: "hijacked"},
+				},
+			}
+			serviceAccount := generateServiceAccount(workspace, workspaceKind)
+
+			By("checking the controller value wins over the admin-provided one")
+			Expect(serviceAccount.Labels).To(HaveKeyWithValue(workspaceNameLabel, "my-workspace"))
 		})
 	})
 
@@ -759,7 +1110,7 @@ var _ = Describe("Workspace Controller", func() {
 
 		It("should set only the controller-managed label when `statefulSetMetadata` is unset", func() {
 			By("generating the StatefulSet")
-			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking the StatefulSet carries only the `workspace-name` label and no annotations")
@@ -774,7 +1125,7 @@ var _ = Describe("Workspace Controller", func() {
 				Labels:      map[string]string{"my-label": "my-value"},
 				Annotations: map[string]string{"my-annotation": "my-value"},
 			}
-			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking the admin labels/annotations are present alongside the controller label")
@@ -788,7 +1139,7 @@ var _ = Describe("Workspace Controller", func() {
 			workspaceKind.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
 				Labels: map[string]string{workspaceNameLabel: "hijacked"},
 			}
-			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking the controller value wins over the admin-provided one")
@@ -824,7 +1175,7 @@ var _ = Describe("Workspace Controller", func() {
 
 		It("should leave `schedulerName` empty when it is unset on both the WorkspaceKind and the podConfig", func() {
 			By("generating the StatefulSet")
-			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking the pod template has no `schedulerName`, so the API server applies its default")
@@ -834,7 +1185,7 @@ var _ = Describe("Workspace Controller", func() {
 		It("should use the WorkspaceKind `schedulerName` when the podConfig does not set one", func() {
 			By("generating the StatefulSet")
 			workspaceKind.Spec.PodTemplate.PodSpec.SchedulerName = new("workspacekind-scheduler")
-			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking the pod template uses the WorkspaceKind `schedulerName`")
@@ -844,7 +1195,7 @@ var _ = Describe("Workspace Controller", func() {
 		It("should use the podConfig `schedulerName` when the WorkspaceKind does not set one", func() {
 			By("generating the StatefulSet")
 			podConfigSpec.SchedulerName = new("podconfig-scheduler")
-			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking the pod template uses the podConfig `schedulerName`")
@@ -855,11 +1206,262 @@ var _ = Describe("Workspace Controller", func() {
 			By("generating the StatefulSet")
 			workspaceKind.Spec.PodTemplate.PodSpec.SchedulerName = new("workspacekind-scheduler")
 			podConfigSpec.SchedulerName = new("podconfig-scheduler")
-			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking the pod template uses the podConfig `schedulerName`")
 			Expect(statefulSet.Spec.Template.Spec.SchedulerName).To(Equal("podconfig-scheduler"))
+		})
+
+		It("should leave container env empty when `extraEnv` is unset on both the WorkspaceKind and the podConfig", func() {
+			By("generating the StatefulSet")
+			workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv = nil
+			podConfigSpec.ExtraEnv = nil
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the main container has no environment variables")
+			Expect(statefulSet.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Env).To(BeEmpty())
+		})
+
+		It("should use the WorkspaceKind `extraEnv` when the podConfig does not set any", func() {
+			By("generating the StatefulSet")
+			workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv = []corev1.EnvVar{
+				{Name: "WSK_VAR_1", Value: "wsk-1"},
+				{Name: "WSK_VAR_2", Value: "wsk-2"},
+			}
+			podConfigSpec.ExtraEnv = nil
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the main container uses the WorkspaceKind `extraEnv` in declared order")
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Env).To(Equal([]corev1.EnvVar{
+				{Name: "WSK_VAR_1", Value: "wsk-1"},
+				{Name: "WSK_VAR_2", Value: "wsk-2"},
+			}))
+		})
+
+		It("should use the podConfig `extraEnv` when the WorkspaceKind does not set any", func() {
+			By("generating the StatefulSet")
+			workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv = nil
+			podConfigSpec.ExtraEnv = []corev1.EnvVar{
+				{Name: "PC_VAR_1", Value: "pc-1"},
+				{Name: "PC_VAR_2", Value: "pc-2"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the main container uses the podConfig `extraEnv` in declared order")
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Env).To(Equal([]corev1.EnvVar{
+				{Name: "PC_VAR_1", Value: "pc-1"},
+				{Name: "PC_VAR_2", Value: "pc-2"},
+			}))
+		})
+
+		It("should merge podConfig `extraEnv` over WorkspaceKind `extraEnv` by name, replacing overrides in place and appending new variables in declared order", func() {
+			By("generating the StatefulSet with overlapping and new env vars")
+			workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv = []corev1.EnvVar{
+				{Name: "FIRST", Value: "wsk-first"},
+				{Name: "BASE_DIR", Value: "/default/base"},
+				{Name: "DERIVED_PATH", Value: "$(BASE_DIR)/sub"},
+				{
+					Name: "FROM_SOURCE",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{Name: "my-secret"},
+							Key:                  "my-key",
+						},
+					},
+				},
+			}
+			podConfigSpec.ExtraEnv = []corev1.EnvVar{
+				{Name: "NEW_VAR_1", Value: "pc-new-1"},
+				{Name: "BASE_DIR", Value: "/podconfig/base"},
+				{Name: "FROM_SOURCE", Value: "plain-override"},
+				{Name: "NEW_VAR_2", Value: "pc-new-2"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking overridden variables keep their original position and new variables are appended in declared order")
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Env).To(Equal([]corev1.EnvVar{
+				{Name: "FIRST", Value: "wsk-first"},
+				{Name: "BASE_DIR", Value: "/podconfig/base"},
+				{Name: "DERIVED_PATH", Value: "$(BASE_DIR)/sub"},
+				{Name: "FROM_SOURCE", Value: "plain-override"},
+				{Name: "NEW_VAR_1", Value: "pc-new-1"},
+				{Name: "NEW_VAR_2", Value: "pc-new-2"},
+			}))
+		})
+
+		It("should render go templates in podConfig `extraEnv` values", func() {
+			By("generating the StatefulSet with a go template in podConfig `extraEnv`")
+			workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv = []corev1.EnvVar{
+				{Name: "NB_PREFIX", Value: "static-prefix"},
+			}
+			podConfigSpec.ExtraEnv = []corev1.EnvVar{
+				{Name: "NB_PREFIX", Value: `{{ httpPathPrefix "jupyterlab" }}`},
+				{Name: "POD_CONNECT_PATH", Value: `{{ httpPathPrefix "jupyterlab" }}lab`},
+				{Name: "MISSING_PORT_PATH", Value: `{{ httpPathPrefix "unknown-port" }}`},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedPrefix := getWorkspaceConnectPath(workspace.Namespace, workspace.Name, "jupyterlab")
+			By("checking the rendered values in the container env")
+			Expect(statefulSet.Spec.Template.Spec.Containers[0].Env).To(Equal([]corev1.EnvVar{
+				{Name: "NB_PREFIX", Value: expectedPrefix},
+				{Name: "POD_CONNECT_PATH", Value: expectedPrefix + "lab"},
+				{Name: "MISSING_PORT_PATH", Value: ""},
+			}))
+		})
+
+		It("should fail to generate when a podConfig `extraEnv` value has an invalid go template", func() {
+			By("generating the StatefulSet with an invalid go template in podConfig `extraEnv`")
+			podConfigSpec.ExtraEnv = []corev1.EnvVar{
+				{Name: "BAD_TEMPLATE", Value: `{{ httpPathPrefix 'jupyterlab' }}`},
+			}
+			_, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring(`failed to render extraEnv "BAD_TEMPLATE"`))
+		})
+	})
+
+	Context("When reconciling podConfig `extraEnv` on a Workspace", Serial, Ordered, func() {
+
+		var (
+			workspaceName     string
+			workspaceKindName string
+			workspaceKey      types.NamespacedName
+			workspaceKindKey  types.NamespacedName
+		)
+
+		getMainContainerEnv := func() ([]corev1.EnvVar, error) {
+			statefulSetList := &appsv1.StatefulSetList{}
+			if err := k8sClient.List(ctx, statefulSetList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err != nil {
+				return nil, err
+			}
+			if len(statefulSetList.Items) != 1 {
+				return nil, fmt.Errorf("expected 1 StatefulSet, found %d", len(statefulSetList.Items))
+			}
+			containers := statefulSetList.Items[0].Spec.Template.Spec.Containers
+			if len(containers) != 1 {
+				return nil, fmt.Errorf("expected 1 container, found %d", len(containers))
+			}
+			return containers[0].Env, nil
+		}
+
+		BeforeAll(func() {
+			uniqueName := "ws-podconfig-extraenv-test"
+			workspaceName = fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName = fmt.Sprintf("workspacekind-%s", uniqueName)
+			workspaceKey = types.NamespacedName{Name: workspaceName, Namespace: namespaceName}
+			workspaceKindKey = types.NamespacedName{Name: workspaceKindName}
+
+			By("creating a WorkspaceKind with WorkspaceKind-level and per-podConfig `extraEnv`")
+			workspaceKind := NewExampleWorkspaceKind1(workspaceKindName)
+			workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv = []corev1.EnvVar{
+				{Name: "SHARED_VAR", Value: "from-wsk"},
+				{Name: "NB_PREFIX", Value: `{{ httpPathPrefix "jupyterlab" }}`},
+				{Name: "WSK_ONLY", Value: "wsk-default"},
+			}
+			// Values[0] is "tiny_cpu", Values[1] is "small_cpu"
+			workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.ExtraEnv = []corev1.EnvVar{
+				{Name: "TINY_NEW_1", Value: "tiny-1"},
+				{Name: "SHARED_VAR", Value: "from-tiny-cpu"},
+				{Name: "TINY_PREFIX", Value: `{{ httpPathPrefix "jupyterlab" }}tiny`},
+			}
+			workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.ExtraEnv = []corev1.EnvVar{
+				{Name: "SMALL_ONLY", Value: "small-1"},
+				{Name: "WSK_ONLY", Value: "from-small-cpu"},
+			}
+			Expect(k8sClient.Create(ctx, workspaceKind)).To(Succeed())
+
+			By("creating a Workspace selecting `tiny_cpu` and a non-redirected imageConfig")
+			workspace := NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			workspace.Spec.PodTemplate.Options.ImageConfig = "jupyterlab_scipy_190"
+			workspace.Spec.PodTemplate.Options.PodConfig = "tiny_cpu"
+			Expect(k8sClient.Create(ctx, workspace)).To(Succeed())
+		})
+
+		AfterAll(func() {
+			By("deleting the Workspace")
+			workspace := &kubefloworgv1beta1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceName, Namespace: namespaceName},
+			}
+			Expect(k8sClient.Delete(ctx, workspace)).To(Succeed())
+
+			By("deleting the WorkspaceKind")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: workspaceKindName},
+			}
+			Expect(k8sClient.Delete(ctx, workspaceKind)).To(Succeed())
+		})
+
+		It("should apply the merged and rendered `extraEnv` for the initial podConfig", func() {
+			expectedPrefix := getWorkspaceConnectPath(namespaceName, workspaceName, "jupyterlab")
+			Eventually(getMainContainerEnv, timeout, interval).Should(Equal([]corev1.EnvVar{
+				{Name: "SHARED_VAR", Value: "from-tiny-cpu"},
+				{Name: "NB_PREFIX", Value: expectedPrefix},
+				{Name: "WSK_ONLY", Value: "wsk-default"},
+				{Name: "TINY_NEW_1", Value: "tiny-1"},
+				{Name: "TINY_PREFIX", Value: expectedPrefix + "tiny"},
+			}))
+		})
+
+		It("should remove variables from the previous podConfig and apply the new podConfig's `extraEnv` when switching podConfig", func() {
+			By("updating the Workspace to select `small_cpu`")
+			workspace := &kubefloworgv1beta1.Workspace{}
+			Expect(k8sClient.Get(ctx, workspaceKey, workspace)).To(Succeed())
+			patch := client.MergeFrom(workspace.DeepCopy())
+			workspace.Spec.PodTemplate.Options.PodConfig = "small_cpu"
+			Expect(k8sClient.Patch(ctx, workspace, patch)).To(Succeed())
+
+			expectedPrefix := getWorkspaceConnectPath(namespaceName, workspaceName, "jupyterlab")
+			By("checking the StatefulSet container env drops `tiny_cpu` vars, restores `SHARED_VAR`, overrides `WSK_ONLY`, and adds `SMALL_ONLY`")
+			Eventually(getMainContainerEnv, timeout, interval).Should(Equal([]corev1.EnvVar{
+				{Name: "SHARED_VAR", Value: "from-wsk"},
+				{Name: "NB_PREFIX", Value: expectedPrefix},
+				{Name: "WSK_ONLY", Value: "from-small-cpu"},
+				{Name: "SMALL_ONLY", Value: "small-1"},
+			}))
+		})
+
+		// NOTE: the podConfig `spec` (including `extraEnv`) can NOT be changed while it is used by a Workspace
+		//       (enforced by the WorkspaceKind webhook), so we only test changes to the WorkspaceKind-level `extraEnv`,
+		//       which is MUTABLE, and check that the podConfig `extraEnv` is still layered on top of it.
+		It("should keep applying the podConfig `extraEnv` when the WorkspaceKind-level `extraEnv` changes", func() {
+			By("updating the WorkspaceKind-level `extraEnv` (changing `SHARED_VAR` and `WSK_ONLY`, and adding `WSK_NEW`)")
+			workspaceKind := &kubefloworgv1beta1.WorkspaceKind{}
+			Expect(k8sClient.Get(ctx, workspaceKindKey, workspaceKind)).To(Succeed())
+			patch := client.MergeFrom(workspaceKind.DeepCopy())
+			workspaceKind.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv = []corev1.EnvVar{
+				{Name: "SHARED_VAR", Value: "from-wsk-v2"},
+				{Name: "NB_PREFIX", Value: `{{ httpPathPrefix "jupyterlab" }}`},
+				{Name: "WSK_ONLY", Value: "wsk-v2"},
+				{Name: "WSK_NEW", Value: "wsk-new"},
+			}
+			Expect(k8sClient.Patch(ctx, workspaceKind, patch)).To(Succeed())
+
+			expectedPrefix := getWorkspaceConnectPath(namespaceName, workspaceName, "jupyterlab")
+			By("checking the `small_cpu` override of `WSK_ONLY` still wins in place, and `SMALL_ONLY` stays after all WorkspaceKind-level variables")
+			Eventually(getMainContainerEnv, timeout, interval).Should(Equal([]corev1.EnvVar{
+				{Name: "SHARED_VAR", Value: "from-wsk-v2"},
+				{Name: "NB_PREFIX", Value: expectedPrefix},
+				{Name: "WSK_ONLY", Value: "from-small-cpu"},
+				{Name: "WSK_NEW", Value: "wsk-new"},
+				{Name: "SMALL_ONLY", Value: "small-1"},
+			}))
+
+			By("leaving `status.pendingRestart` false, consistent with `podTemplate.podSpec.mainContainer.extraEnv`")
+			Consistently(func() (bool, error) {
+				workspace := &kubefloworgv1beta1.Workspace{}
+				if err := k8sClient.Get(ctx, workspaceKey, workspace); err != nil {
+					return false, err
+				}
+				return workspace.Status.PendingRestart, nil
+			}, "2s", interval).Should(BeFalse())
 		})
 	})
 
@@ -968,7 +1570,7 @@ var _ = Describe("Workspace Controller", func() {
 			}
 			imageConfigSpec := workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec
 			podConfigSpec := workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec
-			statefulSet, err := generateStatefulSet(workspace, workspaceKind, imageConfigSpec, podConfigSpec, generateServiceAccountName(workspace.Name))
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("checking the Secret volume has no `defaultMode`, so the API server applies its default")
@@ -1039,13 +1641,24 @@ var _ = Describe("Workspace Controller", func() {
 				return serviceList.Items, nil
 			}, timeout, interval).Should(HaveLen(1))
 
+			serviceAccountList := &corev1.ServiceAccountList{}
+			Eventually(func() ([]corev1.ServiceAccount, error) {
+				err := k8sClient.List(ctx, serviceAccountList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName})
+				if err != nil {
+					return nil, err
+				}
+				return serviceAccountList.Items, nil
+			}, timeout, interval).Should(HaveLen(1))
+
 			currentSts := &statefulSetList.Items[0]
 			currentSvc := &serviceList.Items[0]
+			currentSa := &serviceAccountList.Items[0]
 
 			Expect(metav1.IsControlledBy(currentSts, workspace)).To(BeTrue())
 			Expect(metav1.IsControlledBy(currentSvc, workspace)).To(BeTrue())
+			Expect(metav1.IsControlledBy(currentSa, workspace)).To(BeTrue())
 
-			By("simulating old Workspace controller reference on StatefulSet and Service")
+			By("simulating old Workspace controller reference on StatefulSet, Service and ServiceAccount")
 			oldUID := types.UID("old-workspace-uid-12345")
 			isController := true
 			blockOwnerDeletion := true
@@ -1075,6 +1688,19 @@ var _ = Describe("Workspace Controller", func() {
 				},
 			}
 			Expect(k8sClient.Patch(ctx, currentSvc, svcPatch)).To(Succeed())
+
+			saPatch := client.MergeFrom(currentSa.DeepCopy())
+			currentSa.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion:         kubefloworgv1beta1.GroupVersion.String(),
+					Kind:               "Workspace",
+					Name:               workspaceName,
+					UID:                oldUID,
+					Controller:         &isController,
+					BlockOwnerDeletion: &blockOwnerDeletion,
+				},
+			}
+			Expect(k8sClient.Patch(ctx, currentSa, saPatch)).To(Succeed())
 
 			By("triggering reconciliation of the Workspace")
 			wsPatch := client.MergeFrom(workspace.DeepCopy())
@@ -1109,6 +1735,32 @@ var _ = Describe("Workspace Controller", func() {
 				}
 				return ctrlRef.UID, nil
 			}, timeout, interval).Should(Equal(workspace.UID))
+
+			By("verifying the ServiceAccount controller reference is updated to current Workspace UID")
+			Eventually(func() (types.UID, error) {
+				sa := &corev1.ServiceAccount{}
+				if err := k8sClient.Get(ctx, types.NamespacedName{Name: currentSa.Name, Namespace: namespaceName}, sa); err != nil {
+					return "", err
+				}
+				ctrlRef := metav1.GetControllerOf(sa)
+				if ctrlRef == nil {
+					return "", fmt.Errorf("no controller reference")
+				}
+				return ctrlRef.UID, nil
+			}, timeout, interval).Should(Equal(workspace.UID))
+
+			By("keeping the same ServiceAccount for the Workspace")
+			Consistently(func() ([]string, error) {
+				saList := &corev1.ServiceAccountList{}
+				if err := k8sClient.List(ctx, saList, client.InNamespace(namespaceName), client.MatchingLabels{workspaceNameLabel: workspaceName}); err != nil {
+					return nil, err
+				}
+				names := make([]string, len(saList.Items))
+				for i, sa := range saList.Items {
+					names[i] = sa.Name
+				}
+				return names, nil
+			}, "2s", interval).Should(ConsistOf(currentSa.Name))
 		})
 	})
 
@@ -1246,6 +1898,162 @@ var _ = Describe("Workspace Controller", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
 			Expect(message).To(Equal(stateMsgRunning))
+		})
+	})
+
+	Context("When generating a StatefulSet with per-podConfig metadata", func() {
+
+		// NOTE: these tests call generateStatefulSet directly and do not create any
+		//       resources in the cluster, so no teardown is required.
+		var (
+			workspace       *kubefloworgv1beta1.Workspace
+			workspaceKind   *kubefloworgv1beta1.WorkspaceKind
+			imageConfigSpec kubefloworgv1beta1.ImageConfigSpec
+			podConfigSpec   kubefloworgv1beta1.PodConfigSpec
+		)
+
+		BeforeEach(func() {
+			uniqueName := "ws-podconfig-metadata-test"
+			workspaceName := fmt.Sprintf("workspace-%s", uniqueName)
+			workspaceKindName := fmt.Sprintf("workspacekind-%s", uniqueName)
+
+			workspaceKind = NewExampleWorkspaceKind1(workspaceKindName)
+			workspace = NewExampleWorkspace1(workspaceName, namespaceName, workspaceKindName)
+			imageConfigSpec = workspaceKind.Spec.PodTemplate.Options.ImageConfig.Values[0].Spec
+			podConfigSpec = workspaceKind.Spec.PodTemplate.Options.PodConfig.Values[0].Spec
+
+			// ensure every metadata level starts unset, so each test only sets what it exercises
+			workspaceKind.Spec.PodTemplate.PodMetadata = nil
+			workspaceKind.Spec.PodTemplate.StatefulSetMetadata = nil
+			workspace.Spec.PodTemplate.PodMetadata = nil
+			podConfigSpec.PodMetadata = nil
+			podConfigSpec.StatefulSetMetadata = nil
+		})
+
+		It("should apply the podConfig `podMetadata` to the Pod template and `statefulSetMetadata` to the StatefulSet", func() {
+			By("generating the StatefulSet with per-podConfig metadata")
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels:      map[string]string{"pod-label": "pod-value"},
+				Annotations: map[string]string{"pod-annotation": "pod-value"},
+			}
+			podConfigSpec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels:      map[string]string{"sts-label": "sts-value"},
+				Annotations: map[string]string{"sts-annotation": "sts-value"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the podMetadata lands on the Pod template and not the StatefulSet")
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue("pod-label", "pod-value"))
+			Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("pod-annotation", "pod-value"))
+			Expect(statefulSet.Labels).NotTo(HaveKey("pod-label"))
+
+			By("checking the statefulSetMetadata lands on the StatefulSet and not the Pod template")
+			Expect(statefulSet.Labels).To(HaveKeyWithValue("sts-label", "sts-value"))
+			Expect(statefulSet.Annotations).To(HaveKeyWithValue("sts-annotation", "sts-value"))
+			Expect(statefulSet.Spec.Template.Labels).NotTo(HaveKey("sts-label"))
+		})
+
+		It("should let podConfig metadata win over WorkspaceKind-level metadata on key conflicts", func() {
+			By("setting the same keys at both the WorkspaceKind and podConfig levels")
+			workspaceKind.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"shared": "from-workspacekind"},
+			}
+			workspaceKind.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels: map[string]string{"shared": "from-workspacekind"},
+			}
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"shared": "from-podconfig"},
+			}
+			podConfigSpec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels: map[string]string{"shared": "from-podconfig"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the podConfig value wins on both the Pod template and the StatefulSet")
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue("shared", "from-podconfig"))
+			Expect(statefulSet.Labels).To(HaveKeyWithValue("shared", "from-podconfig"))
+		})
+
+		It("should let Workspace-level `podMetadata` win over the podConfig on the Pod template", func() {
+			By("setting the same key at the podConfig and Workspace levels")
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"shared": "from-podconfig"},
+			}
+			workspace.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspacePodMetadata{
+				Labels: map[string]string{"shared": "from-workspace"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the Workspace value wins on the Pod template")
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue("shared", "from-workspace"))
+		})
+
+		It("should not let podConfig metadata override the controller-managed labels", func() {
+			By("setting podConfig metadata that reuses the controller label keys")
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{workspaceNameLabel: "hijacked", workspaceSelectorLabel: "hijacked"},
+			}
+			podConfigSpec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Labels: map[string]string{workspaceNameLabel: "hijacked"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the controller values win on both the Pod template and the StatefulSet")
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue(workspaceNameLabel, workspace.Name))
+			Expect(statefulSet.Spec.Template.Labels).To(HaveKeyWithValue(workspaceSelectorLabel, workspace.Name))
+			Expect(statefulSet.Labels).To(HaveKeyWithValue(workspaceNameLabel, workspace.Name))
+		})
+
+		It("should re-derive metadata so keys from a different podConfig are not carried over", func() {
+			By("generating a StatefulSet from a podConfig that contributes a key")
+			podConfigA := podConfigSpec
+			podConfigA.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Labels: map[string]string{"tier": "gpu"},
+			}
+			statefulSetA, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigA, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(statefulSetA.Spec.Template.Labels).To(HaveKeyWithValue("tier", "gpu"))
+
+			By("generating a StatefulSet from a podConfig that does not contribute that key")
+			podConfigB := podConfigSpec
+			podConfigB.PodMetadata = nil
+			statefulSetB, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigB, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the key contributed only by the first podConfig is absent from the second")
+			Expect(statefulSetB.Spec.Template.Labels).NotTo(HaveKey("tier"))
+		})
+
+		It("should union annotations across layers and prefer the podConfig on key conflicts", func() {
+			By("setting overlapping and distinct annotations at the WorkspaceKind and podConfig levels")
+			workspaceKind.Spec.PodTemplate.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Annotations: map[string]string{"origin": "workspacekind", "wk-only": "yes"},
+			}
+			workspaceKind.Spec.PodTemplate.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Annotations: map[string]string{"origin": "workspacekind", "wk-only": "yes"},
+			}
+			podConfigSpec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+				Annotations: map[string]string{"origin": "podconfig", "pod-only": "yes"},
+			}
+			podConfigSpec.StatefulSetMetadata = &kubefloworgv1beta1.WorkspaceKindStatefulSetMetadata{
+				Annotations: map[string]string{"cost-center": "research"},
+			}
+			statefulSet, err := generateStatefulSet(workspace, workspaceKind, &imageConfigSpec, &podConfigSpec, exampleServiceAccountName)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("checking the Pod template annotations are the union, with the podConfig winning on conflicts")
+			Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("origin", "podconfig")) // podConfig wins
+			Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("wk-only", "yes"))      // WorkspaceKind-only, preserved
+			Expect(statefulSet.Spec.Template.Annotations).To(HaveKeyWithValue("pod-only", "yes"))     // podConfig-only
+
+			By("checking the StatefulSet annotations union a WorkspaceKind key with a distinct podConfig key")
+			Expect(statefulSet.Annotations).To(HaveKeyWithValue("origin", "workspacekind")) // WorkspaceKind value survives (no podConfig conflict)
+			Expect(statefulSet.Annotations).To(HaveKeyWithValue("wk-only", "yes"))
+			Expect(statefulSet.Annotations).To(HaveKeyWithValue("cost-center", "research")) // podConfig-only
 		})
 	})
 })

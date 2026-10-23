@@ -57,6 +57,34 @@ class Workspaces {
       .should('have.text', state);
   }
 
+  findStartButton(workspaceName: string) {
+    return this.findWorkspaceTableRow(workspaceName)
+      .findByTestId('action-column')
+      .findByTestId(`start${workspaceName}`);
+  }
+
+  findStopButton(workspaceName: string) {
+    return this.findWorkspaceTableRow(workspaceName)
+      .findByTestId('action-column')
+      .findByTestId(`stop${workspaceName}`);
+  }
+
+  assertWorkspaceStatusAction(workspaceName: string, action: 'start' | 'stop' | 'none') {
+    const actionsCell = this.findWorkspaceTableRow(workspaceName).findByTestId('action-column');
+    actionsCell
+      .findByTestId(`start${workspaceName}`)
+      .should(action === 'start' ? 'exist' : 'not.exist');
+    actionsCell
+      .findByTestId(`stop${workspaceName}`)
+      .should(action === 'stop' ? 'exist' : 'not.exist');
+  }
+
+  assertNoStartOrStopMenuActions(workspaceName: string) {
+    this.openWorkspaceActionDropdown(workspaceName);
+    cy.findByTestId('action-start').should('not.exist');
+    cy.findByTestId('action-stop').should('not.exist');
+  }
+
   assertWorkspaceRowImage(index: number, image: string) {
     return cy
       .findByTestId(`workspace-row-${index}`)
@@ -190,15 +218,19 @@ class Workspaces {
   }
 
   openWorkspaceActionDropdown(workspaceName: string) {
-    this.findWorkspaceTableRow(workspaceName).findByTestId('action-column').find('button').click();
+    this.findWorkspaceTableRow(workspaceName)
+      .findByTestId('action-column')
+      .findByRole('button', { name: 'Kebab toggle' })
+      .click();
   }
 
-  findAction(args: {
-    action: 'delete' | 'start' | 'stop' | 'viewDetails' | 'edit';
-    workspaceName: string;
-  }) {
+  findAction(args: { action: 'delete' | 'viewDetails' | 'edit'; workspaceName: string }) {
     this.openWorkspaceActionDropdown(args.workspaceName);
     return cy.findByTestId(`action-${args.action}`);
+  }
+
+  clickViewDetailsAction(workspaceName: string) {
+    return this.findAction({ action: 'viewDetails', workspaceName }).click();
   }
 
   toggleRowExpansion(rowIndex: number) {
@@ -624,8 +656,16 @@ class DeleteModal {
     return this.find().findByTestId('delete-modal-input');
   }
 
+  typeConfirmationName(name: string) {
+    return this.findConfirmationInput().type(name);
+  }
+
   findSubmitButton() {
     return this.find().findByTestId('delete-button');
+  }
+
+  clickSubmit() {
+    return this.findSubmitButton().click();
   }
 
   findCancelButton() {

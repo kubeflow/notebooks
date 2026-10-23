@@ -10,6 +10,8 @@ import { Timestamp } from '@patternfly/react-core/dist/esm/components/Timestamp'
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
+import { PlayIcon } from '@patternfly/react-icons/dist/esm/icons/play-icon';
+import { StopIcon } from '@patternfly/react-icons/dist/esm/icons/stop-icon';
 import {
   PaginationVariant,
   Pagination,
@@ -38,6 +40,7 @@ import { DataFieldKey, defineDataFields, SortableDataFieldKey } from '~/app/filt
 import { useTypedNavigate } from '~/app/routerHelper';
 import { buildKindLogoDictionary } from '~/app/actions/WorkspaceKindsActions';
 import useWorkspaceKinds from '~/app/hooks/useWorkspaceKinds';
+import { useStableSortedRows } from '~/app/hooks/useStableSortedRows';
 import { WorkspaceConnectAction } from '~/app/pages/Workspaces/WorkspaceConnectAction';
 import WorkspaceKindImage from '~/app/components/WorkspaceKindImage';
 import ImageFallback from '~/shared/components/ImageFallback';
@@ -50,6 +53,7 @@ import {
   ActivityWarningLevel,
   getActivityStatus,
   formatTimeRemaining,
+  getWorkspaceDisplayName,
 } from '~/shared/utilities/WorkspaceUtils';
 import CustomEmptyState from '~/shared/components/CustomEmptyState';
 import { WorkspacesWorkspaceListItem, V1Beta1WorkspaceState } from '~/generated/data-contracts';
@@ -62,6 +66,7 @@ import ToolbarFilter, {
   ToolbarFilterRef,
 } from '~/shared/components/ToolbarFilter';
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
+import { useWorkspaceActionsContext } from '~/app/context/WorkspaceActionsContext';
 
 const {
   fields: wsTableColumns,
@@ -86,7 +91,7 @@ type WorkspaceTableSortableColumnKeys = SortableDataFieldKey<typeof wsTableColum
 
 interface WorkspaceTableProps {
   workspaces: WorkspacesWorkspaceListItem[];
-  refreshWorkspaces: () => void;
+  refreshWorkspaces: () => void | Promise<unknown>;
   namespace?: string;
   canCreateWorkspaces?: boolean;
   hiddenColumns?: WorkspaceTableColumnKeys[];
@@ -203,6 +208,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const [workspaceKinds] = useWorkspaceKinds(namespace);
     const [activeRedirectPopover, setActiveRedirectPopover] = useState<string | null>(null);
     const [pinnedRedirectPopover, setPinnedRedirectPopover] = useState<string | null>(null);
+    const [manualRefreshCount, setManualRefreshCount] = useState(0);
 
     const { filterValues, setFilter, clearAllFilters } =
       useToolbarFilters<WorkspaceFilterKey>(filterConfig);
@@ -214,6 +220,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const [perPage, setPerPage] = useState(10);
 
     const navigate = useTypedNavigate();
+    const { requestStartAction, requestStopAction } = useWorkspaceActionsContext();
     const kindLogoDict = buildKindLogoDictionary(workspaceKinds);
 
     const toolbarFilterRef = useRef<ToolbarFilterRef<WorkspaceFilterKey> | null>(null);
@@ -237,7 +244,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       (ws: WorkspacesWorkspaceListItem) => string
     > = useMemo(
       () => ({
-        name: (ws) => ws.name,
+        name: (ws) => getWorkspaceDisplayName(ws),
         kind: (ws) => ws.workspaceKind.name,
         image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
         podConfig: (ws) => ws.podTemplate.options.podConfig.current.displayName,
@@ -269,7 +276,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     const getSortableRowValues = (
       workspace: WorkspacesWorkspaceListItem,
     ): Record<WorkspaceTableSortableColumnKeys, string | number> => ({
-      name: workspace.name,
+      name: getWorkspaceDisplayName(workspace),
       kind: workspace.workspaceKind.name,
       namespace: workspace.namespace,
       image: workspace.podTemplate.options.imageConfig.current.displayName,
@@ -280,12 +287,17 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
       lastActivity: workspace.activity.lastActivity,
     });
 
-    const sortedWorkspaces = useMemo(() => {
-      if (activeSortColumnKey === null) {
-        return filteredWorkspaces;
-      }
+    const getRowId = useCallback(
+      (workspace: WorkspacesWorkspaceListItem) => `${workspace.namespace}/${workspace.name}`,
+      [],
+    );
 
-      return [...filteredWorkspaces].sort((a, b) => {
+    const compareWorkspaces = useCallback(
+      (a: WorkspacesWorkspaceListItem, b: WorkspacesWorkspaceListItem) => {
+        if (activeSortColumnKey === null) {
+          return 0;
+        }
+
         const aValue = getSortableRowValues(a)[activeSortColumnKey];
         const bValue = getSortableRowValues(b)[activeSortColumnKey];
 
@@ -297,8 +309,32 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         return activeSortDirection === 'asc'
           ? String(aValue).localeCompare(String(bValue))
           : String(bValue).localeCompare(String(aValue));
-      });
-    }, [filteredWorkspaces, activeSortColumnKey, activeSortDirection]);
+      },
+      [activeSortColumnKey, activeSortDirection],
+    );
+
+    // Row order only changes in response to an explicit user action, never from a background
+    // poll tick on its own. Sorting/filtering/paging re-sort immediately (they don't need new
+    // data); clicking "Refresh" can't resort immediately since the resulting data hasn't arrived
+    // yet, so it's a separate "pending" trigger consumed by the next data update instead.
+    const instantResortKey = useMemo(
+      () =>
+        JSON.stringify({
+          sort: `${activeSortColumnKey ?? ''}-${activeSortDirection ?? ''}`,
+          filters: filterValues,
+          page,
+          perPage,
+        }),
+      [activeSortColumnKey, activeSortDirection, filterValues, page, perPage],
+    );
+
+    const sortedWorkspaces = useStableSortedRows(
+      filteredWorkspaces,
+      getRowId,
+      compareWorkspaces,
+      instantResortKey,
+      manualRefreshCount,
+    );
 
     useEffect(() => {
       const totalPages = Math.max(1, Math.ceil(sortedWorkspaces.length / perPage) || 1);
@@ -434,184 +470,233 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
               {sortedWorkspaces.length > 0 &&
                 sortedWorkspaces
                   .slice(perPage * (page - 1), perPage * page)
-                  .map((workspace, rowIndex) => (
-                    <Tbody id="workspaces-table-content" key={rowIndex} data-testid="table-body">
-                      <Tr
-                        id={`workspaces-table-row-${rowIndex + 1}`}
-                        data-testid={`workspace-row-${rowIndex}`}
-                        isStriped={rowIndex % 2 === 0}
-                      >
-                        {visibleColumnKeys.map((columnKey) => {
-                          if (columnKey === 'connect') {
+                  .map((workspace, rowIndex) => {
+                    const rowId = getRowId(workspace);
+                    return (
+                      <Tbody id="workspaces-table-content" key={rowId} data-testid="table-body">
+                        <Tr
+                          id={`workspaces-table-row-${rowIndex + 1}`}
+                          data-testid={`workspace-row-${rowIndex}`}
+                          isStriped={rowIndex % 2 === 0}
+                        >
+                          {visibleColumnKeys.map((columnKey) => {
+                            if (columnKey === 'connect') {
+                              return (
+                                <Td
+                                  dataLabel={wsTableColumns[columnKey].label}
+                                  modifier="fitContent"
+                                  hasAction
+                                  key="connect"
+                                >
+                                  <TableText>
+                                    <WorkspaceConnectAction workspace={workspace} />
+                                  </TableText>
+                                </Td>
+                              );
+                            }
+
+                            if (columnKey === 'actions') {
+                              return (
+                                <Td
+                                  isActionCell
+                                  key="actions"
+                                  data-testid="action-column"
+                                  className="kubeflow-workspace-actions-cell"
+                                >
+                                  <Flex
+                                    justifyContent={{ default: 'justifyContentFlexEnd' }}
+                                    alignItems={{ default: 'alignItemsCenter' }}
+                                    gap={{ default: 'gapXs' }}
+                                  >
+                                    {workspace.state ===
+                                    V1Beta1WorkspaceState.WorkspaceStateRunning ? (
+                                      <Tooltip content="Stop workspace" trigger="mouseenter">
+                                        <Button
+                                          variant="plain"
+                                          hasNoPadding
+                                          aria-label="stop workspace"
+                                          icon={<StopIcon aria-label="stop workspace" />}
+                                          data-testid={`stop${workspace.name}`}
+                                          onClick={() =>
+                                            requestStopAction({
+                                              workspace,
+                                              onActionDone: refreshWorkspaces,
+                                            })
+                                          }
+                                        />
+                                      </Tooltip>
+                                    ) : workspace.state !==
+                                      V1Beta1WorkspaceState.WorkspaceStateError ? (
+                                      <Tooltip content="Start workspace" trigger="mouseenter">
+                                        <Button
+                                          variant="plain"
+                                          hasNoPadding
+                                          aria-label="start workspace"
+                                          icon={<PlayIcon />}
+                                          data-testid={`start${workspace.name}`}
+                                          onClick={() =>
+                                            requestStartAction({
+                                              workspace,
+                                              onActionDone: refreshWorkspaces,
+                                            })
+                                          }
+                                        />
+                                      </Tooltip>
+                                    ) : null}
+                                    <ActionsColumn
+                                      items={rowActions(workspace).map((action) => ({
+                                        ...action,
+                                        'data-testid': `action-${action.id || ''}`,
+                                      }))}
+                                    />
+                                  </Flex>
+                                </Td>
+                              );
+                            }
+
                             return (
                               <Td
+                                key={columnKey}
+                                data-testid={
+                                  columnKey === 'name'
+                                    ? 'workspace-name'
+                                    : columnKey === 'state'
+                                      ? 'state-label'
+                                      : `workspace-${columnKey}`
+                                }
                                 dataLabel={wsTableColumns[columnKey].label}
-                                modifier="fitContent"
-                                hasAction
-                                key="connect"
                               >
-                                <TableText>
-                                  <WorkspaceConnectAction workspace={workspace} />
-                                </TableText>
-                              </Td>
-                            );
-                          }
+                                {columnKey === 'name' &&
+                                  (() => {
+                                    const viewDetailsAction = rowActions(workspace).find(
+                                      (action): action is IAction =>
+                                        !('isSeparator' in action && action.isSeparator) &&
+                                        action.id === 'viewDetails',
+                                    );
 
-                          if (columnKey === 'actions') {
-                            return (
-                              <Td
-                                isActionCell
-                                key="actions"
-                                data-testid="action-column"
-                                className="kubeflow-workspace-actions-cell"
-                              >
-                                <ActionsColumn
-                                  items={rowActions(workspace).map((action) => ({
-                                    ...action,
-                                    'data-testid': `action-${action.id || ''}`,
-                                  }))}
-                                />
-                              </Td>
-                            );
-                          }
-
-                          return (
-                            <Td
-                              key={columnKey}
-                              data-testid={
-                                columnKey === 'name'
-                                  ? 'workspace-name'
-                                  : columnKey === 'state'
-                                    ? 'state-label'
-                                    : `workspace-${columnKey}`
-                              }
-                              dataLabel={wsTableColumns[columnKey].label}
-                            >
-                              {columnKey === 'name' &&
-                                (() => {
-                                  const viewDetailsAction = rowActions(workspace).find(
-                                    (action): action is IAction =>
-                                      !('isSeparator' in action && action.isSeparator) &&
-                                      action.id === 'viewDetails',
-                                  );
-
-                                  return viewDetailsAction ? (
-                                    <Button
-                                      variant="link"
-                                      isInline
-                                      // Looks like plain text until hovered/focused, then reveals link styling.
-                                      // See the `workspace-name-btn` rule in app.css.
-                                      className="pf-v6-u-text-color-regular workspace-name-btn"
-                                      data-testid="workspace-name-link"
-                                      onClick={(event) =>
-                                        viewDetailsAction.onClick?.(event, rowIndex, {}, {})
+                                    return viewDetailsAction ? (
+                                      <Button
+                                        variant="link"
+                                        isInline
+                                        // Looks like plain text until hovered/focused, then reveals link styling.
+                                        // See the `workspace-name-btn` rule in app.css.
+                                        className="pf-v6-u-text-color-regular workspace-name-btn"
+                                        data-testid="workspace-name-link"
+                                        onClick={(event) =>
+                                          viewDetailsAction.onClick?.(event, rowIndex, {}, {})
+                                        }
+                                      >
+                                        {getWorkspaceDisplayName(workspace)}
+                                      </Button>
+                                    ) : (
+                                      getWorkspaceDisplayName(workspace)
+                                    );
+                                  })()}
+                                {columnKey === 'image' && (
+                                  <Content>
+                                    <Tooltip
+                                      data-testid="workspace-image-description-tooltip"
+                                      content={
+                                        workspace.podTemplate.options.imageConfig.current
+                                          .description
                                       }
                                     >
-                                      {workspace.name}
-                                    </Button>
-                                  ) : (
-                                    workspace.name
-                                  );
-                                })()}
-                              {columnKey === 'image' && (
-                                <Content>
-                                  <Tooltip
-                                    data-testid="workspace-image-description-tooltip"
-                                    content={
-                                      workspace.podTemplate.options.imageConfig.current.description
-                                    }
-                                  >
-                                    <span data-testid="workspace-image-name">
-                                      {
-                                        workspace.podTemplate.options.imageConfig.current
-                                          .displayName
+                                      <span data-testid="workspace-image-name">
+                                        {
+                                          workspace.podTemplate.options.imageConfig.current
+                                            .displayName
+                                        }
+                                      </span>
+                                    </Tooltip>{' '}
+                                    <RedirectIconWithPopover
+                                      redirectChain={
+                                        workspace.podTemplate.options.imageConfig.redirectChain
                                       }
-                                    </span>
-                                  </Tooltip>{' '}
-                                  <RedirectIconWithPopover
-                                    redirectChain={
-                                      workspace.podTemplate.options.imageConfig.redirectChain
-                                    }
-                                    popoverId={`${workspace.name}-image`}
-                                    activePopoverId={activeRedirectPopover}
-                                    pinnedPopoverId={pinnedRedirectPopover}
-                                    onActiveChange={setActiveRedirectPopover}
-                                    onPinnedChange={setPinnedRedirectPopover}
-                                  />
-                                </Content>
-                              )}
-                              {columnKey === 'podConfig' && (
-                                <Content>
-                                  <Tooltip
-                                    data-testid="workspace-pod-config-description-tooltip"
-                                    content={
-                                      workspace.podTemplate.options.podConfig.current.description
-                                    }
-                                  >
-                                    <span data-testid="workspace-pod-config-name">
-                                      {workspace.podTemplate.options.podConfig.current.displayName}
-                                    </span>
-                                  </Tooltip>{' '}
-                                  <RedirectIconWithPopover
-                                    redirectChain={
-                                      workspace.podTemplate.options.podConfig.redirectChain
-                                    }
-                                    popoverId={`${workspace.name}-podConfig`}
-                                    activePopoverId={activeRedirectPopover}
-                                    pinnedPopoverId={pinnedRedirectPopover}
-                                    onActiveChange={setActiveRedirectPopover}
-                                    onPinnedChange={setPinnedRedirectPopover}
-                                  />
-                                </Content>
-                              )}
-                              {columnKey === 'kind' && (
-                                <WorkspaceKindImage
-                                  imageSrc={kindLogoDict[workspace.workspaceKind.name]}
-                                  skeletonWidth="20px"
-                                  fallback={
-                                    <ImageFallback
-                                      imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                                      popoverId={`${workspace.name}-image`}
+                                      activePopoverId={activeRedirectPopover}
+                                      pinnedPopoverId={pinnedRedirectPopover}
+                                      onActiveChange={setActiveRedirectPopover}
+                                      onPinnedChange={setPinnedRedirectPopover}
                                     />
-                                  }
-                                  assetType="logo"
-                                  kindName={workspace.workspaceKind.name}
-                                >
-                                  {(validSrc) => (
-                                    <Tooltip content={workspace.workspaceKind.name}>
-                                      <img
-                                        src={validSrc}
-                                        alt={workspace.workspaceKind.name}
-                                        style={{
-                                          width: '20px',
-                                          height: '20px',
-                                          cursor: 'pointer',
-                                        }}
+                                  </Content>
+                                )}
+                                {columnKey === 'podConfig' && (
+                                  <Content>
+                                    <Tooltip
+                                      data-testid="workspace-pod-config-description-tooltip"
+                                      content={
+                                        workspace.podTemplate.options.podConfig.current.description
+                                      }
+                                    >
+                                      <span data-testid="workspace-pod-config-name">
+                                        {
+                                          workspace.podTemplate.options.podConfig.current
+                                            .displayName
+                                        }
+                                      </span>
+                                    </Tooltip>{' '}
+                                    <RedirectIconWithPopover
+                                      redirectChain={
+                                        workspace.podTemplate.options.podConfig.redirectChain
+                                      }
+                                      popoverId={`${workspace.name}-podConfig`}
+                                      activePopoverId={activeRedirectPopover}
+                                      pinnedPopoverId={pinnedRedirectPopover}
+                                      onActiveChange={setActiveRedirectPopover}
+                                      onPinnedChange={setPinnedRedirectPopover}
+                                    />
+                                  </Content>
+                                )}
+                                {columnKey === 'kind' && (
+                                  <WorkspaceKindImage
+                                    imageSrc={kindLogoDict[workspace.workspaceKind.name]}
+                                    skeletonWidth="20px"
+                                    fallback={
+                                      <ImageFallback
+                                        imageSrc={kindLogoDict[workspace.workspaceKind.name]}
                                       />
+                                    }
+                                    assetType="logo"
+                                    kindName={workspace.workspaceKind.name}
+                                  >
+                                    {(validSrc) => (
+                                      <Tooltip content={workspace.workspaceKind.name}>
+                                        <img
+                                          src={validSrc}
+                                          alt={workspace.workspaceKind.name}
+                                          style={{
+                                            width: '20px',
+                                            height: '20px',
+                                            cursor: 'pointer',
+                                          }}
+                                        />
+                                      </Tooltip>
+                                    )}
+                                  </WorkspaceKindImage>
+                                )}
+                                {columnKey === 'namespace' && workspace.namespace}
+                                {columnKey === 'state' && (
+                                  <div className="pf-v6-u-display-inline-block">
+                                    <Tooltip content={workspace.stateMessage || workspace.state}>
+                                      <Label color={extractWorkspaceStateColor(workspace.state)}>
+                                        {workspace.state}
+                                      </Label>
                                     </Tooltip>
-                                  )}
-                                </WorkspaceKindImage>
-                              )}
-                              {columnKey === 'namespace' && workspace.namespace}
-                              {columnKey === 'state' && (
-                                <div className="pf-v6-u-display-inline-block">
-                                  <Tooltip content={workspace.stateMessage || workspace.state}>
-                                    <Label color={extractWorkspaceStateColor(workspace.state)}>
-                                      {workspace.state}
-                                    </Label>
-                                  </Tooltip>
-                                </div>
-                              )}
-                              {columnKey === 'gpu' && formatResourceFromWorkspace(workspace, 'gpu')}
-                              {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
-                              {columnKey === 'lastActivity' && (
-                                <LastActivityCell workspace={workspace} />
-                              )}
-                            </Td>
-                          );
-                        })}
-                      </Tr>
-                    </Tbody>
-                  ))}
+                                  </div>
+                                )}
+                                {columnKey === 'gpu' &&
+                                  formatResourceFromWorkspace(workspace, 'gpu')}
+                                {columnKey === 'idleGpu' && formatWorkspaceIdleState(workspace)}
+                                {columnKey === 'lastActivity' && (
+                                  <LastActivityCell workspace={workspace} />
+                                )}
+                              </Td>
+                            );
+                          })}
+                        </Tr>
+                      </Tbody>
+                    );
+                  })}
               {sortedWorkspaces.length === 0 && (
                 <Tbody>
                   <Tr>
@@ -626,7 +711,11 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
         </div>
         <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
           <FlexItem>
-            <RefreshCounter interval={POLL_INTERVAL} onRefresh={refreshWorkspaces} />
+            <RefreshCounter
+              interval={POLL_INTERVAL}
+              onRefresh={refreshWorkspaces}
+              onManualRefresh={() => setManualRefreshCount((count) => count + 1)}
+            />
           </FlexItem>
           <FlexItem>
             <Pagination

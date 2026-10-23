@@ -116,6 +116,8 @@ describe('Filter Images by Labels', () => {
               labels: [],
               hidden: false,
               restrictions: { deny: false },
+              podMetadata: { labels: {}, annotations: {} },
+              statefulSetMetadata: { labels: {}, annotations: {} },
             },
           ],
         },

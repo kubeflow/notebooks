@@ -153,10 +153,17 @@ export const buildMockPodConfigWithLabels = (
   redirect: undefined,
   clusterMetrics: undefined,
   restrictions: { deny: false },
+  podMetadata: { labels: {}, annotations: {} },
+  statefulSetMetadata: { labels: {}, annotations: {} },
 });
+
+type InterceptListValuesOptions = {
+  podConfigsByImage?: Record<string, OptionsPodConfigValue[]>;
+};
 
 export const interceptListValues = (
   kind: WorkspacekindsWorkspaceKindListItem,
+  options: InterceptListValuesOptions = {},
 ): Cypress.Chainable<null> => {
   const allImages = kind.podTemplate.options.imageConfig.values ?? [];
   const allPodConfigs = kind.podTemplate.options.podConfig.values ?? [];
@@ -167,6 +174,9 @@ export const interceptListValues = (
 
       const images = imageId ? allImages.filter((img) => img.id === imageId) : allImages;
 
+      const podConfigs =
+        (imageId ? options.podConfigsByImage?.[imageId] : undefined) ?? allPodConfigs;
+
       req.reply({
         data: {
           imageConfig: {
@@ -175,7 +185,7 @@ export const interceptListValues = (
           },
           podConfig: {
             default: kind.podTemplate.options.podConfig.default,
-            values: allPodConfigs,
+            values: podConfigs,
           },
         },
       });

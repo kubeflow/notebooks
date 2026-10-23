@@ -35,8 +35,10 @@ import (
 
 //	@title			Kubeflow Notebooks API
 //	@version		1.0.0
-//	@description	This API provides endpoints to manage notebooks in a Kubernetes cluster.
-//	@description	For more information, visit https://www.kubeflow.org/docs/components/notebooks/
+//	@description	This API is the backend-for-frontend (BFF) of the Kubeflow Notebooks web UI.
+//	@description	It is intended to be used only by the Kubeflow Notebooks frontend and is NOT a stable public API:
+//	@description	endpoints, request and response formats may change without notice between releases.
+//	@description	For more information, visit https://www.kubeflow.org/docs/components/workspaces/
 
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
@@ -121,6 +123,7 @@ func main() {
 		getEnvAsStr("SWAGGER_SCHEME", "http"),
 		"Scheme used in the Swagger UI (http or https)",
 	)
+	flag.Parse()
 
 	// Override Swagger metadata with runtime config
 	if cfg.SwaggerEnabled {
@@ -175,10 +178,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Create a filtered cache client for ConfigMaps with the label 'notebooks.kubeflow.org/image-source=true'
+	// Create a filtered cache client for ConfigMaps with the label 'workspaces.kubeflow.org/image-source=true'
 	imageSourceConfigMapClient, err := helper.BuildImageSourceConfigMapClient(mgr)
 	if err != nil {
-		logger.Error("failed to create 'notebooks.kubeflow.org/image-source=true' label "+
+		logger.Error("failed to create 'workspaces.kubeflow.org/image-source=true' label "+
 			"filtered ConfigMap client", "error", err)
 		os.Exit(1)
 	}

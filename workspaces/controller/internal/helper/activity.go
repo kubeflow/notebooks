@@ -48,7 +48,7 @@ type ActivityRuleDecision[T any] struct {
 // EvaluateActivityRule finds the first activityRule whose match applies to the Workspace
 // and which configures the requested effect.
 //
-// Rules are evaluated in order (first-match-wins). A rule with a nil/empty match is a catch-all.
+// Rules are evaluated in order (first-match-wins). A rule with an empty match list is a catch-all.
 // Only a rule with a non-nil effect (as determined by getEffect) terminates evaluation; rules
 // where getEffect returns nil are skipped (fallthrough) for this effect type.
 //
@@ -100,29 +100,26 @@ func EvaluatePauseWorkspaceRule(rules []kubefloworgv1beta1.ActivityRule, namespa
 	})
 }
 
-// activityRuleMatches reports whether the given match applies to a Workspace with the provided
-// namespace and podConfig labels. A nil/empty match is treated as a catch-all (always matches).
-// When both matchNamespace and matchPodConfig are set, both must match (AND semantics).
-func activityRuleMatches(match *kubefloworgv1beta1.ActivityRuleMatch, namespaceLabels, podConfigLabels map[string]string) (bool, error) {
-	if match == nil {
-		return true, nil
-	}
-	if match.MatchNamespace == nil && match.MatchPodConfig == nil {
-		return true, nil
-	}
+// activityRuleMatches reports whether the given match conditions apply to a Workspace with the provided
+// namespace and podConfig labels. An empty list of conditions is treated as a catch-all (always matches).
+// All conditions must match (AND semantics).
+func activityRuleMatches(matches []kubefloworgv1beta1.ActivityRuleMatch, namespaceLabels, podConfigLabels map[string]string) (bool, error) {
+	for i := range matches {
+		match := &matches[i]
 
-	if match.MatchNamespace != nil {
-		ok, err := selectorMatches(&match.MatchNamespace.Selector, namespaceLabels)
-		if err != nil {
-			return false, err
+		var selector *metav1.LabelSelector
+		var targetLabels map[string]string
+		switch {
+		case match.MatchNamespace != nil:
+			selector, targetLabels = &match.MatchNamespace.Selector, namespaceLabels
+		case match.MatchPodConfig != nil:
+			selector, targetLabels = &match.MatchPodConfig.Selector, podConfigLabels
+		default:
+			// this should never happen, as the CRD requires exactly one matcher per condition
+			return false, fmt.Errorf("match[%d] does not specify a matcher", i)
 		}
-		if !ok {
-			return false, nil
-		}
-	}
 
-	if match.MatchPodConfig != nil {
-		ok, err := selectorMatches(&match.MatchPodConfig.Selector, podConfigLabels)
+		ok, err := selectorMatches(selector, targetLabels)
 		if err != nil {
 			return false, err
 		}

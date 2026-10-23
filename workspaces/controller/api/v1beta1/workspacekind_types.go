@@ -61,8 +61,8 @@ type WorkspaceKindSpec struct {
 
 	// activityRules defines the policies for handling inactivity in Workspaces of this WorkspaceKind (MUTABLE).
 	// Rules are evaluated sequentially from top to bottom (first-match-wins semantics) independently for each
-	// configured effect type (e.g., pauseWorkspace). A rule with a nil or empty 'match' is treated as a catch-all
-	// rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
+	// configured effect type (e.g., pauseWorkspace). A rule with an omitted or empty 'match' list is treated as a
+	// catch-all rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
 	// +kubebuilder:validation:Optional
 	// +listType:="atomic"
 	ActivityRules []ActivityRule `json:"activityRules,omitempty"`
@@ -81,9 +81,11 @@ type ActivityRule struct {
 	// the configuration for this rule
 	Config ActivityRuleConfig `json:"config"`
 
-	// the conditions under which this rule applies
+	// the conditions which must ALL be satisfied for the rule to apply
+	//  - an omitted or empty list makes this a catch-all rule that matches all Workspaces
 	// +kubebuilder:validation:Optional
-	Match *ActivityRuleMatch `json:"match,omitempty"`
+	// +listType:="atomic"
+	Match []ActivityRuleMatch `json:"match,omitempty"`
 
 	// the action to take when the rule matches and its conditions are met
 	Effect ActivityRuleEffect `json:"effect"`
@@ -104,28 +106,25 @@ type ActivityRuleConfig struct {
 	MinRunningSeconds *int32 `json:"minRunningSeconds,omitempty"`
 }
 
-// ActivityRuleMatch defines the conditions under which an ActivityRule applies.
-// If both matchNamespace and matchPodConfig are specified, they are combined with AND semantics (both must match).
-// If both are unspecified (or the Match block is omitted entirely), it acts as a catch-all rule that matches all Workspaces.
+// ActivityRuleMatch defines a single match condition for an ActivityRule
+//
+// +kubebuilder:validation:XValidation:message="must specify exactly one of 'matchNamespace' or 'matchPodConfig'",rule="(has(self.matchNamespace) ? 1 : 0) + (has(self.matchPodConfig) ? 1 : 0) == 1"
 type ActivityRuleMatch struct {
-	// filters Workspaces by namespace labels
+	// filters Workspaces by the labels of their namespace
 	// +kubebuilder:validation:Optional
-	MatchNamespace *NamespaceMatch `json:"matchNamespace,omitempty"`
+	MatchNamespace *ActivityRuleSelector `json:"matchNamespace,omitempty"`
 
-	// filters Workspaces by the PodConfig option they are using
+	// filters Workspaces by the labels of the PodConfig option they are using
 	// +kubebuilder:validation:Optional
-	MatchPodConfig *PodConfigMatch `json:"matchPodConfig,omitempty"`
+	MatchPodConfig *ActivityRuleSelector `json:"matchPodConfig,omitempty"`
 }
 
-// NamespaceMatch filters Workspaces by namespace labels
-type NamespaceMatch struct {
-	// the standard Kubernetes label selector to match namespace labels
-	Selector metav1.LabelSelector `json:"selector"`
-}
-
-// PodConfigMatch filters Workspaces by the PodConfig option they are using
-type PodConfigMatch struct {
-	// the standard Kubernetes label selector to match podConfig labels
+// ActivityRuleSelector wraps a standard Kubernetes label selector for use in activity rule match conditions
+//
+// +kubebuilder:validation:XValidation:message="selector must specify at least one of 'matchLabels' or 'matchExpressions'",rule="(has(self.selector.matchLabels) && size(self.selector.matchLabels) > 0) || (has(self.selector.matchExpressions) && size(self.selector.matchExpressions) > 0)"
+type ActivityRuleSelector struct {
+	// a standard Kubernetes label selector
+	//  - must not be empty, use an empty 'match' list for a catch-all rule
 	Selector metav1.LabelSelector `json:"selector"`
 }
 
@@ -244,7 +243,7 @@ type WorkspaceKindPodTemplate struct {
 
 	// service account configs for Workspace Pods
 	//  - each Workspace runs as its own ServiceAccount, which is created and owned by
-	//    the controller and named "ws-{WORKSPACE_NAME}"
+	//    the controller and named "ws-{WORKSPACE_NAME}-{RANDOM_SUFFIX}"
 	//  - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`
 	// +kubebuilder:validation:Optional
 	ServiceAccount *WorkspaceKindServiceAccount `json:"serviceAccount,omitempty"`
@@ -325,10 +324,12 @@ type WorkspaceKindMainContainer struct {
 	ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty"`
 
 	// environment variables for the main container (MUTABLE)
+	//  - these apply to ALL Workspaces of this WorkspaceKind, regardless of the selected pod config
+	//  - a pod config may override (by `name`) or add to these with its own `spec.extraEnv`
 	//  - the following go template functions are available:
 	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:example:={ "NB_PREFIX": "{{ httpPathPrefix 'jupyterlab' }}" }
+	// +kubebuilder:example:={{name: "NB_PREFIX", value: "{{ httpPathPrefix \"jupyterlab\" }}"}}
 	// +listType:="map"
 	// +listMapKey:="name"
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
@@ -399,6 +400,37 @@ type WorkspaceKindServiceAccount struct {
 	// +listMapKey:="name"
 	// +kubebuilder:example={{name: "kubeflow-edit"}}
 	ClusterRoles []WorkspaceKindClusterRole `json:"clusterRoles,omitempty"`
+
+	// metadata for the ServiceAccount of each Workspace (MUTABLE)
+	//  - for example, the annotations used by cloud Workload Identity:
+	//     - "eks.amazonaws.com/role-arn" (EKS IRSA)
+	//     - "iam.gke.io/gcp-service-account" (GKE)
+	//     - "azure.workload.identity/client-id" (Azure)
+	//  - the Azure "azure.workload.identity/use" label belongs on the Pod, NOT the
+	//    ServiceAccount, so set it in `spec.podTemplate.podMetadata.labels` instead
+	//  - the controller-managed `workspaces.kubeflow.org/*` labels always take precedence
+	//  - changes are applied to the ServiceAccounts of existing Workspaces without a restart,
+	//    but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the
+	//    ServiceAccount when a Pod is created, so running Workspaces must be restarted
+	//    for those changes to take effect
+	//  - removing a key here also removes it from the ServiceAccounts of existing Workspaces,
+	//    but only if the controller was the last to change its value (ownership is tracked
+	//    with `metadata.managedFields`), regardless of who originally added the key
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example={annotations: {"eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"}}
+	Metadata *WorkspaceKindServiceAccountMetadata `json:"metadata,omitempty"`
+}
+
+// WorkspaceKindServiceAccountMetadata defines labels and annotations applied to the
+// ServiceAccount of each Workspace.
+type WorkspaceKindServiceAccountMetadata struct {
+	// labels to be applied to the Workspace ServiceAccount resource
+	// +kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// annotations to be applied to the Workspace ServiceAccount resource
+	// +kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // WorkspaceKindClusterRole identifies a ClusterRole to bind to a Workspace's ServiceAccount
@@ -419,7 +451,6 @@ type WorkspaceKindClusterRole struct {
 
 // ActivityProbe defines how to detect recent user activity in a Workspace
 //
-// +kubebuilder:validation:XValidation:message="must specify exactly one of 'podExec' or 'jupyter'",rule="!(has(self.podExec) && has(self.jupyter)) && (has(self.podExec) || has(self.jupyter))"
 // +kubebuilder:validation:XValidation:message="minProbeIntervalSeconds must be less than or equal to probeIntervalSeconds",rule="self.minProbeIntervalSeconds <= self.probeIntervalSeconds"
 type ActivityProbe struct {
 	// the minimum duration in seconds that must elapse between two consecutive probes.
@@ -447,12 +478,8 @@ type ActivityProbe struct {
 	ProbeIntervalSeconds *int32 `json:"probeIntervalSeconds,omitempty"`
 
 	// a script-based probe executed in the Pod
-	// +kubebuilder:validation:Optional
-	PodExec *ActivityProbePodExec `json:"podExec,omitempty"`
-
-	// a Jupyter-specific API probe
-	// +kubebuilder:validation:Optional
-	Jupyter *ActivityProbeJupyter `json:"jupyter,omitempty"`
+	//  - this is currently the only supported probe type, so it is required
+	PodExec ActivityProbePodExec `json:"podExec"`
 }
 
 // ActivityProbePodExec defines a script-based activity probe executed via the Kubernetes exec API
@@ -486,18 +513,6 @@ type ActivityProbePodExec struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=2048
 	Script string `json:"script"`
-}
-
-// ActivityProbeJupyter defines a Jupyter-specific probe that polls the /api/status endpoint
-//
-// +kubebuilder:validation:XValidation:message="'lastActivity' must be true",rule="has(self.lastActivity) && self.lastActivity"
-type ActivityProbeJupyter struct {
-	// if the Jupyter-specific probe is enabled
-	// +kubebuilder:example=true
-	LastActivity bool `json:"lastActivity"`
-
-	// the port to probe, referencing a port defined in spec.podTemplate.ports
-	PortId PortId `json:"portId"`
 }
 
 type WorkspaceKindVolumeMountPaths struct {
@@ -687,6 +702,35 @@ type PodConfigSpec struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example="volcano"
 	SchedulerName *string `json:"schedulerName,omitempty"`
+
+	// metadata to apply to Workspace Pods when this podConfig is selected
+	//  - layered over the WorkspaceKind-level `podMetadata`, winning on key conflicts
+	// +kubebuilder:validation:Optional
+	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
+
+	// metadata to apply to the Workspace StatefulSet when this podConfig is selected
+	//  - layered over the WorkspaceKind-level `statefulSetMetadata`, winning on key conflicts
+	// +kubebuilder:validation:Optional
+	StatefulSetMetadata *WorkspaceKindStatefulSetMetadata `json:"statefulSetMetadata,omitempty"`
+
+	// extra environment variables for the "main" container, specific to this pod config
+	//  - use this for variables that depend on the hardware or scheduling of this pod config,
+	//    for example `PJRT_DEVICE=CPU` for a CPU pod config, or `TPU_TOPOLOGY=2x2` for a TPU slice
+	//  - these are combined with the WorkspaceKind-level `podTemplate.podSpec.mainContainer.extraEnv`:
+	//     - a variable with the same `name` as a WorkspaceKind-level variable replaces its value,
+	//       but keeps the position of the WorkspaceKind-level variable
+	//     - all other variables are added after the WorkspaceKind-level variables, in the order listed here
+	//  - Kubernetes only expands `$(VAR_NAME)` references to variables that appear EARLIER in the
+	//    final list, so WorkspaceKind-level variables can NOT reference variables only defined here
+	//  - like all pod config `spec` fields, this can NOT be changed while the pod config is used by
+	//    any Workspace, instead, create a new pod config value and redirect the old one to it
+	//  - the following go template functions are available:
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:example:={{name: "PJRT_DEVICE", value: "CPU"}}
+	// +listType:="map"
+	// +listMapKey:="name"
+	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
 }
 
 type OptionsSpawnerConfig struct {
@@ -868,8 +912,11 @@ type FilterRuleMatch struct {
 }
 
 // FilterRuleSelector wraps a standard Kubernetes label selector for use in filter rule match conditions
+//
+// +kubebuilder:validation:XValidation:message="selector must specify at least one of 'matchLabels' or 'matchExpressions'",rule="(has(self.selector.matchLabels) && size(self.selector.matchLabels) > 0) || (has(self.selector.matchExpressions) && size(self.selector.matchExpressions) > 0)"
 type FilterRuleSelector struct {
 	// a standard Kubernetes label selector
+	//  - must not be empty
 	Selector metav1.LabelSelector `json:"selector"`
 }
 

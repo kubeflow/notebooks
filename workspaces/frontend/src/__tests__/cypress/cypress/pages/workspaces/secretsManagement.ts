@@ -152,6 +152,14 @@ class SecretsAttachModal {
     return cy.findByTestId('secrets-attach-modal');
   }
 
+  assertSecretOptionAvailable(secretName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.find().findByPlaceholderText('Select a secret').click();
+    return cy
+      .contains('.pf-v6-c-menu__list-item', secretName)
+      .should('be.visible')
+      .and('not.have.class', 'pf-m-disabled');
+  }
+
   assertModalVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().should('be.visible');
   }

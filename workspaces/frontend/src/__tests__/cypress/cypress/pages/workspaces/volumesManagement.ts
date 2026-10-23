@@ -90,9 +90,35 @@ class VolumesManagementPage {
     >;
   }
 
-  clickHomeVolumeEditAction(mountPath: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    this.findHomeVolumesTable().findByTestId(`volume-kebab-${mountPath}`).click();
-    return cy.findByTestId(`edit-volume-${mountPath}`).click();
+  assertHomeVolumeMountPath(
+    pvcName: string,
+    mountPath: string,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findHomeVolumeRow(pvcName)
+      .find('[data-label="Mount Path"]')
+      .should('have.text', mountPath);
+  }
+
+  assertHomeVolumeMountPathLocked(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findHomeVolumesTable()
+      .findByTestId(`edit-mount-path-${pvcName}`)
+      .should('be.disabled');
+  }
+
+  clickHomeVolumeEditAction(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.findHomeVolumesTable().findByTestId(`volume-kebab-${pvcName}`).click();
+    return cy.findByTestId(`edit-volume-${pvcName}`).click();
+  }
+
+  // Inline Mount Path Editing
+  clickVolumeMountPathEdit(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findVolumesTable().findByTestId(`edit-mount-path-${pvcName}`).click();
+  }
+
+  assertVolumeMountPathEditing(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findVolumesTable()
+      .findByTestId(`edit-mount-path-input-${pvcName}`)
+      .should('be.visible');
   }
 
   // Row Actions
@@ -132,6 +158,14 @@ class VolumesAttachModal {
 
   openPVCDropdown(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findPVCSelect().click();
+  }
+
+  assertPVCOptionAvailable(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.openPVCDropdown();
+    return cy
+      .contains('.pf-v6-c-menu__list-item', pvcName)
+      .should('be.visible')
+      .and('not.have.class', 'pf-m-disabled');
   }
 
   selectPVC(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -281,6 +315,12 @@ class VolumesCreateModal {
 
   assertAccessModeSelected(mode: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findAccessModeSelect().should('contain.text', mode);
+  }
+
+  // Mount Path
+  assertMountPathLocked(): void {
+    this.find().findByTestId('mount-path-input').should('be.disabled');
+    this.find().findByTestId('mount-path-edit').should('not.exist');
   }
 
   // Read-only Switch

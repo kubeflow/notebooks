@@ -29,10 +29,14 @@ spec:
       ## labels to be applied to the Pod resource
       ##  - labels are required to support integration with the PodDefault resource:
       ##    https://github.com/kubeflow/kubeflow/blob/master/components/admission-webhook/pkg/apis/settings/v1alpha1/poddefault_types.go
+      ##  - entries are currently NOT allowed, until the security model
+      ##    for Workspace-level Pod metadata is defined
       ##
       labels: {}
 
       ## annotations to be applied to the Pod resource
+      ##  - entries are currently NOT allowed, until the security model
+      ##    for Workspace-level Pod metadata is defined
       ##
       annotations: {}
 
@@ -78,7 +82,7 @@ spec:
       ##  - options are defined in WorkspaceKind under
       ##    `spec.podTemplate.options.imageConfig.values[]`
       ##
-      imageConfig: "jupyter-scipy:v1.10.0"
+      imageConfig: "jupyter-scipy:v1.11.0"
 
       ## the id of a podConfig option
       ##  - options are defined in WorkspaceKind under

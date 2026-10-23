@@ -37,11 +37,11 @@ echo "Configuring StorageClasses for the Notebooks UI..."
 
 # Label and annotate the default 'standard' StorageClass
 kubectl label storageclass standard \
-  "notebooks.kubeflow.org/can-use=true" \
+  "workspaces.kubeflow.org/can-use=true" \
   --overwrite
 kubectl annotate storageclass standard \
-  "notebooks.kubeflow.org/display-name=Standard (Local Path)" \
-  "notebooks.kubeflow.org/description=Local path provisioner for development. Data is stored on the node and not replicated." \
+  "workspaces.kubeflow.org/display-name=Standard (Local Path)" \
+  "workspaces.kubeflow.org/description=Local path provisioner for development. Data is stored on the node and not replicated." \
   --overwrite
 
 # Create an additional 'premium-local' StorageClass (same provisioner, but not usable, for testing)
@@ -51,10 +51,10 @@ kind: StorageClass
 metadata:
   name: premium-local
   labels:
-    notebooks.kubeflow.org/can-use: "false"
+    workspaces.kubeflow.org/can-use: "false"
   annotations:
-    notebooks.kubeflow.org/display-name: "Premium Local (Local Path)"
-    notebooks.kubeflow.org/description: "Simulated premium storage for development. Not enabled for use."
+    workspaces.kubeflow.org/display-name: "Premium Local (Local Path)"
+    workspaces.kubeflow.org/description: "Simulated premium storage for development. Not enabled for use."
 provisioner: rancher.io/local-path
 reclaimPolicy: Delete
 volumeBindingMode: WaitForFirstConsumer

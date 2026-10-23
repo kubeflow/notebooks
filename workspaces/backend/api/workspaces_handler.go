@@ -251,13 +251,13 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.policyDeniedResponse(w, r, restrictedErr.Error())
 			return
 		}
+		if helper.IsInternalValidationError(err) {
+			a.failedValidationResponse(w, r, errMsgInternalValidation, helper.FieldErrorsFromInternalValidationError(err), nil)
+			return
+		}
 		if errors.Is(err, repository.ErrWorkspaceAlreadyExists) {
 			causes := helper.StatusCausesFromAPIStatus(err)
 			a.conflictResponse(w, r, err, causes)
-			return
-		}
-		if helper.IsInternalValidationError(err) {
-			a.failedValidationResponse(w, r, errMsgInternalValidation, helper.FieldErrorsFromInternalValidationError(err), nil)
 			return
 		}
 		if apierrors.IsInvalid(err) {

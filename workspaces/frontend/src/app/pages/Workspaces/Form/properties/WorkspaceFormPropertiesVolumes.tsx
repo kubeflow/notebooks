@@ -28,7 +28,6 @@ import { CubeIcon } from '@patternfly/react-icons/dist/esm/icons/cube-icon';
 import { PvcsPVCListItem } from '~/generated/data-contracts';
 import { ConfirmModal } from '~/shared/components/ConfirmModal';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 import usePVCs from '~/app/hooks/usePVCs';
 import { WorkspacesPodVolumeMountValue } from '~/app/types';
 import {
@@ -43,6 +42,8 @@ import { VolumesCreateModal } from './volumes/VolumesCreateModal';
 interface WorkspaceFormPropertiesVolumesProps {
   volumes: WorkspacesPodVolumeMountValue[];
   setVolumes: (volumes: WorkspacesPodVolumeMountValue[]) => void;
+  namespace: string;
+  isHomeVolume?: boolean;
   fixedMountPath?: string; // For home volume only
   excludedPvcNames?: Set<string>; // PVC names used in the other section
 }
@@ -52,10 +53,12 @@ const NUM_TABLE_COLUMNS = 5; // expand toggle + PVC Name + Mount Path + Read-onl
 export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVolumesProps> = ({
   volumes,
   setVolumes,
+  namespace,
+  isHomeVolume,
   fixedMountPath,
   excludedPvcNames,
 }) => {
-  const isHomeMounted = !!fixedMountPath && volumes.length > 0;
+  const isHomeMounted = (isHomeVolume || !!fixedMountPath) && volumes.length > 0;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -65,9 +68,8 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   const [editingMountPath, setEditingMountPath] = useState<number | null>(null);
   const [editMountPathValue, setEditMountPathValue] = useState('');
   const [expandedVolumes, setExpandedVolumes] = useState<Set<string>>(new Set());
-  const { pvcs: availablePVCs, pvcLoadError } = usePVCs();
+  const { pvcs: availablePVCs, pvcLoadError } = usePVCs(namespace);
   const { api } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const openDetachModal = useCallback((index: number) => {
     setDeleteIndex(index);
@@ -83,11 +85,11 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
       return;
     }
     if (!volumes[deleteIndex].isAttached) {
-      await api.pvc.deletePvc(selectedNamespace, volumes[deleteIndex].pvcName);
+      await api.pvc.deletePvc(namespace, volumes[deleteIndex].pvcName);
     }
     setDeleteIndex(null);
     setVolumes(volumes.filter((_, i) => i !== deleteIndex));
-  }, [deleteIndex, volumes, setVolumes, api.pvc, selectedNamespace]);
+  }, [deleteIndex, volumes, setVolumes, api.pvc, namespace]);
 
   const mountedPaths = useMemo(() => new Set(volumes.map((v) => v.mountPath)), [volumes]);
 
@@ -369,7 +371,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
                         onConfirm={handleConfirmMountPathEdit}
                         onCancel={handleCancelMountPathEdit}
                         error={mountPathValidationError}
-                        isFixed={volume.mountPath === fixedMountPath}
+                        isFixed={isHomeVolume || fixedMountPath !== undefined}
                       />
                     </Td>
                     <Td dataLabel="Read-only Access">{volume.readOnly ? 'Enabled' : 'Disabled'}</Td>
@@ -442,6 +444,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
       <VolumesAttachModal
         isOpen={isAttachModalOpen}
         setIsOpen={setIsAttachModalOpen}
+        namespace={namespace}
         mountedPaths={mountedPaths}
         onAttach={handleAttachPVC}
         fixedMountPath={fixedMountPath}
@@ -451,9 +454,11 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
       <VolumesCreateModal
         isOpen={isCreateModalOpen}
         setIsOpen={handleSetCreateModalOpen}
+        namespace={namespace}
         onVolumeCreated={handleVolumeCreated}
         excludedPvcNames={excludedPvcNames}
         mountedPaths={createModalMountedPaths}
+        isHomeVolume={isHomeVolume}
         fixedMountPath={fixedMountPath}
         volumeToEdit={editIndex !== null ? volumes[editIndex] : undefined}
         onVolumeEdited={handleSaveEdit}

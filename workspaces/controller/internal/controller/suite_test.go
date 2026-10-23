@@ -105,6 +105,11 @@ var _ = BeforeSuite(func() {
 	By("setting up the controller manager")
 	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
+		// NOTE: matches cmd/main.go, the controller relies on its field owner to find the
+		//       `metadata.managedFields` it owns (e.g. ServiceAccount labels/annotations)
+		Client: client.Options{
+			FieldOwner: helper.ControllerFieldOwner,
+		},
 		Metrics: metricsserver.Options{
 			BindAddress: "0", // disable metrics serving
 		},
@@ -254,9 +259,8 @@ func NewExampleWorkspaceKind1(name string) *kubefloworgv1beta1.WorkspaceKind {
 				ActivityProbe: &kubefloworgv1beta1.ActivityProbe{
 					MinProbeIntervalSeconds: new(int32(300)),
 					ProbeIntervalSeconds:    new(int32(3600)),
-					Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-						LastActivity: true,
-						PortId:       "jupyterlab",
+					PodExec: kubefloworgv1beta1.ActivityProbePodExec{
+						Script: "#!/usr/bin/env bash\necho '{\"has_activity\": true}' > \"$OUTPUT_JSON_PATH\"",
 					},
 				},
 				VolumeMountPaths: kubefloworgv1beta1.WorkspaceKindVolumeMountPaths{

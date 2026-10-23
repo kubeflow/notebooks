@@ -56,10 +56,11 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
   const [inputValue, setInputValue] = useState(value);
   const [unit, setUnit] = useState<string>('');
   const isTimeInitialized = useRef(false);
+  const lastTimeValue = useRef(value);
 
   useEffect(() => {
     if (type === 'time') {
-      // Initialize time only once
+      // Preserve the selected unit when the value changes through another editor.
       if (!isTimeInitialized.current) {
         const seconds = parseFloat(value) || 0;
         let defaultUnit = 60; // Default to minutes
@@ -75,7 +76,16 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
         setUnit(defaultUnit.toString());
         setInputValue(String(Math.round((seconds / defaultUnit) * 4) / 4));
         isTimeInitialized.current = true;
+      } else if (lastTimeValue.current !== value) {
+        const seconds = parseFloat(value) || 0;
+        const multiplier = parseFloat(unit) || 1;
+        setInputValue((current) =>
+          (parseFloat(current) || 0) * multiplier === seconds
+            ? current
+            : String(seconds / multiplier),
+        );
       }
+      lastTimeValue.current = value;
     } else {
       if (type === 'custom') {
         setInputValue(value);
@@ -85,7 +95,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
       setInputValue(String(numericValue || ''));
       setUnit(extractedUnit?.unit || DEFAULT_UNITS[type]);
     }
-  }, [type, value]);
+  }, [type, value, unit]);
 
   const handleInputChange = useCallback(
     (newValue: string) => {
@@ -159,11 +169,19 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
     [type],
   );
 
+  const parsedInputValue = parseFloat(inputValue);
+  let displayValue: number | '' = parsedInputValue;
+  if (inputValue === '') {
+    displayValue = '';
+  } else if (Number.isNaN(parsedInputValue) || (parsedInputValue === 0 && min > 0)) {
+    displayValue = 1;
+  }
+
   return (
     <Split className="workspacekind-form-resource-input">
       <SplitItem>
         <NumberInput
-          value={parseFloat(inputValue) || 1}
+          value={displayValue}
           placeholder={placeholder}
           onMinus={handleDecrement}
           onChange={handleNumberInputChange}

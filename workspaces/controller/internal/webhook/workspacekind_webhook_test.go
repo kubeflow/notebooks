@@ -76,6 +76,41 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
+				description:   "should accept creation with valid serviceAccount.metadata",
+				workspaceKind: NewExampleWorkspaceKindWithServiceAccountMetadata("wsk-webhook-create--valid-serviceaccount-metadata"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should reject creation with invalid serviceAccount.metadata label key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidServiceAccountMetadataLabelKey("wsk-webhook-create--invalid-serviceaccount-metadata--label-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid serviceAccount.metadata annotation key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidServiceAccountMetadataAnnotationKey("wsk-webhook-create--invalid-serviceaccount-metadata--annotation-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid podConfig podMetadata label key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataLabelKey("wsk-webhook-create--invalid-podconfig-pod-metadata--label-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid podConfig podMetadata annotation key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigPodMetadataAnnotationKey("wsk-webhook-create--invalid-podconfig-pod-metadata--annotation-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid podConfig statefulSetMetadata label key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataLabelKey("wsk-webhook-create--invalid-podconfig-statefulset-metadata--label-key"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with invalid podConfig statefulSetMetadata annotation key",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigStatefulSetMetadataAnnotationKey("wsk-webhook-create--invalid-podconfig-statefulset-metadata--annotation-key"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation with cycle in imageConfig redirects",
 				workspaceKind: NewExampleWorkspaceKindWithImageConfigCycle("wsk-webhook-create--image-config-cycle"),
 				shouldSucceed: false,
@@ -131,6 +166,21 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
+				description:   "should accept creation if podConfig extraEnv[].value is a valid Go template",
+				workspaceKind: NewExampleWorkspaceKindWithValidPodConfigExtraEnvValue("wsk-webhook-create--pod-config-extra-valid-env-value"),
+				shouldSucceed: true,
+			},
+			{
+				description:   "should reject creation if podConfig extraEnv[].value is not a valid Go template",
+				workspaceKind: NewExampleWorkspaceKindWithInvalidPodConfigExtraEnvValue("wsk-webhook-create--pod-config-extra-invalid-env-value"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation if podConfig extraEnv has duplicate names",
+				workspaceKind: NewExampleWorkspaceKindWithDuplicatePodConfigExtraEnvNames("wsk-webhook-create--pod-config-extra-duplicate-names"),
+				shouldSucceed: false,
+			},
+			{
 				description:   "should reject creation if requestHeaders template is invalid",
 				workspaceKind: NewExampleWorkspaceKindWithInvalidRequestHeadersValue("wsk-webhook-create--request-headers-invalid"),
 				shouldSucceed: false,
@@ -163,6 +213,11 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 			{
 				description:   "should reject creation with a filterRule match condition that sets no selector",
 				workspaceKind: NewExampleWorkspaceKindWithFilterRuleNoMatchCondition("wsk-webhook-create--filter-rules-empty-match"),
+				shouldSucceed: false,
+			},
+			{
+				description:   "should reject creation with a filterRule match condition that has an empty label selector",
+				workspaceKind: NewExampleWorkspaceKindWithFilterRuleEmptySelector("wsk-webhook-create--filter-rules-empty-selector"),
 				shouldSucceed: false,
 			},
 			{
@@ -226,23 +281,8 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: false,
 			},
 			{
-				description:   "should reject creation with invalid port reference in Jupyter probe",
-				workspaceKind: NewExampleWorkspaceKindWithInvalidJupyterPort("wsk-webhook-create--invalid-jupyter-port"),
-				shouldSucceed: false,
-			},
-			{
-				description:   "should reject creation with both exec and Jupyter probes specified",
-				workspaceKind: NewExampleWorkspaceKindWithBothProbeTypes("wsk-webhook-create--both-probe-types"),
-				shouldSucceed: false,
-			},
-			{
 				description:   "should reject creation if minProbeIntervalSeconds > probeIntervalSeconds",
 				workspaceKind: NewExampleWorkspaceKindWithInvalidProbeIntervals("wsk-webhook-create--invalid-probe-intervals"),
-				shouldSucceed: false,
-			},
-			{
-				description:   "should reject creation if jupyter.lastActivity is false",
-				workspaceKind: NewExampleWorkspaceKindWithJupyterLastActivityFalse("wsk-webhook-create--jupyter-last-activity-false"),
 				shouldSucceed: false,
 			},
 			{
@@ -253,10 +293,12 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 							SecondsSinceActive: 3600,
 							MinRunningSeconds:  new(int32(300)),
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{
-							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-								Selector: metav1.LabelSelector{
-									MatchLabels: map[string]string{"tier": "development"},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{
+							{
+								MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{
+										MatchLabels: map[string]string{"tier": "development"},
+									},
 								},
 							},
 						},
@@ -268,7 +310,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 7200,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // empty match = catch-all
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{}, // empty match = catch-all
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
 							PauseWorkspace: new(true),
 						},
@@ -277,21 +319,25 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				shouldSucceed: true,
 			},
 			{
-				description: "should accept creation when both MatchNamespace and MatchPodConfig are specified (AND semantics)",
+				description: "should accept creation with matchNamespace and matchPodConfig conditions in the same activityRule",
 				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--rules-and-semantics", []kubefloworgv1beta1.ActivityRule{
 					{
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 3600,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{
-							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-								Selector: metav1.LabelSelector{
-									MatchLabels: map[string]string{"tier": "development"},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{
+							{
+								MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{
+										MatchLabels: map[string]string{"tier": "development"},
+									},
 								},
 							},
-							MatchPodConfig: &kubefloworgv1beta1.PodConfigMatch{
-								Selector: metav1.LabelSelector{
-									MatchLabels: map[string]string{"cpu": "100m"},
+							{
+								MatchPodConfig: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{
+										MatchLabels: map[string]string{"cpu": "100m"},
+									},
 								},
 							},
 						},
@@ -301,6 +347,72 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					},
 				}),
 				shouldSucceed: true,
+			},
+			{
+				description: "should reject creation with an activityRule match condition that sets both matchNamespace and matchPodConfig",
+				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--rules-multi-matcher", []kubefloworgv1beta1.ActivityRule{
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{
+							SecondsSinceActive: 3600,
+						},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{
+							{
+								MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{
+										MatchLabels: map[string]string{"tier": "development"},
+									},
+								},
+								MatchPodConfig: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{
+										MatchLabels: map[string]string{"cpu": "100m"},
+									},
+								},
+							},
+						},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{
+							PauseWorkspace: new(true),
+						},
+					},
+				}),
+				shouldSucceed: false,
+			},
+			{
+				description: "should reject creation with an activityRule match condition that sets no matcher",
+				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--rules-no-matcher", []kubefloworgv1beta1.ActivityRule{
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{
+							SecondsSinceActive: 3600,
+						},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{{}},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{
+							PauseWorkspace: new(true),
+						},
+					},
+				}),
+				shouldSucceed: false,
+			},
+			{
+				description: "should reject creation with an activityRule match condition that has an empty label selector",
+				workspaceKind: NewExampleWorkspaceKindWithActivityRules("wsk-webhook-create--rules-empty-selector", []kubefloworgv1beta1.ActivityRule{
+					{
+						Config: kubefloworgv1beta1.ActivityRuleConfig{
+							SecondsSinceActive: 3600,
+						},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{
+							{
+								MatchPodConfig: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{
+										MatchLabels: map[string]string{},
+									},
+								},
+							},
+						},
+						Effect: kubefloworgv1beta1.ActivityRuleEffect{
+							PauseWorkspace: new(true),
+						},
+					},
+				}),
+				shouldSucceed: false,
 			},
 			{
 				description: "should accept creation with pauseWorkspace: false rule overriding catch-all rule",
@@ -309,10 +421,12 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 3600,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{
-							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-								Selector: metav1.LabelSelector{
-									MatchLabels: map[string]string{"tier": "critical"},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{
+							{
+								MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{
+										MatchLabels: map[string]string{"tier": "critical"},
+									},
 								},
 							},
 						},
@@ -324,7 +438,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 7200,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
 							PauseWorkspace: new(true),
 						},
@@ -368,7 +482,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 3600,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
 							PauseWorkspace: new(true),
 						},
@@ -377,7 +491,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 7200,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
 							PauseWorkspace: new(true),
 						},
@@ -392,7 +506,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 3600,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
 							PauseWorkspace: new(false),
 						},
@@ -401,7 +515,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 7200,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
 							PauseWorkspace: new(true),
 						},
@@ -416,7 +530,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 3600,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{},
 						Effect: kubefloworgv1beta1.ActivityRuleEffect{
 							PauseWorkspace: new(true),
 						},
@@ -425,10 +539,12 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 						Config: kubefloworgv1beta1.ActivityRuleConfig{
 							SecondsSinceActive: 7200,
 						},
-						Match: &kubefloworgv1beta1.ActivityRuleMatch{
-							MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-								Selector: metav1.LabelSelector{
-									MatchLabels: map[string]string{"tier": "development"},
+						Match: []kubefloworgv1beta1.ActivityRuleMatch{
+							{
+								MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+									Selector: metav1.LabelSelector{
+										MatchLabels: map[string]string{"tier": "development"},
+									},
 								},
 							},
 						},
@@ -567,10 +683,12 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					Config: kubefloworgv1beta1.ActivityRuleConfig{
 						SecondsSinceActive: 7200,
 					},
-					Match: &kubefloworgv1beta1.ActivityRuleMatch{
-						MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-							Selector: metav1.LabelSelector{
-								MatchLabels: map[string]string{"tier": "development"},
+					Match: []kubefloworgv1beta1.ActivityRuleMatch{
+						{
+							MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+								Selector: metav1.LabelSelector{
+									MatchLabels: map[string]string{"tier": "development"},
+								},
 							},
 						},
 					},
@@ -582,7 +700,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					Config: kubefloworgv1beta1.ActivityRuleConfig{
 						SecondsSinceActive: 10800,
 					},
-					Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
+					Match: []kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
 					Effect: kubefloworgv1beta1.ActivityRuleEffect{
 						PauseWorkspace: new(true),
 					},
@@ -591,7 +709,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 					Config: kubefloworgv1beta1.ActivityRuleConfig{
 						SecondsSinceActive: 7200,
 					},
-					Match: &kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
+					Match: []kubefloworgv1beta1.ActivityRuleMatch{}, // catch-all
 					Effect: kubefloworgv1beta1.ActivityRuleEffect{ // no-op, represent a future effect type
 						PauseWorkspace: nil,
 					},
@@ -726,6 +844,36 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				},
 			},
 			{
+				description:   "should accept adding valid podMetadata to an unused podConfig spec",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+						Labels: map[string]string{
+							"kueue.x-k8s.io/queue-name": "gpu-queue",
+						},
+					}
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject adding invalid podMetadata to an unused podConfig spec",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.PodMetadata = &kubefloworgv1beta1.WorkspaceKindPodMetadata{
+						Labels: map[string]string{
+							"!bad_key!": "value",
+						},
+					}
+					return ContainSubstring("podMetadata")
+				},
+			},
+			{
 				description:   "should reject updates to `schedulerName` on an in-use podConfig spec",
 				shouldSucceed: false,
 
@@ -745,6 +893,33 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
 				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.SchedulerName = new("volcano")
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject updates to `extraEnv` on an in-use podConfig spec",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					inUseId := wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Id
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[0].Spec.ExtraEnv = []corev1.EnvVar{
+						{Name: "NCCL_DEBUG", Value: "INFO"},
+					}
+					return ContainSubstring("podConfig value %q is in use and cannot be changed", inUseId)
+				},
+			},
+			{
+				description:   "should accept updates to `extraEnv` on an unused podConfig spec",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				workspace:     NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.ExtraEnv = []corev1.EnvVar{
+						{Name: "NCCL_DEBUG", Value: "INFO"},
+					}
 					return ContainSubstring("")
 				},
 			},
@@ -1091,6 +1266,40 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				},
 			},
 			{
+				description:   "should reject updating a serviceAccount.metadata.labels key to an invalid value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidKey := "!bad-key!"
+					wsk.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+						Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+							Labels: map[string]string{
+								invalidKey: "some-value",
+							},
+						},
+					}
+					return ContainSubstring("Invalid value: %q", invalidKey)
+				},
+			},
+			{
+				description:   "should reject updating a serviceAccount.metadata.annotations key to an invalid value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidAnnotationKey := "!bad-key!"
+					wsk.Spec.PodTemplate.ServiceAccount = &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+						Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+							Annotations: map[string]string{
+								invalidAnnotationKey: "some-value",
+							},
+						},
+					}
+					return ContainSubstring("Invalid value: %q", invalidAnnotationKey)
+				},
+			},
+			{
 				description:   "should reject updating an extraEnv[].value to an invalid Go template",
 				shouldSucceed: false,
 
@@ -1109,6 +1318,71 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					wsk.Spec.PodTemplate.PodSpec.MainContainer.ExtraEnv[0].Value = `{{ httpPathPrefix "jupyterlab"   }}`
 					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject updating a podConfig extraEnv[].value to an invalid Go template",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					podConfigId := wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Id
+					invalidValue := `{{ httpPathPrefix "jupyterlab" }`
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.ExtraEnv = []corev1.EnvVar{
+						{
+							Name:  "POD_CONFIG_PREFIX",
+							Value: invalidValue,
+						},
+					}
+					return And(
+						ContainSubstring(`spec.podTemplate.options.podConfig.values[%s].spec.extraEnv[POD_CONFIG_PREFIX].value`, podConfigId),
+						ContainSubstring("failed to parse template %q", invalidValue),
+					)
+				},
+			},
+			{
+				description:   "should accept updating a podConfig extraEnv[].value to a valid Go template",
+				shouldSucceed: true,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					wsk.Spec.PodTemplate.Options.PodConfig.Values[1].Spec.ExtraEnv = []corev1.EnvVar{
+						{
+							Name:  "POD_CONFIG_PREFIX",
+							Value: `{{ httpPathPrefix "jupyterlab" }}`,
+						},
+					}
+					return ContainSubstring("")
+				},
+			},
+			{
+				description:   "should reject adding a new podConfig value with an invalid Go template in extraEnv[].value",
+				shouldSucceed: false,
+
+				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
+				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
+					invalidValue := `{{ httpPathPrefix "jupyterlab" }`
+					wsk.Spec.PodTemplate.Options.PodConfig.Values = append(
+						wsk.Spec.PodTemplate.Options.PodConfig.Values,
+						kubefloworgv1beta1.PodConfigValue{
+							Id: "new_pod_config",
+							Spawner: kubefloworgv1beta1.OptionSpawnerInfo{
+								DisplayName: "New Pod Config",
+							},
+							Spec: kubefloworgv1beta1.PodConfigSpec{
+								ExtraEnv: []corev1.EnvVar{
+									{
+										Name:  "BAD_ENV",
+										Value: invalidValue,
+									},
+								},
+							},
+						},
+					)
+					return And(
+						ContainSubstring(`spec.podTemplate.options.podConfig.values[new_pod_config].spec.extraEnv[BAD_ENV].value`),
+						ContainSubstring("failed to parse template %q", invalidValue),
+					)
 				},
 			},
 			{

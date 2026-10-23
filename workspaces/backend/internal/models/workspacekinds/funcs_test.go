@@ -88,6 +88,58 @@ var _ = Describe("NewWorkspaceKindModelFromWorkspaceKind", func() {
 		item.PodTemplate.StatefulSetMetadata.Annotations["my-sts-annotation"] = "mutated"
 		Expect(wsk.Spec.PodTemplate.StatefulSetMetadata.Annotations["my-sts-annotation"]).To(Equal("my-value"))
 	})
+
+	It("initializes empty ServiceAccount metadata maps when the CRD field is nil", func() {
+		for _, serviceAccount := range []*kubefloworgv1beta1.WorkspaceKindServiceAccount{
+			nil,
+			{Metadata: nil},
+		} {
+			wsk := &kubefloworgv1beta1.WorkspaceKind{
+				ObjectMeta: metav1.ObjectMeta{Name: "no-sa-metadata"},
+				Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+					PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
+						ServiceAccount: serviceAccount,
+					},
+				},
+			}
+
+			item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk, nil)
+
+			Expect(apiHide).To(BeFalse())
+			Expect(item.PodTemplate.ServiceAccount.Metadata.Labels).NotTo(BeNil())
+			Expect(item.PodTemplate.ServiceAccount.Metadata.Labels).To(BeEmpty())
+			Expect(item.PodTemplate.ServiceAccount.Metadata.Annotations).NotTo(BeNil())
+			Expect(item.PodTemplate.ServiceAccount.Metadata.Annotations).To(BeEmpty())
+		}
+	})
+
+	It("copies ServiceAccount metadata maps without aliasing the CRD maps", func() {
+		wsk := &kubefloworgv1beta1.WorkspaceKind{
+			ObjectMeta: metav1.ObjectMeta{Name: "with-sa-metadata"},
+			Spec: kubefloworgv1beta1.WorkspaceKindSpec{
+				PodTemplate: kubefloworgv1beta1.WorkspaceKindPodTemplate{
+					ServiceAccount: &kubefloworgv1beta1.WorkspaceKindServiceAccount{
+						Metadata: &kubefloworgv1beta1.WorkspaceKindServiceAccountMetadata{
+							Labels:      map[string]string{"my-sa-label": "my-value"},
+							Annotations: map[string]string{"my-sa-annotation": "my-value"},
+						},
+					},
+				},
+			},
+		}
+
+		item, apiHide := NewWorkspaceKindModelFromWorkspaceKind(nil, wsk, nil)
+
+		Expect(apiHide).To(BeFalse())
+		Expect(item.PodTemplate.ServiceAccount.Metadata.Labels).To(HaveKeyWithValue("my-sa-label", "my-value"))
+		Expect(item.PodTemplate.ServiceAccount.Metadata.Annotations).To(HaveKeyWithValue("my-sa-annotation", "my-value"))
+
+		// mutating the copied maps must not affect the source WorkspaceKind
+		item.PodTemplate.ServiceAccount.Metadata.Labels["my-sa-label"] = "mutated"
+		Expect(wsk.Spec.PodTemplate.ServiceAccount.Metadata.Labels["my-sa-label"]).To(Equal("my-value"))
+		item.PodTemplate.ServiceAccount.Metadata.Annotations["my-sa-annotation"] = "mutated"
+		Expect(wsk.Spec.PodTemplate.ServiceAccount.Metadata.Annotations["my-sa-annotation"]).To(Equal("my-value"))
+	})
 })
 
 var _ = Describe("buildActivityProbe", func() {
@@ -97,7 +149,7 @@ var _ = Describe("buildActivityProbe", func() {
 
 	It("converts a PodExec probe with default intervals", func() {
 		crdProbe := &kubefloworgv1beta1.ActivityProbe{
-			PodExec: &kubefloworgv1beta1.ActivityProbePodExec{
+			PodExec: kubefloworgv1beta1.ActivityProbePodExec{
 				TimeoutSeconds: &testPodExecTimeoutSeconds,
 				Script:         "#!/bin/bash\necho active",
 			},
@@ -107,18 +159,15 @@ var _ = Describe("buildActivityProbe", func() {
 		Expect(apiProbe).NotTo(BeNil())
 		Expect(apiProbe.MinProbeIntervalSeconds).To(Equal(kubefloworgv1beta1.DefaultMinProbeIntervalSeconds))
 		Expect(apiProbe.ProbeIntervalSeconds).To(Equal(kubefloworgv1beta1.DefaultProbeIntervalSeconds))
-		Expect(apiProbe.PodExec).NotTo(BeNil())
 		Expect(apiProbe.PodExec.TimeoutSeconds).To(Equal(testPodExecTimeoutSeconds))
-		Expect(apiProbe.Jupyter).To(BeNil())
 	})
 
-	It("converts a Jupyter probe with custom intervals", func() {
+	It("converts a PodExec probe with custom intervals", func() {
 		crdProbe := &kubefloworgv1beta1.ActivityProbe{
 			MinProbeIntervalSeconds: &testMinProbeIntervalSeconds,
 			ProbeIntervalSeconds:    &testProbeIntervalSeconds,
-			Jupyter: &kubefloworgv1beta1.ActivityProbeJupyter{
-				LastActivity: true,
-				PortId:       "jupyterlab",
+			PodExec: kubefloworgv1beta1.ActivityProbePodExec{
+				Script: "#!/bin/bash\necho active",
 			},
 		}
 
@@ -126,10 +175,7 @@ var _ = Describe("buildActivityProbe", func() {
 		Expect(apiProbe).NotTo(BeNil())
 		Expect(apiProbe.MinProbeIntervalSeconds).To(Equal(testMinProbeIntervalSeconds))
 		Expect(apiProbe.ProbeIntervalSeconds).To(Equal(testProbeIntervalSeconds))
-		Expect(apiProbe.Jupyter).NotTo(BeNil())
-		Expect(apiProbe.Jupyter.LastActivity).To(BeTrue())
-		Expect(apiProbe.Jupyter.PortId).To(Equal("jupyterlab"))
-		Expect(apiProbe.PodExec).To(BeNil())
+		Expect(apiProbe.PodExec.TimeoutSeconds).To(Equal(kubefloworgv1beta1.DefaultPodExecTimeoutSeconds))
 	})
 })
 
@@ -146,15 +192,19 @@ var _ = Describe("buildActivityRules", func() {
 					SecondsSinceActive: testRuleSecondsSinceActive,
 					MinRunningSeconds:  &testRuleMinRunningSeconds,
 				},
-				Match: &kubefloworgv1beta1.ActivityRuleMatch{
-					MatchNamespace: &kubefloworgv1beta1.NamespaceMatch{
-						Selector: metav1.LabelSelector{
-							MatchLabels: map[string]string{"tier": "dev"},
+				Match: []kubefloworgv1beta1.ActivityRuleMatch{
+					{
+						MatchNamespace: &kubefloworgv1beta1.ActivityRuleSelector{
+							Selector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"tier": "dev"},
+							},
 						},
 					},
-					MatchPodConfig: &kubefloworgv1beta1.PodConfigMatch{
-						Selector: metav1.LabelSelector{
-							MatchLabels: map[string]string{"gpu": "true"},
+					{
+						MatchPodConfig: &kubefloworgv1beta1.ActivityRuleSelector{
+							Selector: metav1.LabelSelector{
+								MatchLabels: map[string]string{"gpu": "true"},
+							},
 						},
 					},
 				},
@@ -177,18 +227,20 @@ var _ = Describe("buildActivityRules", func() {
 
 		Expect(apiRules[0].Config.SecondsSinceActive).To(Equal(testRuleSecondsSinceActive))
 		Expect(apiRules[0].Config.MinRunningSeconds).To(Equal(testRuleMinRunningSeconds))
-		Expect(apiRules[0].Match).NotTo(BeNil())
-		Expect(apiRules[0].Match.MatchNamespace).NotTo(BeNil())
-		Expect(apiRules[0].Match.MatchNamespace.Selector.MatchLabels).To(HaveKeyWithValue("tier", "dev"))
-		Expect(apiRules[0].Match.MatchPodConfig).NotTo(BeNil())
-		Expect(apiRules[0].Match.MatchPodConfig.Selector.MatchLabels).To(HaveKeyWithValue("gpu", "true"))
+		Expect(apiRules[0].Match).To(HaveLen(2))
+		Expect(apiRules[0].Match[0].MatchNamespace).NotTo(BeNil())
+		Expect(apiRules[0].Match[0].MatchNamespace.Selector.MatchLabels).To(HaveKeyWithValue("tier", "dev"))
+		Expect(apiRules[0].Match[0].MatchPodConfig).To(BeNil())
+		Expect(apiRules[0].Match[1].MatchNamespace).To(BeNil())
+		Expect(apiRules[0].Match[1].MatchPodConfig).NotTo(BeNil())
+		Expect(apiRules[0].Match[1].MatchPodConfig.Selector.MatchLabels).To(HaveKeyWithValue("gpu", "true"))
 		Expect(apiRules[0].Effect.PauseWorkspace).To(BeTrue())
 
 		// Verify deep copy of label selector maps
-		apiRules[0].Match.MatchNamespace.Selector.MatchLabels["tier"] = "mutated"
-		Expect(crdRules[0].Match.MatchNamespace.Selector.MatchLabels["tier"]).To(Equal("dev"))
-		apiRules[0].Match.MatchPodConfig.Selector.MatchLabels["gpu"] = "false"
-		Expect(crdRules[0].Match.MatchPodConfig.Selector.MatchLabels["gpu"]).To(Equal("true"))
+		apiRules[0].Match[0].MatchNamespace.Selector.MatchLabels["tier"] = "mutated"
+		Expect(crdRules[0].Match[0].MatchNamespace.Selector.MatchLabels["tier"]).To(Equal("dev"))
+		apiRules[0].Match[1].MatchPodConfig.Selector.MatchLabels["gpu"] = "false"
+		Expect(crdRules[0].Match[1].MatchPodConfig.Selector.MatchLabels["gpu"]).To(Equal("true"))
 
 		Expect(apiRules[1].Config.SecondsSinceActive).To(Equal(testRuleSecondsSinceActiveMax))
 		Expect(apiRules[1].Config.MinRunningSeconds).To(Equal(int32(0)))

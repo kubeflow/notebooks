@@ -46,6 +46,7 @@ type ClusterKindMetrics struct {
 type PodTemplate struct {
 	PodMetadata         PodMetadata         `json:"podMetadata"`
 	StatefulSetMetadata StatefulSetMetadata `json:"statefulSetMetadata"`
+	ServiceAccount      ServiceAccount      `json:"serviceAccount"`
 	VolumeMountPaths    PodVolumeMountPaths `json:"volumeMountPaths"`
 	ActivityProbe       *ActivityProbe      `json:"activityProbe,omitempty"`
 
@@ -65,15 +66,23 @@ type StatefulSetMetadata struct {
 	Annotations map[string]string `json:"annotations"`
 }
 
+type ServiceAccount struct {
+	Metadata ServiceAccountMetadata `json:"metadata"`
+}
+
+type ServiceAccountMetadata struct {
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+}
+
 type PodVolumeMountPaths struct {
 	Home string `json:"home"`
 }
 
 type ActivityProbe struct {
-	MinProbeIntervalSeconds int32                 `json:"minProbeIntervalSeconds"`
-	ProbeIntervalSeconds    int32                 `json:"probeIntervalSeconds"`
-	PodExec                 *ActivityProbePodExec `json:"podExec,omitempty"`
-	Jupyter                 *ActivityProbeJupyter `json:"jupyter,omitempty"`
+	MinProbeIntervalSeconds int32                `json:"minProbeIntervalSeconds"`
+	ProbeIntervalSeconds    int32                `json:"probeIntervalSeconds"`
+	PodExec                 ActivityProbePodExec `json:"podExec,omitempty"` //nolint:modernize // omitempty is for swag (--requiredByDefault) to mark podExec optional
 }
 
 type ActivityProbePodExec struct {
@@ -81,15 +90,10 @@ type ActivityProbePodExec struct {
 	// NOTE: Script is excluded from the WorkspaceKindListItem model for size reasons.
 }
 
-type ActivityProbeJupyter struct {
-	LastActivity bool   `json:"lastActivity"`
-	PortId       string `json:"portId"`
-}
-
 type ActivityRule struct {
-	Config ActivityRuleConfig `json:"config"`
-	Match  *ActivityRuleMatch `json:"match,omitempty"`
-	Effect ActivityRuleEffect `json:"effect"`
+	Config ActivityRuleConfig  `json:"config"`
+	Match  []ActivityRuleMatch `json:"match,omitempty"`
+	Effect ActivityRuleEffect  `json:"effect"`
 }
 
 type ActivityRuleConfig struct {
@@ -98,15 +102,11 @@ type ActivityRuleConfig struct {
 }
 
 type ActivityRuleMatch struct {
-	MatchNamespace *MatchNamespace `json:"matchNamespace,omitempty"`
-	MatchPodConfig *MatchPodConfig `json:"matchPodConfig,omitempty"`
+	MatchNamespace *ActivityRuleSelector `json:"matchNamespace,omitempty"`
+	MatchPodConfig *ActivityRuleSelector `json:"matchPodConfig,omitempty"`
 }
 
-type MatchNamespace struct {
-	Selector metav1.LabelSelector `json:"selector"`
-}
-
-type MatchPodConfig struct {
+type ActivityRuleSelector struct {
 	Selector metav1.LabelSelector `json:"selector"`
 }
 

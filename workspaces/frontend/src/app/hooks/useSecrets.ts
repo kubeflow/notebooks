@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { FetchStateCallbackPromise, useFetchState, NotReadyError } from 'mod-arch-core';
 import { SecretsSecretListItem } from '~/generated/data-contracts';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { useNamespaceSelectorWrapper } from '~/app/hooks/useNamespaceSelectorWrapper';
 
 interface UseSecretsResult {
   secrets: SecretsSecretListItem[];
@@ -11,20 +10,19 @@ interface UseSecretsResult {
   refreshSecrets: () => Promise<SecretsSecretListItem[] | undefined>;
 }
 
-const useSecrets = (): UseSecretsResult => {
+const useSecrets = (namespace: string): UseSecretsResult => {
   const { api, apiAvailable } = useNotebookAPI();
-  const { selectedNamespace } = useNamespaceSelectorWrapper();
 
   const call = useCallback<FetchStateCallbackPromise<SecretsSecretListItem[]>>(async () => {
     if (!apiAvailable) {
       return Promise.reject(new NotReadyError('API not yet available'));
     }
-    if (!selectedNamespace) {
+    if (!namespace) {
       return Promise.reject(new NotReadyError('Namespace not yet available'));
     }
-    const response = await api.secrets.listSecrets(selectedNamespace);
+    const response = await api.secrets.listSecrets(namespace);
     return response.data;
-  }, [api.secrets, apiAvailable, selectedNamespace]);
+  }, [api.secrets, apiAvailable, namespace]);
 
   const [secrets, secretsLoaded, error, refreshSecrets] = useFetchState(call, [], {
     initialPromisePurity: true,

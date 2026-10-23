@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"time"
 
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
@@ -37,6 +36,7 @@ import (
 	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds"
 	modelsPodTemplateOptions "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspacekinds/podtemplate/options"
+	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 )
 
 var ErrWorkspaceKindNotFound = errors.New("workspace kind not found")
@@ -56,7 +56,7 @@ const (
 type WorkspaceKindRepository struct {
 	cfg             *config.EnvConfig
 	client          client.Client
-	configMapClient client.Client // filtered cache client for ConfigMaps with 'notebooks.kubeflow.org/image-source=true'
+	configMapClient client.Client // filtered cache client for ConfigMaps with 'workspaces.kubeflow.org/image-source=true'
 }
 
 func NewWorkspaceKindRepository(cfg *config.EnvConfig, cl client.Client, configMapClient client.Client) *WorkspaceKindRepository {
@@ -97,7 +97,7 @@ func (r *WorkspaceKindRepository) GetWorkspaceKinds(ctx context.Context, namespa
 
 	// resolve the labels of the namespace named in namespaceFilter (used by matchNamespace rules).
 	// nil when no namespaceFilter was provided, so those conditions are treated as non-matching.
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespaceFilter, field.NewPath(constants.NamespaceFilterQueryParam))
+	namespaceLabels, err := repoCommon.ResolveNamespaceLabels(ctx, r.client, namespaceFilter, field.NewPath(constants.NamespaceFilterQueryParam))
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 	if listValuesRequest.Context.Namespace != nil {
 		namespaceName = listValuesRequest.Context.Namespace.Name
 	}
-	namespaceLabels, err := r.resolveNamespaceLabels(ctx, namespaceName, field.NewPath("context", "namespace", "name"))
+	namespaceLabels, err := repoCommon.ResolveNamespaceLabels(ctx, r.client, namespaceName, field.NewPath("context", "namespace", "name"))
 	if err != nil {
 		return nil, err
 	}
@@ -228,35 +228,6 @@ func (r *WorkspaceKindRepository) ListPodTemplateOptionsValues(ctx context.Conte
 	}
 
 	return listValuesResponse, nil
-}
-
-// resolveNamespaceLabels fetches the labels of the namespace with the given name.
-// It returns nil (and no error) when the name is empty, so that matchNamespace conditions are
-// conservatively treated as non-matching. When a name is given but the namespace does not exist,
-// it returns an internal validation error so the caller can surface a 422 to the client.
-//
-// fieldPath identifies the caller's user-facing input (e.g. the `namespaceFilter` query param, or
-// `context.namespace.name` in the request body) so the validation error points at the right field.
-func (r *WorkspaceKindRepository) resolveNamespaceLabels(ctx context.Context, namespaceName string, fieldPath *field.Path) (map[string]string, error) {
-	if namespaceName == "" {
-		return nil, nil
-	}
-
-	namespace := &corev1.Namespace{}
-	if err := r.client.Get(ctx, client.ObjectKey{Name: namespaceName}, namespace); err != nil {
-		if apierrors.IsNotFound(err) {
-			errDetail := fmt.Sprintf("namespace %q not found", namespaceName)
-			valErrs := field.ErrorList{field.Invalid(fieldPath, namespaceName, errDetail)}
-			return nil, helper.NewInternalValidationError(valErrs)
-		}
-		return nil, err
-	}
-
-	// copy the labels into a map we own; also ensures a non-nil map so matchNamespace conditions
-	// are evaluated (namespace present) even when the namespace has no labels.
-	labels := make(map[string]string, len(namespace.Labels))
-	maps.Copy(labels, namespace.Labels)
-	return labels, nil
 }
 
 // GetWorkspaceKindAssetBytesIcon retrieves the content of a WorkspaceKind icon as bytes, along with its media type.

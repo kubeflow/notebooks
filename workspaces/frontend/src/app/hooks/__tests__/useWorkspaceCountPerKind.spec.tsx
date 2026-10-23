@@ -49,6 +49,8 @@ const basePodConfigTest: OptionsPodConfigValue = {
   hidden: false,
   clusterMetrics: undefined,
   restrictions: { deny: false },
+  podMetadata: { labels: {}, annotations: {} },
+  statefulSetMetadata: { labels: {}, annotations: {} },
 };
 
 describe('useWorkspaceCountPerKind', () => {
