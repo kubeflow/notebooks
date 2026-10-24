@@ -59,3 +59,8 @@ def list_notebook_events(notebook, namespace):
     field_selector = utils.events_field_selector("Notebook", notebook)
 
     return events.list_events(namespace, field_selector)
+
+
+def list_namespace_notebook_events(namespace):
+
+    return events.list_events(namespace, "involvedObject.kind=Notebook")
