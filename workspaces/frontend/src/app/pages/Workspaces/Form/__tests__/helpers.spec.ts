@@ -74,13 +74,52 @@ describe('isPVCMountBlocked', () => {
     expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(false);
   });
 
-  it('blocks a ReadWriteOncePod PVC already mounted by a pod', () => {
+  it('blocks a ReadWriteOncePod PVC already mounted by an active pod', () => {
     const pvc = buildMockPVC({
       pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
       pods: [{ name: 'some-pod', phase: V1PodPhase.PodRunning }],
       workspaces: [],
     });
     expect(isPVCMountBlocked(pvc)).toBe(true);
+  });
+
+  it('does not block a ReadWriteOncePod PVC whose only pod has Succeeded', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
+      pods: [{ name: 'completed-pod', phase: V1PodPhase.PodSucceeded }],
+      workspaces: [],
+    });
+    expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(false);
+  });
+
+  it('does not block a ReadWriteOncePod PVC whose only pod has Failed', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
+      pods: [{ name: 'failed-pod', phase: V1PodPhase.PodFailed }],
+      workspaces: [],
+    });
+    expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(false);
+  });
+
+  it('blocks a ReadWriteOncePod PVC when both a terminal pod and an active pod are present', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
+      pods: [
+        { name: 'done-pod', phase: V1PodPhase.PodSucceeded },
+        { name: 'active-pod', phase: V1PodPhase.PodRunning },
+      ],
+      workspaces: [],
+    });
+    expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(true);
+  });
+
+  it('conservatively blocks a ReadWriteOncePod PVC whose pod phase is Unknown', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
+      pods: [{ name: 'unknown-pod', phase: V1PodPhase.PodUnknown }],
+      workspaces: [],
+    });
+    expect(isPVCMountBlocked(pvc, CURRENT_WORKSPACE)).toBe(true);
   });
 
   it('blocks a ReadWriteOncePod PVC already mounted by another workspace', () => {
@@ -311,6 +350,20 @@ describe('getBlockedMountTooltip', () => {
       workspaces: [buildWorkspaceInfo('')],
     });
     expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBeNull();
+  });
+
+  it('ignores terminal pods and identifies the active conflicting pod in the tooltip', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOncePod),
+      pods: [
+        { name: 'done-pod', phase: V1PodPhase.PodSucceeded },
+        { name: 'active-pod', phase: V1PodPhase.PodRunning },
+      ],
+      workspaces: [],
+    });
+    expect(getBlockedMountTooltip(pvc, CURRENT_WORKSPACE)).toBe(
+      'This volume uses ReadWriteOncePod access and is already mounted by pod "active-pod".',
+    );
   });
 
   it('falls back to a generic message for ReadWriteOncePod when neither workspace nor pod name is available', () => {

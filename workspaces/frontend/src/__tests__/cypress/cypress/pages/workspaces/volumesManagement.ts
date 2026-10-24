@@ -167,10 +167,7 @@ class VolumesAttachModal {
   }
 
   hoverPVCOption(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy
-      .contains('.pf-v6-c-menu__list-item', pvcName)
-      .find('.pf-v6-c-menu__item')
-      .trigger('mouseenter');
+    return cy.findByTestId(`pvc-option-${pvcName}`).closest('button, a').trigger('mouseenter');
   }
 
   assertPVCTooltipText(pvcName: string, text: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -197,9 +194,10 @@ class VolumesAttachModal {
   }
 
   clickDisabledPVCOption(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.contains('.pf-v6-c-menu__list-item', pvcName).click() as unknown as Cypress.Chainable<
-      JQuery<HTMLElement>
-    >;
+    return cy
+      .findByTestId(`pvc-option-${pvcName}`)
+      .closest('li')
+      .click() as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
   }
 
   // Mount Path

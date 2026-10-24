@@ -9,9 +9,11 @@ import { InfoCircleIcon } from '@patternfly/react-icons/dist/esm/icons/info-circ
 import { CubeIcon } from '@patternfly/react-icons/dist/esm/icons/cube-icon';
 import { TypeaheadSelectOption } from '@patternfly/react-templates';
 import {
+  PvcsPodInfo,
   PvcsPVCListItem,
   StorageclassesStorageClassListItem,
   V1PersistentVolumeAccessMode,
+  V1PodPhase,
 } from '~/generated/data-contracts';
 import { LabelGroupWithTooltip } from '~/app/components/LabelGroupWithTooltip';
 
@@ -140,6 +142,12 @@ export const getUnmountableTooltip = (pvc: PvcsPVCListItem): string | null => {
   return null;
 };
 
+// The Kubernetes PVC API can retain references to Pods in terminal phases (Succeeded, Failed)
+// even after they have released the volume mount. Only active Pods block RWOP reuse.
+// Unknown phases are treated conservatively as active to avoid masking real conflicts.
+const isActivePod = (pod: PvcsPodInfo): boolean =>
+  pod.phase !== V1PodPhase.PodSucceeded && pod.phase !== V1PodPhase.PodFailed;
+
 export const isPVCMountBlocked = (pvc: PvcsPVCListItem, currentWorkspaceName?: string): boolean => {
   if (!pvc.pvcSpec.accessModes.includes(V1PersistentVolumeAccessMode.ReadWriteOncePod)) {
     return false;
@@ -147,7 +155,7 @@ export const isPVCMountBlocked = (pvc: PvcsPVCListItem, currentWorkspaceName?: s
   const hasOtherWorkspaces = pvc.workspaces.some((ws) => ws.name !== currentWorkspaceName);
   const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
     ?.name;
-  return hasOtherWorkspaces || pvc.pods.some((pod) => pod.name !== ownPodName);
+  return hasOtherWorkspaces || pvc.pods.some((pod) => pod.name !== ownPodName && isActivePod(pod));
 };
 
 export const getBlockedMountTooltip = (
@@ -164,7 +172,7 @@ export const getBlockedMountTooltip = (
   }
   const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
     ?.name;
-  const otherPod = pvc.pods.find((pod) => pod.name !== ownPodName);
+  const otherPod = pvc.pods.find((pod) => pod.name !== ownPodName && isActivePod(pod));
   if (otherPod?.name) {
     return `This volume uses ReadWriteOncePod access and is already mounted by pod "${otherPod.name}".`;
   }
