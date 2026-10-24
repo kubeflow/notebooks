@@ -52,7 +52,10 @@ def get_poddefaults(namespace):
 @bp.route("/api/namespaces/<namespace>/notebooks")
 def get_notebooks(namespace):
     notebooks = api.list_notebooks(namespace)["items"]
-    contents = [utils.notebook_dict_from_k8s_obj(nb) for nb in notebooks]
+    # The notebooks that are starting share one list of the namespace's events
+    events = status.NotebookEvents(namespace)
+    contents = [utils.notebook_dict_from_k8s_obj(nb, events)
+                for nb in notebooks]
 
     return api.success_response("notebooks", contents)
 
