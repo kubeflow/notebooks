@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/julienschmidt/httprouter"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -209,12 +210,11 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
+		if a.IsSemanticError(err) {
+			fieldErrs := FieldErrorsFromSemanticError(err, reflect.TypeFor[WorkspaceCreateEnvelope]())
+			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
+			return
+		}
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
@@ -334,11 +334,11 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 			a.requestEntityTooLargeResponse(w, r, err)
 			return
 		}
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
+		if a.IsSemanticError(err) {
+			fieldErrs := FieldErrorsFromSemanticError(err, reflect.TypeFor[WorkspaceEnvelope]())
+			a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
+			return
+		}
 		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 		return
 	}
