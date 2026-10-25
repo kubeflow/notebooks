@@ -21,6 +21,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -306,5 +307,94 @@ var _ = Describe("Error Response Functions", func() {
 				Expect(envelope.Error.ErrorResponse).To(Equal(expectedErrorResponse))
 			})
 		}
+	})
+
+	Describe("handleDecodeJSONError", func() {
+		It("should return 422 with structured field error when error is UnmarshalTypeError with field path", func() {
+			unmarshalErr := &json.UnmarshalTypeError{
+				Value:  "number",
+				Type:   reflect.TypeOf(""),
+				Field:  "data.spec.workspaceKind",
+				Offset: 42,
+			}
+
+			app.handleDecodeJSONError(w, r, unmarshalErr)
+
+			Expect(w.Code).To(Equal(http.StatusUnprocessableEntity))
+
+			var envelope ErrorEnvelope
+			err := json.Unmarshal(w.Body.Bytes(), &envelope)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(envelope.Error).NotTo(BeNil())
+			Expect(envelope.Error.Code).To(Equal("422"))
+			Expect(envelope.Error.Message).To(Equal(errMsgRequestBodyInvalid))
+			Expect(envelope.Error.Cause).NotTo(BeNil())
+			Expect(envelope.Error.Cause.ValidationErrors).To(ConsistOf(
+				ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data.spec.workspaceKind",
+					Message: `Invalid value: "number": expected string`,
+				},
+			))
+		})
+
+		It("should return 422 when error is UnmarshalTypeError without field path", func() {
+			unmarshalErr := &json.UnmarshalTypeError{
+				Value:  "string",
+				Type:   reflect.TypeOf(map[string]any{}),
+				Field:  "",
+				Offset: 10,
+			}
+
+			app.handleDecodeJSONError(w, r, unmarshalErr)
+
+			Expect(w.Code).To(Equal(http.StatusUnprocessableEntity))
+
+			var envelope ErrorEnvelope
+			err := json.Unmarshal(w.Body.Bytes(), &envelope)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(envelope.Error).NotTo(BeNil())
+			Expect(envelope.Error.Code).To(Equal("422"))
+			Expect(envelope.Error.Message).To(Equal(errMsgRequestBodyInvalid))
+			Expect(envelope.Error.Cause).NotTo(BeNil())
+			Expect(envelope.Error.Cause.ValidationErrors).To(ConsistOf(
+				ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "<nil>",
+					Message: `Invalid value: "string": expected map[string]interface {}`,
+				},
+			))
+		})
+
+		It("should return 413 when error is MaxBytesError", func() {
+			maxBytesErr := &http.MaxBytesError{}
+
+			app.handleDecodeJSONError(w, r, maxBytesErr)
+
+			Expect(w.Code).To(Equal(http.StatusRequestEntityTooLarge))
+
+			var envelope ErrorEnvelope
+			err := json.Unmarshal(w.Body.Bytes(), &envelope)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(envelope.Error).NotTo(BeNil())
+			Expect(envelope.Error.Code).To(Equal("413"))
+		})
+
+		It("should return 400 for generic decode errors", func() {
+			genericErr := errors.New("unexpected EOF")
+
+			app.handleDecodeJSONError(w, r, genericErr)
+
+			Expect(w.Code).To(Equal(http.StatusBadRequest))
+
+			var envelope ErrorEnvelope
+			err := json.Unmarshal(w.Body.Bytes(), &envelope)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(envelope.Error).NotTo(BeNil())
+			Expect(envelope.Error.Code).To(Equal("400"))
+			Expect(envelope.Error.Message).To(Equal("error decoding request body: unexpected EOF"))
+		})
 	})
 })

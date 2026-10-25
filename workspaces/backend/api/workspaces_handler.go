@@ -203,19 +203,8 @@ func (a *App) CreateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// decode the request body
 	bodyEnvelope := &WorkspaceCreateEnvelope{}
-	err := a.DecodeJSON(r, bodyEnvelope)
-	if err != nil {
-		if a.IsMaxBytesError(err) {
-			a.requestEntityTooLargeResponse(w, r, err)
-			return
-		}
-
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
-		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
+	if err := a.DecodeJSON(r, bodyEnvelope); err != nil {
+		a.handleDecodeJSONError(w, r, err)
 		return
 	}
 
@@ -328,18 +317,8 @@ func (a *App) UpdateWorkspaceHandler(w http.ResponseWriter, r *http.Request, ps 
 
 	// decode the request body
 	bodyEnvelope := &WorkspaceEnvelope{}
-	err := a.DecodeJSON(r, bodyEnvelope)
-	if err != nil {
-		if a.IsMaxBytesError(err) {
-			a.requestEntityTooLargeResponse(w, r, err)
-			return
-		}
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
-		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
+	if err := a.DecodeJSON(r, bodyEnvelope); err != nil {
+		a.handleDecodeJSONError(w, r, err)
 		return
 	}
 

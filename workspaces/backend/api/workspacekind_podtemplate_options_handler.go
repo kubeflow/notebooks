@@ -18,7 +18,6 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -74,16 +73,7 @@ func (a *App) PodTemplateOptionsListValuesHandler(w http.ResponseWriter, r *http
 	// parse request body
 	bodyEnvelope := &PodTemplateOptionsListValuesRequestEnvelope{}
 	if err := a.DecodeJSON(r, bodyEnvelope); err != nil {
-		if a.IsMaxBytesError(err) {
-			a.requestEntityTooLargeResponse(w, r, err)
-			return
-		}
-		//
-		// TODO: handle UnmarshalTypeError and return 422,
-		//       decode the paths which were failed to decode (included in the error)
-		//       and also do this in the other handlers which decode json
-		//
-		a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
+		a.handleDecodeJSONError(w, r, err)
 		return
 	}
 

@@ -2099,6 +2099,48 @@ var _ = Describe("Workspaces Handler", func() {
 			))
 		})
 
+		It("should return 422 when request body contains an invalid field type", func() {
+			By("creating the HTTP request with invalid field type (number for kind string)")
+			rawJSON := `{"data":{"name":"test-workspace","kind":12345}}`
+			path := strings.Replace(constants.WorkspacesByNamespacePath, ":"+constants.NamespacePathParam, namespaceNameCrud, 1)
+			req, err := http.NewRequest(http.MethodPost, path, strings.NewReader(rawJSON))
+			Expect(err).NotTo(HaveOccurred())
+			req.Header.Set("Content-Type", constants.MediaTypeJson)
+			req.Header.Set(userIdHeader, adminUser)
+
+			By("executing CreateWorkspaceHandler")
+			rr := httptest.NewRecorder()
+			ps := httprouter.Params{
+				httprouter.Param{
+					Key:   constants.NamespacePathParam,
+					Value: namespaceNameCrud,
+				},
+			}
+			a.CreateWorkspaceHandler(rr, req, ps)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("decoding the error response")
+			var response ErrorEnvelope
+			err = json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response.Error).NotTo(BeNil())
+			Expect(response.Error.Code).To(Equal("422"))
+			Expect(response.Error.Message).To(Equal(errMsgRequestBodyInvalid))
+			Expect(response.Error.Cause).NotTo(BeNil())
+			Expect(response.Error.Cause.ValidationErrors).To(ConsistOf(
+				ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data.kind",
+					Message: `Invalid value: "number": expected string`,
+				},
+			))
+		})
+
 		It("should update a Workspace successfully", func() {
 
 			By("creating a Workspace via the API")

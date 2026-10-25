@@ -17,6 +17,8 @@ limitations under the License.
 package api
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -328,4 +330,30 @@ func (a *App) failedValidationResponse(w http.ResponseWriter, r *http.Request, m
 		},
 	}
 	a.errorResponse(w, r, httpError)
+}
+
+// handleDecodeJSONError handles errors returned by DecodeJSON and writes the appropriate HTTP response:
+// - 413 Request Entity Too Large if the body exceeds max allowed bytes
+// - 422 Unprocessable Entity with structured validation errors if a field has an invalid type (json.UnmarshalTypeError)
+// - 400 Bad Request for malformed JSON, empty body, or other decoding errors
+func (a *App) handleDecodeJSONError(w http.ResponseWriter, r *http.Request, err error) {
+	if a.IsMaxBytesError(err) {
+		a.requestEntityTooLargeResponse(w, r, err)
+		return
+	}
+
+	var unmarshalTypeError *json.UnmarshalTypeError
+	if errors.As(err, &unmarshalTypeError) {
+		var fldPath *field.Path
+		if unmarshalTypeError.Field != "" {
+			fldPath = field.NewPath(unmarshalTypeError.Field)
+		}
+		valErrs := field.ErrorList{
+			field.TypeInvalid(fldPath, unmarshalTypeError.Value, fmt.Sprintf("expected %s", unmarshalTypeError.Type.String())),
+		}
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, valErrs, nil)
+		return
+	}
+
+	a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
 }
