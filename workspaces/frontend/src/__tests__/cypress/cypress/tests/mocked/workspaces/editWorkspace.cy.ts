@@ -355,6 +355,8 @@ describe('Edit workspace', () => {
 
       editWorkspace.assertVolumesCount(2);
       editWorkspace.assertSecretsCount(1);
+      cy.contains('button', 'Data Volumes').should('have.attr', 'aria-expanded', 'true');
+      cy.contains('button', 'Secrets').should('have.attr', 'aria-expanded', 'true');
     });
   });
 
@@ -556,7 +558,6 @@ describe('Edit workspace — volume detach behavior', () => {
     editWorkspace.advancePastRedirectModal(); // image → pod config
     editWorkspace.advancePastRedirectModal(); // pod config → properties
 
-    volumesManagement.expandVolumesSection();
     cy.wait('@listPVCs');
   });
 
@@ -633,7 +634,6 @@ describe('Edit workspace — home volume mount path', () => {
   });
 
   it('should allow editing data volume mount paths', () => {
-    volumesManagement.expandVolumesSection();
     volumesManagement.clickVolumeMountPathEdit('data-volume-1');
 
     volumesManagement.assertVolumeMountPathEditing('data-volume-1');
