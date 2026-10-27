@@ -5,6 +5,7 @@ import {
   isPVCMountBlocked,
   getBlockedMountTooltip,
   getRWOInUseWarning,
+  hasOtherMountConflict,
   buildPVCSelectOptions,
 } from '~/app/pages/Workspaces/Form/helpers';
 import { buildMockPVC, buildMockStorageClass } from '~/shared/mock/mockBuilder';
@@ -457,6 +458,82 @@ describe('getRWOInUseWarning', () => {
       workspaces: [buildWorkspaceInfo(OTHER_WORKSPACE)],
     });
     expect(getRWOInUseWarning(pvc, CURRENT_WORKSPACE)).not.toBeNull();
+  });
+
+  it('returns null for an RWO PVC whose only pod has Succeeded (terminal pod excluded)', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pods: [{ name: 'done-pod', phase: V1PodPhase.PodSucceeded }],
+      workspaces: [],
+    });
+    expect(getRWOInUseWarning(pvc, CURRENT_WORKSPACE)).toBeNull();
+  });
+
+  it('returns null for an RWO PVC whose only pod has Failed (terminal pod excluded)', () => {
+    const pvc = buildMockPVC({
+      pvcSpec: buildSpec(V1PersistentVolumeAccessMode.ReadWriteOnce),
+      pods: [{ name: 'failed-pod', phase: V1PodPhase.PodFailed }],
+      workspaces: [],
+    });
+    expect(getRWOInUseWarning(pvc, CURRENT_WORKSPACE)).toBeNull();
+  });
+});
+
+describe('hasOtherMountConflict', () => {
+  it('returns false when the PVC has no mounts at all', () => {
+    const pvc = buildMockPVC({ pods: [], workspaces: [] });
+    expect(hasOtherMountConflict(pvc, CURRENT_WORKSPACE)).toBe(false);
+  });
+
+  it('returns false when the only active pod is the current workspace own pod', () => {
+    const pvc = buildMockPVC({
+      pods: [{ name: CURRENT_POD, phase: V1PodPhase.PodRunning }],
+      workspaces: [buildWorkspaceInfo(CURRENT_WORKSPACE, CURRENT_POD)],
+    });
+    expect(hasOtherMountConflict(pvc, CURRENT_WORKSPACE)).toBe(false);
+  });
+
+  it('returns true when another workspace uses the PVC', () => {
+    const pvc = buildMockPVC({
+      pods: [],
+      workspaces: [
+        buildWorkspaceInfo(CURRENT_WORKSPACE, CURRENT_POD),
+        buildWorkspaceInfo(OTHER_WORKSPACE),
+      ],
+    });
+    expect(hasOtherMountConflict(pvc, CURRENT_WORKSPACE)).toBe(true);
+  });
+
+  it('returns true when an active pod other than the own pod uses the PVC', () => {
+    const pvc = buildMockPVC({
+      pods: [{ name: 'other-pod', phase: V1PodPhase.PodRunning }],
+      workspaces: [buildWorkspaceInfo(CURRENT_WORKSPACE, CURRENT_POD)],
+    });
+    expect(hasOtherMountConflict(pvc, CURRENT_WORKSPACE)).toBe(true);
+  });
+
+  it('returns false when the only other pod has Succeeded (terminal pod excluded)', () => {
+    const pvc = buildMockPVC({
+      pods: [{ name: 'done-pod', phase: V1PodPhase.PodSucceeded }],
+      workspaces: [],
+    });
+    expect(hasOtherMountConflict(pvc, CURRENT_WORKSPACE)).toBe(false);
+  });
+
+  it('returns false when the only other pod has Failed (terminal pod excluded)', () => {
+    const pvc = buildMockPVC({
+      pods: [{ name: 'failed-pod', phase: V1PodPhase.PodFailed }],
+      workspaces: [],
+    });
+    expect(hasOtherMountConflict(pvc, CURRENT_WORKSPACE)).toBe(false);
+  });
+
+  it('returns true when the only other pod has Unknown phase (treated as active)', () => {
+    const pvc = buildMockPVC({
+      pods: [{ name: 'unknown-pod', phase: V1PodPhase.PodUnknown }],
+      workspaces: [],
+    });
+    expect(hasOtherMountConflict(pvc, CURRENT_WORKSPACE)).toBe(true);
   });
 });
 

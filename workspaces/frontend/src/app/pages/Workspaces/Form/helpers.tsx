@@ -148,42 +148,60 @@ export const getUnmountableTooltip = (pvc: PvcsPVCListItem): string | null => {
 const isActivePod = (pod: PvcsPodInfo): boolean =>
   pod.phase !== V1PodPhase.PodSucceeded && pod.phase !== V1PodPhase.PodFailed;
 
+// Returns the first conflicting workspace or active Pod that is not the current workspace's own Pod,
+// or null when there is no conflict.
+const findOtherMountConflict = (
+  pvc: PvcsPVCListItem,
+  currentWorkspaceName?: string,
+): { otherWorkspaceName: string | undefined; otherPodName: string | undefined } | null => {
+  const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
+    ?.name;
+  const otherWorkspace = pvc.workspaces.find((ws) => ws.name !== currentWorkspaceName);
+  const otherPod = pvc.pods.find((pod) => pod.name !== ownPodName && isActivePod(pod));
+  if (!otherWorkspace && !otherPod) {
+    return null;
+  }
+  return { otherWorkspaceName: otherWorkspace?.name, otherPodName: otherPod?.name };
+};
+
+export const hasOtherMountConflict = (
+  pvc: PvcsPVCListItem,
+  currentWorkspaceName?: string,
+): boolean => findOtherMountConflict(pvc, currentWorkspaceName) !== null;
+
 export const isPVCMountBlocked = (pvc: PvcsPVCListItem, currentWorkspaceName?: string): boolean => {
   if (!pvc.pvcSpec.accessModes.includes(V1PersistentVolumeAccessMode.ReadWriteOncePod)) {
     return false;
   }
-  const hasOtherWorkspaces = pvc.workspaces.some((ws) => ws.name !== currentWorkspaceName);
-  const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
-    ?.name;
-  return hasOtherWorkspaces || pvc.pods.some((pod) => pod.name !== ownPodName && isActivePod(pod));
+  return findOtherMountConflict(pvc, currentWorkspaceName) !== null;
 };
 
 export const getBlockedMountTooltip = (
   pvc: PvcsPVCListItem,
   currentWorkspaceName?: string,
 ): string | null => {
-  if (!isPVCMountBlocked(pvc, currentWorkspaceName)) {
+  if (!pvc.pvcSpec.accessModes.includes(V1PersistentVolumeAccessMode.ReadWriteOncePod)) {
     return null;
   }
-  // Only RWOP PVCs reach here (isPVCMountBlocked only returns true for RWOP)
-  const otherWorkspace = pvc.workspaces.find((ws) => ws.name !== currentWorkspaceName);
-  if (otherWorkspace?.name) {
-    return `This volume uses ReadWriteOncePod access and is already mounted by workspace "${otherWorkspace.name}".`;
+  const conflict = findOtherMountConflict(pvc, currentWorkspaceName);
+  if (!conflict) {
+    return null;
   }
-  const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
-    ?.name;
-  const otherPod = pvc.pods.find((pod) => pod.name !== ownPodName && isActivePod(pod));
-  if (otherPod?.name) {
-    return `This volume uses ReadWriteOncePod access and is already mounted by pod "${otherPod.name}".`;
+  if (conflict.otherWorkspaceName) {
+    return `This volume uses ReadWriteOncePod access and is already mounted by workspace "${conflict.otherWorkspaceName}".`;
+  }
+  if (conflict.otherPodName) {
+    return `This volume uses ReadWriteOncePod access and is already mounted by pod "${conflict.otherPodName}".`;
   }
   return 'This volume uses ReadWriteOncePod access and is already mounted by another pod or workspace.';
 };
 
 /**
- * Returns a warning message when a ReadWriteOnce PVC is in use by another workspace or pod.
+ * Returns a warning message when a ReadWriteOnce PVC is in use by another workspace or active Pod.
  * RWO is node-scoped: multiple Pods on the same node may share it, but Pods on different
  * nodes cannot mount it read-write simultaneously. The PVC is not blocked — it remains
  * selectable — but users should be aware of this constraint.
+ * Terminal Pods (Succeeded, Failed) do not trigger the warning.
  */
 export const getRWOInUseWarning = (
   pvc: PvcsPVCListItem,
@@ -192,12 +210,7 @@ export const getRWOInUseWarning = (
   if (!pvc.pvcSpec.accessModes.includes(V1PersistentVolumeAccessMode.ReadWriteOnce)) {
     return null;
   }
-  const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
-    ?.name;
-  const mountedByOther =
-    pvc.pods.some((pod) => pod.name !== ownPodName) ||
-    pvc.workspaces.some((ws) => ws.name !== currentWorkspaceName);
-  if (!mountedByOther) {
+  if (!findOtherMountConflict(pvc, currentWorkspaceName)) {
     return null;
   }
   return 'ReadWriteOnce (RWO) volumes allow read-write access from a single node at a time. Multiple Pods on the same node may share this volume, but Pods on different nodes may not be able to mount it read-write simultaneously.';

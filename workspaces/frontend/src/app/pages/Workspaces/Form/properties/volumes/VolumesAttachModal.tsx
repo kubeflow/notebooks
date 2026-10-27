@@ -24,6 +24,7 @@ import {
   isPVCMountBlocked,
   getBlockedMountTooltip,
   getRWOInUseWarning,
+  hasOtherMountConflict,
 } from '~/app/pages/Workspaces/Form/helpers';
 import { MountPathField } from '~/app/pages/Workspaces/Form/MountPathField';
 import usePVCs from '~/app/hooks/usePVCs';
@@ -48,15 +49,6 @@ export interface VolumesAttachModalProps {
   excludedPvcNames?: Set<string>;
   currentWorkspaceName?: string;
 }
-
-const isMountedByOther = (pvc: PvcsPVCListItem, currentWorkspaceName?: string): boolean => {
-  const ownPodName = pvc.workspaces.find((ws) => ws.name === currentWorkspaceName)?.podTemplatePod
-    ?.name;
-  return (
-    pvc.pods.some((pod) => pod.name !== ownPodName) ||
-    pvc.workspaces.some((ws) => ws.name !== currentWorkspaceName)
-  );
-};
 
 export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
   isOpen,
@@ -156,7 +148,7 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
         body: rwoWarning,
       };
     }
-    if (isMountedByOther(selectedPvc, currentWorkspaceName)) {
+    if (hasOtherMountConflict(selectedPvc, currentWorkspaceName)) {
       return {
         variant: AlertVariant.warning,
         title: 'Volume is currently in use',
