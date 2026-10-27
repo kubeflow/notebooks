@@ -748,11 +748,7 @@ func (r *WorkspaceReconciler) mapWorkspaceKindToRequest(ctx context.Context, wor
 // While the cache streams only Warning events from the API server, filtering for Pod and
 // StatefulSet kinds specifically is done here because Kubernetes field selectors do not
 // support OR / set-based filtering across kinds.
-func isWarningEvent(object client.Object) bool {
-	ev, ok := object.(*corev1.Event)
-	if !ok {
-		return false
-	}
+func isWarningEvent(ev *corev1.Event) bool {
 	if ev.Type != corev1.EventTypeWarning {
 		return false
 	}
@@ -762,15 +758,25 @@ func isWarningEvent(object client.Object) bool {
 // predWarningEvent filters for Warning-type events on owned Pods and StatefulSets on creation only
 var predWarningEvent = predicate.Funcs{
 	CreateFunc: func(e event.CreateEvent) bool {
-		return isWarningEvent(e.Object)
+		ev, ok := e.Object.(*corev1.Event)
+		if !ok {
+			return false
+		}
+		return isWarningEvent(ev)
 	},
 	UpdateFunc: func(e event.UpdateEvent) bool {
-		// Ignore updates to existing events. When issues persist (e.g. ImagePullBackOff, CrashLoopBackOff),
-		// Kubernetes periodically updates the Event's Count and LastTimestamp. Retriggering reconciliation
-		// on every count bump causes unnecessary reconciliation churn for a problem that is already known
-		// and has already transitioned the Workspace to an Error state. Recovery will be triggered by Pod
-		// or StatefulSet resource updates once the underlying problem resolves.
-		return false
+		// we need to reconcile on updates because when there are multiple warning events causing the workspace
+		// to be in an error state, and one is resolved, we need to update the workspace state to reflect the
+		// warning event that is still firing.
+		//
+		// TODO: the need for this can probably be avoided if we always requeue workspaces which have
+		//       a state derived from warning events (e.g. every 1-5 minutes).
+		//
+		newEv, ok := e.ObjectNew.(*corev1.Event)
+		if !ok {
+			return false
+		}
+		return isWarningEvent(newEv)
 	},
 	DeleteFunc: func(e event.DeleteEvent) bool {
 		return false // Deleting an event should not trigger parent reconciliation
@@ -1705,8 +1711,8 @@ func generateWorkspacePodStatus(pod *corev1.Pod) kubefloworgv1beta1.WorkspacePod
 func generateWorkspaceStatefulSetStatus(sts *appsv1.StatefulSet) kubefloworgv1beta1.WorkspaceStatefulSetStatus {
 	stsStatus := kubefloworgv1beta1.WorkspaceStatefulSetStatus{}
 
-	// return an empty status if the StatefulSet is nil
-	if sts == nil {
+	// return an empty status if the statefulset does not exist
+	if sts == nil || sts.UID == "" {
 		return stsStatus
 	}
 
@@ -1747,9 +1753,6 @@ func (r *WorkspaceReconciler) getLastWarningEvent(ctx context.Context, namespace
 		if event.Type != corev1.EventTypeWarning {
 			continue
 		}
-		//
-		// TODO: ensure this actually works when there are multiple Warning events for this object
-		//
 		if lastWarningEvent == nil || lastWarningEvent.LastTimestamp.Time.Before(event.LastTimestamp.Time) {
 			lastWarningEvent = &events.Items[i]
 		}

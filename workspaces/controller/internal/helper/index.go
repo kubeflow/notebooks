@@ -33,14 +33,11 @@ import (
 )
 
 const (
-	// IndexEventInvolvedObjectUidField indexes Events by `involvedObject.uid`.
-	//
-	// NOTE: unlike the other index names, this one deliberately has NO leading dot, because it must
-	//       be valid BOTH as a controller-runtime cache index name AND as a real Kubernetes field
-	//       label for `v1.Event`. When `--watch-warning-events` is disabled we do not cache Events
-	//       at all, so a List using this field selector is sent to the API server, which rejects
-	//       any field label it does not know (e.g. `.involvedObject.uid` would fail with
-	//       "field label not supported").
+	// IndexEventInvolvedObjectUidField is the index for the `involvedObject.uid` field of `v1.Event`
+	// NOTE: this index does not have a leading dot because it needs to be a valid field selector key,
+	//       for when `--watch-warning-events` is disabled and Events are read directly from the API server
+	//       instead of the cache, meaning this field will be passed to the API server as a field selector
+	//       https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/#supported-fields
 	IndexEventInvolvedObjectUidField = "involvedObject.uid"
 
 	IndexWorkspaceOwnedResourceUIDField         = ".status.ownedResourceUIDs"

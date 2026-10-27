@@ -168,15 +168,17 @@ func main() {
 	cacheOpts := cache.Options{}
 
 	if cfg.WatchWarningEvents {
+		//
+		// TODO: create two separate caches for Warning events so that we can process less total events:
+		//        1. Warning events with involvedObject.kind=Pod and involvedObject.apiVersion=v1
+		//        2. Warning events with involvedObject.kind=StatefulSet and involvedObject.apiVersion=apps/v1
+		//       NOTE: we will need to index each event by only involved objects of the correct
+		//             type so we can list them efficiently
+		//
 		cacheOpts.ByObject = map[client.Object]cache.ByObject{
 			&corev1.Event{}: {
-				// Filter at the apiserver/etcd level so only Warning events are streamed & cached.
-				// NOTE: Kubernetes field selectors do not support OR / set membership (e.g.
-				// involvedObject.kind in (Pod, StatefulSet)). Filtering for Pod and StatefulSet
-				// kinds specifically is handled client-side by the controller's event predicate.
-				Field: fields.SelectorFromSet(fields.Set{
-					"type": corev1.EventTypeWarning,
-				}),
+				// Filter to only Warning type events.
+				Field: fields.OneTermEqualSelector("type", corev1.EventTypeWarning),
 				// Drop the parts of each Event we never read before it is stored in the cache.
 				// This cache holds every Warning Event in the cluster (client-side predicates filter
 				// event *delivery*, not cache *contents*), so shrinking each entry directly shrinks

@@ -1878,14 +1878,14 @@ var _ = Describe("Workspace Controller", func() {
 			// Pod Warning Event
 			Expect(isWarningEvent(podWarningEvent)).To(BeTrue())
 			Expect(predWarningEvent.Create(event.CreateEvent{Object: podWarningEvent})).To(BeTrue())
-			Expect(predWarningEvent.Update(event.UpdateEvent{ObjectOld: podWarningEvent, ObjectNew: podWarningEvent})).To(BeFalse())
+			Expect(predWarningEvent.Update(event.UpdateEvent{ObjectOld: podWarningEvent, ObjectNew: podWarningEvent})).To(BeTrue())
 			Expect(predWarningEvent.Delete(event.DeleteEvent{Object: podWarningEvent})).To(BeFalse())
 			Expect(predWarningEvent.Generic(event.GenericEvent{Object: podWarningEvent})).To(BeFalse())
 
 			// StatefulSet Warning Event
 			Expect(isWarningEvent(stsWarningEvent)).To(BeTrue())
 			Expect(predWarningEvent.Create(event.CreateEvent{Object: stsWarningEvent})).To(BeTrue())
-			Expect(predWarningEvent.Update(event.UpdateEvent{ObjectOld: stsWarningEvent, ObjectNew: stsWarningEvent})).To(BeFalse())
+			Expect(predWarningEvent.Update(event.UpdateEvent{ObjectOld: stsWarningEvent, ObjectNew: stsWarningEvent})).To(BeTrue())
 			Expect(predWarningEvent.Delete(event.DeleteEvent{Object: stsWarningEvent})).To(BeFalse())
 			Expect(predWarningEvent.Generic(event.GenericEvent{Object: stsWarningEvent})).To(BeFalse())
 		})
@@ -1933,12 +1933,6 @@ var _ = Describe("Workspace Controller", func() {
 			}
 			Expect(isWarningEvent(unknownEvent)).To(BeFalse())
 			Expect(predWarningEvent.Create(event.CreateEvent{Object: unknownEvent})).To(BeFalse())
-		})
-
-		It("should reject non-Event objects", func() {
-			pod := &corev1.Pod{}
-			Expect(isWarningEvent(pod)).To(BeFalse())
-			Expect(predWarningEvent.Create(event.CreateEvent{Object: pod})).To(BeFalse())
 		})
 	})
 
