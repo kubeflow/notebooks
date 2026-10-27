@@ -4,6 +4,7 @@ import { editWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspaceKi
 import { workspaceKinds } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import {
+  buildMockListValuesData,
   buildMockNamespace,
   buildMockPVCCreate,
   buildMockStorageClass,
@@ -12,6 +13,7 @@ import {
 } from '~/shared/mock/mockBuilder';
 import {
   FieldErrorType,
+  type OptionsPodTemplateOptions,
   type WorkspacekindsWorkspaceKindListItem,
   type WorkspacekindsWorkspaceKindUpdate,
 } from '~/generated/data-contracts';
@@ -22,6 +24,7 @@ const TEST_WORKSPACE_KIND_NAME = 'test-workspace-kind';
 type EditWorkspaceKindSetup = {
   mockWorkspaceKind: WorkspacekindsWorkspaceKindListItem;
   mockNamespace: ReturnType<typeof buildMockNamespace>;
+  workspaceKindOptions: OptionsPodTemplateOptions;
 };
 
 const setupEditWorkspaceKind = (
@@ -36,6 +39,7 @@ const setupEditWorkspaceKind = (
     hidden: false,
     ...workspaceKindOverrides,
   });
+  const workspaceKindOptions = buildMockListValuesData();
 
   cy.interceptApi(
     'GET /api/:apiVersion/namespaces',
@@ -46,7 +50,7 @@ const setupEditWorkspaceKind = (
   cy.interceptApi(
     'GET /api/:apiVersion/workspacekinds/:kind',
     { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
-    mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+    mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind, workspaceKindOptions)),
   ).as('getWorkspaceKind');
 
   cy.interceptApi(
@@ -100,7 +104,11 @@ const setupEditWorkspaceKind = (
     undefined,
   ).as('deletePvc');
 
-  return { mockWorkspaceKind, mockNamespace };
+  return {
+    mockWorkspaceKind,
+    mockNamespace,
+    workspaceKindOptions,
+  };
 };
 
 const visitEditWorkspaceKind = (kind: string) => {
@@ -322,13 +330,13 @@ describe('Edit workspace kind', () => {
     });
 
     it('should display all images from workspace kind', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const imageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
+      const imageCount = workspaceKindOptions.imageConfig.values!.length;
       editWorkspaceKind.assertImageCount(imageCount);
     });
 
@@ -395,13 +403,13 @@ describe('Edit workspace kind', () => {
     });
 
     it('should add new image to the table after submitting form', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
+      const initialImageCount = workspaceKindOptions.imageConfig.values!.length;
       editWorkspaceKind.assertImageCount(initialImageCount);
 
       editWorkspaceKind.clickAddImageButton();
@@ -447,13 +455,13 @@ describe('Edit workspace kind', () => {
     });
 
     it('should cancel image removal when clicking cancel in remove modal', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
+      const initialImageCount = workspaceKindOptions.imageConfig.values!.length;
 
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickRemoveImage();
@@ -466,14 +474,14 @@ describe('Edit workspace kind', () => {
     });
 
     it('should remove image from table when confirming removal', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const initialImageCount = mockWorkspaceKind.podTemplate.options.imageConfig.values!.length;
-      const imageToRemove = mockWorkspaceKind.podTemplate.options.imageConfig.values![0];
+      const initialImageCount = workspaceKindOptions.imageConfig.values!.length;
+      const imageToRemove = workspaceKindOptions.imageConfig.values![0];
 
       editWorkspaceKind.assertImageInTable(imageToRemove.displayName);
 
@@ -487,13 +495,13 @@ describe('Edit workspace kind', () => {
     });
 
     it('should open edit modal when clicking edit from actions menu', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandImageConfigSection();
 
-      const imageToEdit = mockWorkspaceKind.podTemplate.options.imageConfig.values![0];
+      const imageToEdit = workspaceKindOptions.imageConfig.values![0];
 
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
@@ -529,13 +537,13 @@ describe('Edit workspace kind', () => {
     });
 
     it('should display all pod configurations from workspace kind', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const podConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
+      const podConfigCount = workspaceKindOptions.podConfig.values!.length;
       editWorkspaceKind.assertPodConfigCount(podConfigCount);
     });
 
@@ -599,13 +607,13 @@ describe('Edit workspace kind', () => {
     });
 
     it('should add new pod config to the table after submitting form', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
+      const initialPodConfigCount = workspaceKindOptions.podConfig.values!.length;
       editWorkspaceKind.assertPodConfigCount(initialPodConfigCount);
 
       editWorkspaceKind.clickAddConfigButton();
@@ -649,13 +657,13 @@ describe('Edit workspace kind', () => {
     });
 
     it('should cancel pod config removal when clicking cancel in remove modal', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
+      const initialPodConfigCount = workspaceKindOptions.podConfig.values!.length;
 
       editWorkspaceKind.clickPodConfigTableRowKebab(0);
       editWorkspaceKind.clickRemovePodConfig();
@@ -668,14 +676,14 @@ describe('Edit workspace kind', () => {
     });
 
     it('should remove pod config from table when confirming removal', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const initialPodConfigCount = mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
-      const podConfigToRemove = mockWorkspaceKind.podTemplate.options.podConfig.values![0];
+      const initialPodConfigCount = workspaceKindOptions.podConfig.values!.length;
+      const podConfigToRemove = workspaceKindOptions.podConfig.values![0];
 
       editWorkspaceKind.assertPodConfigInTable(podConfigToRemove.displayName);
 
@@ -689,13 +697,13 @@ describe('Edit workspace kind', () => {
     });
 
     it('should open edit modal when clicking edit from actions menu', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
       editWorkspaceKind.expandPodConfigSection();
 
-      const podConfigToEdit = mockWorkspaceKind.podTemplate.options.podConfig.values![0];
+      const podConfigToEdit = workspaceKindOptions.podConfig.values![0];
 
       editWorkspaceKind.clickPodConfigTableRowKebab(0);
       editWorkspaceKind.clickEditPodConfig();
@@ -896,14 +904,13 @@ describe('Edit workspace kind', () => {
       });
 
       it('should submit pod config with node selectors and verify in table', () => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+        const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
         visitEditWorkspaceKind(mockWorkspaceKind.name);
 
         editWorkspaceKind.expandPodConfigSection();
 
-        const initialPodConfigCount =
-          mockWorkspaceKind.podTemplate.options.podConfig.values!.length;
+        const initialPodConfigCount = workspaceKindOptions.podConfig.values!.length;
 
         editWorkspaceKind.clickAddConfigButton();
         editWorkspaceKind.typePodConfigId('ns-test-config');
@@ -1152,8 +1159,9 @@ describe('Edit workspace kind', () => {
           activityProbe?: WorkspacekindsWorkspaceKindUpdate['podTemplate']['activityProbe'];
         } = {},
       ) => {
-        const { mockWorkspaceKind } = setupEditWorkspaceKind();
-        const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind);
+        const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
+
+        const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind, workspaceKindOptions);
         update.podTemplate.activityProbe = overrides.activityProbe;
         update.activityRules = overrides.activityRules;
         cy.interceptApi(
@@ -1566,12 +1574,12 @@ describe('Edit workspace kind', () => {
     });
 
     it('should call update API when clicking Save after editing description', () => {
-      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const { mockWorkspaceKind, workspaceKindOptions } = setupEditWorkspaceKind();
 
       cy.interceptApi(
         'PUT /api/:apiVersion/workspacekinds/:kind',
         { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
-        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind, workspaceKindOptions)),
       ).as('updateWorkspaceKind');
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);

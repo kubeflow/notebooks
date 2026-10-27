@@ -3,6 +3,7 @@ import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/cr
 import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import {
+  buildMockListValuesData,
   buildMockNamespace,
   buildMockWorkspace,
   buildMockWorkspaceKind,
@@ -12,7 +13,6 @@ import {
   buildMockImageWithLabels,
   interceptListValues,
 } from '~/__tests__/cypress/cypress/utils/testBuilders';
-import type { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 const STEP_NAMES = {
   KIND: 'Workspace Kind',
@@ -97,31 +97,29 @@ describe('Filter Images by Labels', () => {
     ),
   ];
 
-  const mockWorkspaceKind: WorkspacekindsWorkspaceKindListItem = buildMockWorkspaceKind({
+  const mockWorkspaceKind = buildMockWorkspaceKind({
     name: 'jupyterlab',
-    podTemplate: {
-      ...buildMockWorkspaceKind().podTemplate,
-      options: {
-        imageConfig: {
-          default: 'pytorch-39',
-          values: mockImages,
+  });
+
+  const listValues = buildMockListValuesData({
+    imageConfig: {
+      default: 'pytorch-39',
+      values: mockImages,
+    },
+    podConfig: {
+      default: 'tiny_cpu',
+      values: [
+        {
+          id: 'tiny_cpu',
+          displayName: 'Tiny CPU',
+          description: 'Small CPU configuration',
+          labels: [],
+          hidden: false,
+          restrictions: { deny: false },
+          podMetadata: { labels: {}, annotations: {} },
+          statefulSetMetadata: { labels: {}, annotations: {} },
         },
-        podConfig: {
-          default: 'tiny_cpu',
-          values: [
-            {
-              id: 'tiny_cpu',
-              displayName: 'Tiny CPU',
-              description: 'Small CPU configuration',
-              labels: [],
-              hidden: false,
-              restrictions: { deny: false },
-              podMetadata: { labels: {}, annotations: {} },
-              statefulSetMetadata: { labels: {}, annotations: {} },
-            },
-          ],
-        },
-      },
+      ],
     },
   });
 
@@ -143,7 +141,7 @@ describe('Filter Images by Labels', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKind]),
     ).as('getWorkspaceKinds');
-    interceptListValues(mockWorkspaceKind);
+    interceptListValues(mockWorkspaceKind, { listValues });
 
     workspaces.visit();
     cy.wait('@getNamespaces');
