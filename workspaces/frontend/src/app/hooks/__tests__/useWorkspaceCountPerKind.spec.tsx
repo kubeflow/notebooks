@@ -3,8 +3,6 @@ import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { useWorkspaceCountPerKind } from '~/app/hooks/useWorkspaceCountPerKind';
 import {
-  OptionsImageConfigValue,
-  OptionsPodConfigValue,
   WorkspacekindsWorkspaceKindListItem,
   WorkspacesWorkspaceKindInfo,
   WorkspacesWorkspaceListItem,
@@ -30,28 +28,6 @@ const baseWorkspaceTest = buildMockWorkspace({
   namespace: 'namespace',
   workspaceKind: baseWorkspaceKindInfoTest,
 });
-
-const baseImageConfigTest: OptionsImageConfigValue = {
-  id: 'image',
-  displayName: 'Image',
-  description: 'Test image',
-  labels: [],
-  hidden: false,
-  clusterMetrics: undefined,
-  restrictions: { deny: false },
-};
-
-const basePodConfigTest: OptionsPodConfigValue = {
-  id: 'podConfig',
-  displayName: 'Pod Config',
-  description: 'Test pod config',
-  labels: [],
-  hidden: false,
-  clusterMetrics: undefined,
-  restrictions: { deny: false },
-  podMetadata: { labels: {}, annotations: {} },
-  statefulSetMetadata: { labels: {}, annotations: {} },
-};
 
 describe('useWorkspaceCountPerKind', () => {
   const mockListAllWorkspaces = jest.fn();
@@ -129,74 +105,10 @@ describe('useWorkspaceCountPerKind', () => {
       buildMockWorkspaceKind({
         name: 'jupyter1',
         clusterMetrics: { workspacesCount: 10 },
-        podTemplate: {
-          podMetadata: { labels: {}, annotations: {} },
-          statefulSetMetadata: { labels: {}, annotations: {} },
-          volumeMountPaths: { home: '/home' },
-          options: {
-            imageConfig: {
-              default: 'image1',
-              values: [
-                {
-                  ...baseImageConfigTest,
-                  id: 'image1',
-                  clusterMetrics: { workspacesCount: 1 },
-                },
-                {
-                  ...baseImageConfigTest,
-                  id: 'image2',
-                  clusterMetrics: { workspacesCount: 2 },
-                },
-              ],
-            },
-            podConfig: {
-              default: 'podConfig1',
-              values: [
-                {
-                  ...basePodConfigTest,
-                  id: 'podConfig1',
-                  clusterMetrics: { workspacesCount: 3 },
-                },
-                {
-                  ...basePodConfigTest,
-                  id: 'podConfig2',
-                  clusterMetrics: { workspacesCount: 4 },
-                },
-              ],
-            },
-          },
-        },
       }),
       buildMockWorkspaceKind({
         name: 'jupyter2',
         clusterMetrics: { workspacesCount: 20 },
-        podTemplate: {
-          podMetadata: { labels: {}, annotations: {} },
-          statefulSetMetadata: { labels: {}, annotations: {} },
-          volumeMountPaths: { home: '/home' },
-          options: {
-            imageConfig: {
-              default: 'image1',
-              values: [
-                {
-                  ...baseImageConfigTest,
-                  id: 'image1',
-                  clusterMetrics: { workspacesCount: 11 },
-                },
-              ],
-            },
-            podConfig: {
-              default: 'podConfig1',
-              values: [
-                {
-                  ...basePodConfigTest,
-                  id: 'podConfig1',
-                  clusterMetrics: { workspacesCount: 12 },
-                },
-              ],
-            },
-          },
-        },
       }),
     ];
 
@@ -209,26 +121,12 @@ describe('useWorkspaceCountPerKind', () => {
       expect(result.current.workspaceCountPerKind).toEqual({
         jupyter1: {
           count: 10,
-          countByImage: {
-            image1: 1,
-            image2: 2,
-          },
-          countByPodConfig: {
-            podConfig1: 3,
-            podConfig2: 4,
-          },
           countByNamespace: {
             namespace1: 2,
           },
         },
         jupyter2: {
           count: 20,
-          countByImage: {
-            image1: 11,
-          },
-          countByPodConfig: {
-            podConfig1: 12,
-          },
           countByNamespace: {
             namespace2: 1,
           },
@@ -238,46 +136,16 @@ describe('useWorkspaceCountPerKind', () => {
     });
   });
 
-  it('should handle zero cluster metrics gracefully', async () => {
+  it('should handle zero workspace counts', async () => {
     const mockEmptyWorkspaces: WorkspacesWorkspaceListItem[] = [];
     const mockWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[] = [
       buildMockWorkspaceKind({
         name: 'no-metrics',
         clusterMetrics: { workspacesCount: 0 },
-        podTemplate: {
-          podMetadata: { labels: {}, annotations: {} },
-          statefulSetMetadata: { labels: {}, annotations: {} },
-          volumeMountPaths: { home: '/home' },
-          options: {
-            imageConfig: {
-              default: baseImageConfigTest.id,
-              values: [{ ...baseImageConfigTest }],
-            },
-            podConfig: {
-              default: basePodConfigTest.id,
-              values: [{ ...basePodConfigTest }],
-            },
-          },
-        },
       }),
       buildMockWorkspaceKind({
         name: 'no-metrics-2',
         clusterMetrics: { workspacesCount: 0 },
-        podTemplate: {
-          podMetadata: { labels: {}, annotations: {} },
-          statefulSetMetadata: { labels: {}, annotations: {} },
-          volumeMountPaths: { home: '/home' },
-          options: {
-            imageConfig: {
-              default: 'empty',
-              values: [],
-            },
-            podConfig: {
-              default: 'empty',
-              values: [],
-            },
-          },
-        },
       }),
     ];
 
@@ -290,18 +158,10 @@ describe('useWorkspaceCountPerKind', () => {
       expect(result.current.workspaceCountPerKind).toEqual({
         'no-metrics': {
           count: 0,
-          countByImage: {
-            image: 0,
-          },
-          countByPodConfig: {
-            podConfig: 0,
-          },
           countByNamespace: {},
         },
         'no-metrics-2': {
           count: 0,
-          countByImage: {},
-          countByPodConfig: {},
           countByNamespace: {},
         },
       });
@@ -338,21 +198,6 @@ describe('useWorkspaceCountPerKind', () => {
     const workspaceKind = buildMockWorkspaceKind({
       name: 'nomatch',
       clusterMetrics: { workspacesCount: 0 },
-      podTemplate: {
-        podMetadata: { labels: {}, annotations: {} },
-        statefulSetMetadata: { labels: {}, annotations: {} },
-        volumeMountPaths: { home: '/home' },
-        options: {
-          imageConfig: {
-            default: baseImageConfigTest.id,
-            values: [{ ...baseImageConfigTest }],
-          },
-          podConfig: {
-            default: basePodConfigTest.id,
-            values: [{ ...basePodConfigTest }],
-          },
-        },
-      },
     });
 
     const mockWorkspaceKinds: WorkspacekindsWorkspaceKindListItem[] = [workspaceKind];
@@ -366,8 +211,6 @@ describe('useWorkspaceCountPerKind', () => {
       expect(result.current.workspaceCountPerKind).toEqual({
         [workspaceKind.name]: {
           count: 0,
-          countByImage: { [baseImageConfigTest.id]: 0 },
-          countByPodConfig: { [basePodConfigTest.id]: 0 },
           countByNamespace: {},
         },
       });

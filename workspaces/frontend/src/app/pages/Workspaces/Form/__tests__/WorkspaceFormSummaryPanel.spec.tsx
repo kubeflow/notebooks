@@ -61,4 +61,58 @@ describe('WorkspaceFormSummaryPanel', () => {
     expect(screen.getByText('pythonVersion: 3.11')).toBeInTheDocument();
     expect(screen.getByText('cpu: 100m')).toBeInTheDocument();
   });
+
+  it('uses option IDs when edit-mode list values no longer resolve the selections', () => {
+    const selectedKind = buildMockWorkspaceKind({ name: 'jupyterlab' });
+
+    render(
+      <WorkspaceFormSummaryPanel
+        {...defaultProps}
+        mode="update"
+        selectedKind={selectedKind}
+        originalKind={selectedKind}
+        selectedImage={undefined}
+        selectedPodConfig={undefined}
+        selectedImageId="legacy-image"
+        selectedPodConfigId="legacy-pod-config"
+        originalImageId="legacy-image"
+        originalPodConfigId="legacy-pod-config"
+        originalProperties={defaultProperties}
+      />,
+    );
+
+    expect(screen.getByText('legacy-image')).toBeInTheDocument();
+    expect(screen.getByText('legacy-pod-config')).toBeInTheDocument();
+
+    expect(screen.queryByTestId('summary-diff-current')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('summary-diff-new')).not.toBeInTheDocument();
+  });
+
+  it('compares edit-mode option IDs when list values cannot resolve the options', () => {
+    const selectedKind = buildMockWorkspaceKind({ name: 'jupyterlab' });
+
+    render(
+      <WorkspaceFormSummaryPanel
+        {...defaultProps}
+        mode="update"
+        selectedKind={selectedKind}
+        originalKind={selectedKind}
+        selectedImage={undefined}
+        selectedPodConfig={undefined}
+        selectedImageId="new-image"
+        selectedPodConfigId="new-pod-config"
+        originalImageId="old-image"
+        originalPodConfigId="old-pod-config"
+        originalProperties={defaultProperties}
+      />,
+    );
+
+    expect(screen.getAllByTestId('summary-diff-current')).toHaveLength(2);
+    expect(screen.getAllByTestId('summary-diff-new')).toHaveLength(2);
+
+    expect(screen.getByText('old-image')).toBeInTheDocument();
+    expect(screen.getByText('new-image')).toBeInTheDocument();
+    expect(screen.getByText('old-pod-config')).toBeInTheDocument();
+    expect(screen.getByText('new-pod-config')).toBeInTheDocument();
+  });
 });

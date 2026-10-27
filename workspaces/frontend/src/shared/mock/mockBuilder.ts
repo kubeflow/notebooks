@@ -6,6 +6,7 @@ import {
   NamespacesNamespace,
   OptionsImageConfigValue,
   OptionsPodConfigValue,
+  OptionsPodTemplateOptions,
   PvcsPVCCreate,
   PvcsPVCListItem,
   ResourcesContainerResourceUsage,
@@ -423,6 +424,214 @@ export const buildMockWorkspace = (
   ...workspace,
 });
 
+export const buildMockListValuesData = (
+  options?: Partial<OptionsPodTemplateOptions>,
+): OptionsPodTemplateOptions => ({
+  imageConfig: {
+    default: 'jupyterlab_scipy_190',
+    values: [
+      {
+        id: 'jupyterlab_scipy_180',
+        displayName: 'jupyter-scipy:v1.8.0',
+        description: 'JupyterLab, with SciPy Packages',
+        labels: [
+          { key: 'pythonVersion', value: '3.11' },
+          { key: 'jupyterlabVersion', value: '1.8.0' },
+        ],
+        hidden: false,
+        clusterMetrics: {
+          workspacesCount: 0,
+        },
+        redirect: {
+          to: 'jupyterlab_scipy_190',
+          message: {
+            text: 'This update will change...',
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          },
+        },
+        restrictions: { deny: false },
+      },
+      {
+        id: 'jupyterlab_scipy_190',
+        displayName: 'jupyter-scipy:v1.9.0',
+        description:
+          'JupyterLab with SciPy Packages — includes NumPy, pandas, and other commonly used scientific computing libraries pre-installed for data analysis and machine learning workflows',
+        labels: [
+          { key: 'pythonVersion', value: '3.12' },
+          { key: 'jupyterlabVersion', value: '1.9.0' },
+          { key: 'gpuSupport', value: 'enabled' },
+          { key: 'arch', value: 'amd64' },
+          { key: 'framework', value: 'scipy' },
+          { key: 'maintainer', value: 'kubeflow' },
+        ],
+        hidden: false,
+        redirect: {
+          to: 'jupyterlab_scipy_200',
+          message: {
+            text: 'This update will change...',
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+          },
+        },
+        clusterMetrics: {
+          workspacesCount: 1,
+        },
+        restrictions: { deny: false },
+      },
+      {
+        id: 'jupyterlab_scipy_200',
+        displayName: 'jupyter-scipy:v2.0.0 (Hidden)',
+        description: 'JupyterLab, with SciPy Packages',
+        labels: [
+          { key: 'pythonVersion', value: '3.12' },
+          { key: 'jupyterlabVersion', value: '2.0.0' },
+        ],
+        hidden: true,
+        redirect: {
+          to: 'jupyterlab_scipy_210',
+          message: {
+            text: 'This update will change...',
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+          },
+        },
+        clusterMetrics: {
+          workspacesCount: 2,
+        },
+        restrictions: { deny: false },
+      },
+      {
+        id: 'jupyterlab_scipy_210',
+        displayName: 'jupyter-scipy:v2.1.0',
+        description:
+          'JupyterLab with SciPy Packages — latest stable release featuring improved kernel management, enhanced JupyterLab extensions support, and optimized container image size for faster startup times in cloud environments',
+        labels: [
+          { key: 'pythonVersion', value: '3.13' },
+          { key: 'jupyterlabVersion', value: '2.1.0' },
+          { key: 'gpuSupport', value: 'enabled' },
+          { key: 'arch', value: 'amd64' },
+          { key: 'framework', value: 'scipy' },
+          { key: 'maintainer', value: 'kubeflow' },
+          { key: 'status', value: 'stable' },
+        ],
+        hidden: false,
+        clusterMetrics: {
+          workspacesCount: 3,
+        },
+        restrictions: { deny: false },
+      },
+      {
+        id: 'jupyterlab_scipy_220_hidden',
+        displayName: 'jupyter-scipy:v2.2.0 (Hidden)',
+        description: 'JupyterLab, with SciPy Packages',
+        labels: [
+          { key: 'pythonVersion', value: '3.13' },
+          { key: 'jupyterlabVersion', value: '2.2.0' },
+        ],
+        hidden: true,
+        clusterMetrics: {
+          workspacesCount: 0,
+        },
+        restrictions: { deny: false },
+      },
+    ],
+  },
+  podConfig: {
+    default: 'tiny_cpu',
+    values: [
+      {
+        id: 'tiny_cpu',
+        displayName: 'Tiny CPU',
+        description: 'Pod with 0.1 CPU, 128 Mb RAM',
+        hidden: false,
+        labels: [
+          { key: 'cpu', value: '100m' },
+          { key: 'memory', value: '128Mi' },
+        ],
+        redirect: {
+          to: 'small_cpu',
+          message: {
+            text: 'This update will change...',
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
+          },
+        },
+        clusterMetrics: {
+          workspacesCount: 0,
+        },
+        restrictions: { deny: false },
+        podMetadata: { labels: {}, annotations: {} },
+        statefulSetMetadata: { labels: {}, annotations: {} },
+      },
+      {
+        id: 'small_cpu',
+        displayName: 'Small CPU',
+        description: 'Pod with 0.5 CPU, 512 Mb RAM',
+        hidden: false,
+        labels: [
+          { key: 'cpu', value: '500m' },
+          { key: 'memory', value: '512Mi' },
+        ],
+        restrictions: { deny: false },
+        podMetadata: { labels: {}, annotations: {} },
+        statefulSetMetadata: { labels: {}, annotations: {} },
+      },
+      {
+        id: 'medium_cpu',
+        displayName: 'Medium CPU',
+        description: 'Pod with 1 CPU, 1 Gb RAM',
+        hidden: false,
+        labels: [
+          { key: 'cpu', value: '1000m' },
+          { key: 'memory', value: '1Gi' },
+        ],
+        restrictions: { deny: false },
+        podMetadata: { labels: {}, annotations: {} },
+        statefulSetMetadata: { labels: {}, annotations: {} },
+      },
+      {
+        id: 'large_cpu',
+        displayName: 'Large CPU',
+        description: 'Pod with 4 CPU, 4 Gb RAM',
+        hidden: false,
+        labels: [
+          { key: 'cpu', value: '4000m' },
+          { key: 'memory', value: '4Gi' },
+          { key: 'gpu', value: '1' },
+        ],
+        redirect: {
+          to: 'large_cpu_hidden',
+          message: {
+            text: 'This update will change...',
+            level: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
+          },
+        },
+        clusterMetrics: {
+          workspacesCount: 5,
+        },
+        restrictions: { deny: false },
+        podMetadata: { labels: {}, annotations: {} },
+        statefulSetMetadata: { labels: {}, annotations: {} },
+      },
+      {
+        id: 'large_cpu_hidden',
+        displayName: 'Large CPU (Hidden)',
+        description: 'Pod with 4 CPU, 4 Gb RAM',
+        hidden: true,
+        labels: [
+          { key: 'cpu', value: '4000m' },
+          { key: 'memory', value: '4Gi' },
+          { key: 'gpu', value: '1' },
+        ],
+        clusterMetrics: {
+          workspacesCount: 0,
+        },
+        restrictions: { deny: false },
+        podMetadata: { labels: {}, annotations: {} },
+        statefulSetMetadata: { labels: {}, annotations: {} },
+      },
+    ],
+  },
+  ...options,
+});
+
 export const buildMockWorkspaceKind = (
   workspaceKind?: Partial<WorkspacekindsWorkspaceKindListItem>,
 ): WorkspacekindsWorkspaceKindListItem => ({
@@ -463,210 +672,7 @@ export const buildMockWorkspaceKind = (
     volumeMountPaths: {
       home: '/home/jovyan',
     },
-    options: {
-      imageConfig: {
-        default: 'jupyterlab_scipy_190',
-        values: [
-          {
-            id: 'jupyterlab_scipy_180',
-            displayName: 'jupyter-scipy:v1.8.0',
-            description: 'JupyterLab, with SciPy Packages',
-            labels: [
-              { key: 'pythonVersion', value: '3.11' },
-              { key: 'jupyterlabVersion', value: '1.8.0' },
-            ],
-            hidden: false,
-            clusterMetrics: {
-              workspacesCount: 0,
-            },
-            redirect: {
-              to: 'jupyterlab_scipy_190',
-              message: {
-                text: 'This update will change...',
-                level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
-              },
-            },
-            restrictions: { deny: false },
-          },
-          {
-            id: 'jupyterlab_scipy_190',
-            displayName: 'jupyter-scipy:v1.9.0',
-            description:
-              'JupyterLab with SciPy Packages — includes NumPy, pandas, and other commonly used scientific computing libraries pre-installed for data analysis and machine learning workflows',
-            labels: [
-              { key: 'pythonVersion', value: '3.12' },
-              { key: 'jupyterlabVersion', value: '1.9.0' },
-              { key: 'gpuSupport', value: 'enabled' },
-              { key: 'arch', value: 'amd64' },
-              { key: 'framework', value: 'scipy' },
-              { key: 'maintainer', value: 'kubeflow' },
-            ],
-            hidden: false,
-            redirect: {
-              to: 'jupyterlab_scipy_200',
-              message: {
-                text: 'This update will change...',
-                level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
-              },
-            },
-            clusterMetrics: {
-              workspacesCount: 1,
-            },
-            restrictions: { deny: false },
-          },
-          {
-            id: 'jupyterlab_scipy_200',
-            displayName: 'jupyter-scipy:v2.0.0 (Hidden)',
-            description: 'JupyterLab, with SciPy Packages',
-            labels: [
-              { key: 'pythonVersion', value: '3.12' },
-              { key: 'jupyterlabVersion', value: '2.0.0' },
-            ],
-            hidden: true,
-            redirect: {
-              to: 'jupyterlab_scipy_210',
-              message: {
-                text: 'This update will change...',
-                level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
-              },
-            },
-            clusterMetrics: {
-              workspacesCount: 2,
-            },
-            restrictions: { deny: false },
-          },
-          {
-            id: 'jupyterlab_scipy_210',
-            displayName: 'jupyter-scipy:v2.1.0',
-            description:
-              'JupyterLab with SciPy Packages — latest stable release featuring improved kernel management, enhanced JupyterLab extensions support, and optimized container image size for faster startup times in cloud environments',
-            labels: [
-              { key: 'pythonVersion', value: '3.13' },
-              { key: 'jupyterlabVersion', value: '2.1.0' },
-              { key: 'gpuSupport', value: 'enabled' },
-              { key: 'arch', value: 'amd64' },
-              { key: 'framework', value: 'scipy' },
-              { key: 'maintainer', value: 'kubeflow' },
-              { key: 'status', value: 'stable' },
-            ],
-            hidden: false,
-            clusterMetrics: {
-              workspacesCount: 3,
-            },
-            restrictions: { deny: false },
-          },
-          {
-            id: 'jupyterlab_scipy_220_hidden',
-            displayName: 'jupyter-scipy:v2.2.0 (Hidden)',
-            description: 'JupyterLab, with SciPy Packages',
-            labels: [
-              { key: 'pythonVersion', value: '3.13' },
-              { key: 'jupyterlabVersion', value: '2.2.0' },
-            ],
-            hidden: true,
-            clusterMetrics: {
-              workspacesCount: 0,
-            },
-            restrictions: { deny: false },
-          },
-        ],
-      },
-      podConfig: {
-        default: 'tiny_cpu',
-        values: [
-          {
-            id: 'tiny_cpu',
-            displayName: 'Tiny CPU',
-            description: 'Pod with 0.1 CPU, 128 Mb RAM',
-            hidden: false,
-            labels: [
-              { key: 'cpu', value: '100m' },
-              { key: 'memory', value: '128Mi' },
-            ],
-            redirect: {
-              to: 'small_cpu',
-              message: {
-                text: 'This update will change...',
-                level: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
-              },
-            },
-            clusterMetrics: {
-              workspacesCount: 0,
-            },
-            restrictions: { deny: false },
-            podMetadata: { labels: {}, annotations: {} },
-            statefulSetMetadata: { labels: {}, annotations: {} },
-          },
-          {
-            id: 'small_cpu',
-            displayName: 'Small CPU',
-            description: 'Pod with 0.5 CPU, 512 Mb RAM',
-            hidden: false,
-            labels: [
-              { key: 'cpu', value: '500m' },
-              { key: 'memory', value: '512Mi' },
-            ],
-            restrictions: { deny: false },
-            podMetadata: { labels: {}, annotations: {} },
-            statefulSetMetadata: { labels: {}, annotations: {} },
-          },
-          {
-            id: 'medium_cpu',
-            displayName: 'Medium CPU',
-            description: 'Pod with 1 CPU, 1 Gb RAM',
-            hidden: false,
-            labels: [
-              { key: 'cpu', value: '1000m' },
-              { key: 'memory', value: '1Gi' },
-            ],
-            restrictions: { deny: false },
-            podMetadata: { labels: {}, annotations: {} },
-            statefulSetMetadata: { labels: {}, annotations: {} },
-          },
-          {
-            id: 'large_cpu',
-            displayName: 'Large CPU',
-            description: 'Pod with 4 CPU, 4 Gb RAM',
-            hidden: false,
-            labels: [
-              { key: 'cpu', value: '4000m' },
-              { key: 'memory', value: '4Gi' },
-              { key: 'gpu', value: '1' },
-            ],
-            redirect: {
-              to: 'large_cpu_hidden',
-              message: {
-                text: 'This update will change...',
-                level: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
-              },
-            },
-            clusterMetrics: {
-              workspacesCount: 5,
-            },
-            restrictions: { deny: false },
-            podMetadata: { labels: {}, annotations: {} },
-            statefulSetMetadata: { labels: {}, annotations: {} },
-          },
-          {
-            id: 'large_cpu_hidden',
-            displayName: 'Large CPU (Hidden)',
-            description: 'Pod with 4 CPU, 4 Gb RAM',
-            hidden: true,
-            labels: [
-              { key: 'cpu', value: '4000m' },
-              { key: 'memory', value: '4Gi' },
-              { key: 'gpu', value: '1' },
-            ],
-            clusterMetrics: {
-              workspacesCount: 0,
-            },
-            restrictions: { deny: false },
-            podMetadata: { labels: {}, annotations: {} },
-            statefulSetMetadata: { labels: {}, annotations: {} },
-          },
-        ],
-      },
-    },
+    options: buildMockListValuesData(),
   },
   ...workspaceKind,
 });
@@ -718,6 +724,7 @@ const convertPodConfigValue = (v: OptionsPodConfigValue): V1Beta1PodConfigValue 
 
 export const buildMockWorkspaceKindUpdate = (
   listItem: WorkspacekindsWorkspaceKindListItem,
+  podTemplateOptions: OptionsPodTemplateOptions = buildMockListValuesData(),
 ): WorkspacekindsWorkspaceKindUpdate => ({
   revision: '1',
   activityRules: listItem.activityRules,
@@ -733,14 +740,12 @@ export const buildMockWorkspaceKindUpdate = (
   podTemplate: {
     options: {
       imageConfig: {
-        spawner: { default: listItem.podTemplate.options.imageConfig.default },
-        values: (listItem.podTemplate.options.imageConfig.values ?? []).map(
-          convertImageConfigValue,
-        ),
+        spawner: { default: podTemplateOptions.imageConfig.default },
+        values: (podTemplateOptions.imageConfig.values ?? []).map(convertImageConfigValue),
       },
       podConfig: {
-        spawner: { default: listItem.podTemplate.options.podConfig.default },
-        values: (listItem.podTemplate.options.podConfig.values ?? []).map(convertPodConfigValue),
+        spawner: { default: podTemplateOptions.podConfig.default },
+        values: (podTemplateOptions.podConfig.values ?? []).map(convertPodConfigValue),
       },
     },
     podMetadata: listItem.podTemplate.podMetadata,

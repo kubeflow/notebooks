@@ -3,7 +3,11 @@ import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/cr
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
-import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
+import {
+  buildMockListValuesData,
+  buildMockNamespace,
+  buildMockWorkspaceKind,
+} from '~/shared/mock/mockBuilder';
 
 type Restrictions = {
   deny: boolean;
@@ -35,58 +39,54 @@ type PodConfigOption = {
   restrictions?: Restrictions;
 };
 
-const buildWorkspaceKindWithOptions = (overrides: {
-  name?: string;
+const buildListValuesWithOptions = (overrides: {
   defaultImageId?: string;
   imageOptions?: ImageConfigOption[];
   defaultPodConfigId?: string;
   podConfigOptions?: PodConfigOption[];
 }) => {
   const {
-    name = 'jupyterlab',
     defaultImageId = '',
     imageOptions = [],
     defaultPodConfigId = '',
     podConfigOptions = [],
   } = overrides;
 
-  return buildMockWorkspaceKind({
-    name,
-    podTemplate: {
-      ...buildMockWorkspaceKind().podTemplate,
-      options: {
-        imageConfig: {
-          default: defaultImageId,
-          values: imageOptions.map((img) => ({
-            id: img.id,
-            displayName: img.displayName,
-            description: img.description,
-            labels: img.labels || [],
-            hidden: img.hidden || false,
-            redirect: img.redirect,
-            restrictions: img.restrictions ?? { deny: false },
-          })),
-        },
-        podConfig: {
-          default: defaultPodConfigId,
-          values: podConfigOptions.map((pc) => ({
-            id: pc.id,
-            displayName: pc.displayName,
-            description: pc.description,
-            labels: pc.labels || [],
-            hidden: pc.hidden || false,
-            restrictions: pc.restrictions ?? { deny: false },
-            podMetadata: { labels: {}, annotations: {} },
-            statefulSetMetadata: { labels: {}, annotations: {} },
-          })),
-        },
-      },
+  return buildMockListValuesData({
+    imageConfig: {
+      default: defaultImageId,
+      values: imageOptions.map((img) => ({
+        id: img.id,
+        displayName: img.displayName,
+        description: img.description,
+        labels: img.labels || [],
+        hidden: img.hidden || false,
+        redirect: img.redirect,
+        restrictions: img.restrictions ?? { deny: false },
+      })),
+    },
+    podConfig: {
+      default: defaultPodConfigId,
+      values: podConfigOptions.map((pc) => ({
+        id: pc.id,
+        displayName: pc.displayName,
+        description: pc.description,
+        labels: pc.labels || [],
+        hidden: pc.hidden || false,
+        restrictions: pc.restrictions ?? { deny: false },
+        podMetadata: { labels: {}, annotations: {} },
+        statefulSetMetadata: { labels: {}, annotations: {} },
+      })),
     },
   });
 };
 
 describe('Workspace Form - Option Card Display', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
+
+  const mockWorkspaceKind = buildMockWorkspaceKind({
+    name: 'jupyterlab',
+  });
 
   beforeEach(() => {
     cy.interceptApi(
@@ -98,7 +98,7 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Visual indicators for hidden options', () => {
     it('should show grey left border and hidden icon for hidden option', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -122,7 +122,7 @@ describe('Workspace Form - Option Card Display', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -140,7 +140,7 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Visual indicators for redirected options', () => {
     it('should show brown left border and redirect icon for redirected option', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -170,7 +170,7 @@ describe('Workspace Form - Option Card Display', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -188,7 +188,7 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Visual indicators for hidden AND redirected options', () => {
     it('should show grey border (hidden takes precedence) with both icons', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -219,7 +219,7 @@ describe('Workspace Form - Option Card Display', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -237,7 +237,7 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Visual indicators for restricted (denied) options', () => {
     const setup = () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -261,7 +261,7 @@ describe('Workspace Form - Option Card Display', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -296,7 +296,7 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Default badge display', () => {
     it('should show "Default" badge on default option', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -319,7 +319,7 @@ describe('Workspace Form - Option Card Display', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -339,7 +339,7 @@ describe('Workspace Form - Option Card Display', () => {
     });
 
     it('should show "Default" badge on default pod config', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -360,7 +360,7 @@ describe('Workspace Form - Option Card Display', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -383,7 +383,7 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Selection highlighting', () => {
     it('should highlight selected card with grey background', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -406,7 +406,7 @@ describe('Workspace Form - Option Card Display', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -430,7 +430,7 @@ describe('Workspace Form - Option Card Display', () => {
 
   describe('Combined visual states', () => {
     it('should correctly display hidden default option with all indicators', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_200_hidden',
         imageOptions: [
           {
@@ -454,7 +454,7 @@ describe('Workspace Form - Option Card Display', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');

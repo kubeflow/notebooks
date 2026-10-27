@@ -1,30 +1,29 @@
 import React from 'react';
-import { WorkspaceCountResult } from '~/app/hooks/useWorkspaceCountPerKind';
-import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
+import {
+  OptionsPodConfigValue,
+  WorkspacekindsWorkspaceKindListItem,
+} from '~/generated/data-contracts';
 import { WorkspaceKindDetailsTable } from './WorkspaceKindDetailsTable';
 
 type WorkspaceDetailsPodConfigsProps = {
   workspaceKind: WorkspacekindsWorkspaceKindListItem;
-  workspaceCountResult: WorkspaceCountResult;
+  podConfigs: OptionsPodConfigValue[];
 };
 
 export const WorkspaceKindDetailsPodConfigs: React.FunctionComponent<
   WorkspaceDetailsPodConfigsProps
-> = ({ workspaceKind, workspaceCountResult }) => (
+> = ({ workspaceKind, podConfigs }) => (
   <WorkspaceKindDetailsTable
-    rows={(workspaceKind.podTemplate.options.podConfig.values ?? []).map((podConfig) => ({
+    rows={podConfigs.map((podConfig) => ({
       id: podConfig.id,
       displayName: podConfig.displayName,
       kindName: workspaceKind.name,
-      workspaceCount:
-        workspaceCountResult.workspaceCountPerKind[workspaceKind.name]?.countByPodConfig[
-          podConfig.id
-        ] ?? 0,
+      workspaceCount: podConfig.clusterMetrics?.workspacesCount ?? 0,
       workspaceCountRouteState: {
         podConfigId: podConfig.id,
       },
     }))}
     tableKind="podConfig"
-    workspaceCountError={workspaceCountResult.error}
+    workspaceCountError={null}
   />
 );

@@ -216,12 +216,46 @@ class WorkspaceKinds {
 }
 
 class WorkspaceKindDetailsDrawer {
+  assertImageRow(args: { displayName: string; workspaceCount: number }) {
+    this.findImagesTable().find('tbody tr').should('have.length', 1);
+    return this.findImagesTable()
+      .contains('tr', args.displayName)
+      .should('contain.text', `${args.workspaceCount} Workspaces`);
+  }
+
+  assertPodConfigRow(args: { displayName: string; workspaceCount: number }) {
+    this.findPodConfigsTable().find('tbody tr').should('have.length', 1);
+    return this.findPodConfigsTable()
+      .contains('tr', args.displayName)
+      .should('contain.text', `${args.workspaceCount} Workspaces`);
+  }
+
+  clickImagesTab() {
+    return this.findImagesTab().click();
+  }
+
+  clickPodConfigsTab() {
+    return this.findPodConfigsTab().click();
+  }
+
   find() {
     return cy.findByTestId('workspaceDetails');
   }
 
   findCloseButton() {
     return cy.findByTestId('workspace-kind-details-close');
+  }
+
+  findImagesTable() {
+    return this.find().findByRole('grid', {
+      name: 'workspace-kind-details-image',
+    });
+  }
+
+  findPodConfigsTable() {
+    return this.find().findByRole('grid', {
+      name: 'workspace-kind-details-podConfig',
+    });
   }
 
   findTitle() {

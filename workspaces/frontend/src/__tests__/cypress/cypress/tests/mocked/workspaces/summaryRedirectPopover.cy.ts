@@ -1,6 +1,10 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
-import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
+import {
+  buildMockListValuesData,
+  buildMockNamespace,
+  buildMockWorkspaceKind,
+} from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
@@ -50,15 +54,12 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
     mockWorkspaceKind = buildMockWorkspaceKind({
       name: 'test-kind',
       displayName: 'Test Workspace Kind',
-      podTemplate: {
-        ...buildMockWorkspaceKind().podTemplate,
-        options: {
-          ...buildMockWorkspaceKind().podTemplate.options,
-          imageConfig: {
-            default: 'source-image',
-            values: [sourceImage, targetImage],
-          },
-        },
+    });
+
+    const listValues = buildMockListValuesData({
+      imageConfig: {
+        default: 'source-image',
+        values: [sourceImage, targetImage],
       },
     });
 
@@ -73,7 +74,7 @@ describe('Summary Redirect Popover - Delayed Hide Behavior', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKind]),
     ).as('getWorkspaceKinds');
-    interceptListValues(mockWorkspaceKind);
+    interceptListValues(mockWorkspaceKind, { listValues });
 
     cy.visit('/workspaces/create');
     cy.wait('@getNamespaces');

@@ -25,6 +25,8 @@ interface WorkspaceFormSummaryPanelProps {
   selectedKind: WorkspacekindsWorkspaceKindListItem | undefined;
   selectedImage: OptionsImageConfigValue | undefined;
   selectedPodConfig: OptionsPodConfigValue | undefined;
+  selectedImageId?: string;
+  selectedPodConfigId?: string;
   properties: WorkspaceFormProperties;
   currentStep: number;
   onNavigateToStep: (step: number) => void;
@@ -38,6 +40,8 @@ interface WorkspaceFormSummaryPanelProps {
   originalKind?: WorkspacekindsWorkspaceKindListItem;
   originalImage?: OptionsImageConfigValue;
   originalPodConfig?: OptionsPodConfigValue;
+  originalImageId?: string;
+  originalPodConfigId?: string;
   originalProperties?: WorkspaceFormProperties;
   /** When true, removes spacing between summary cards */
   compact?: boolean;
@@ -55,6 +59,8 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
   selectedKind,
   selectedImage,
   selectedPodConfig,
+  selectedImageId,
+  selectedPodConfigId,
   properties,
   currentStep,
   onNavigateToStep,
@@ -65,11 +71,13 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
   originalKind,
   originalImage,
   originalPodConfig,
+  originalImageId,
+  originalPodConfigId,
   originalProperties,
   compact = false,
 }) => {
   const isEditMode = mode === 'update';
-  const showDiff = Boolean(isEditMode && (originalKind || originalImage || originalPodConfig));
+  const showDiff = Boolean(isEditMode && (originalKind || originalImageId || originalPodConfigId));
 
   const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
   const [pinnedPopoverId, setPinnedPopoverId] = useState<string | null>(null);
@@ -173,9 +181,9 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
         case SummaryStep.KindSelection:
           return selectedKind?.name !== originalKind?.name;
         case SummaryStep.ImageSelection:
-          return selectedImage?.id !== originalImage?.id;
+          return selectedImageId !== originalImageId;
         case SummaryStep.PodConfigSelection:
-          return selectedPodConfig?.id !== originalPodConfig?.id;
+          return selectedPodConfigId !== originalPodConfigId;
         case SummaryStep.Properties:
           return properties.displayName !== originalProperties?.displayName;
         default:
@@ -185,12 +193,12 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
     [
       isEditMode,
       selectedKind,
-      selectedImage,
-      selectedPodConfig,
+      selectedImageId,
+      selectedPodConfigId,
       properties,
       originalKind,
-      originalImage,
-      originalPodConfig,
+      originalImageId,
+      originalPodConfigId,
       originalProperties,
     ],
   );
@@ -351,7 +359,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
       {renderSummarySection({
         step: SummaryStep.ImageSelection,
         title: 'Image',
-        displayName: selectedImage?.displayName,
+        displayName: selectedImage?.displayName ?? selectedImageId,
         description: selectedImage?.description,
         labels: selectedImage?.labels,
         redirect: selectedImage?.redirect,
@@ -366,7 +374,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
               }
             }
           : undefined,
-        originalDisplayName: originalImage?.displayName,
+        originalDisplayName: originalImage?.displayName ?? originalImageId,
         originalDescription: originalImage?.description,
         originalLabels: originalImage?.labels,
       })}
@@ -374,7 +382,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
       {renderSummarySection({
         step: SummaryStep.PodConfigSelection,
         title: 'Pod Config',
-        displayName: selectedPodConfig?.displayName,
+        displayName: selectedPodConfig?.displayName ?? selectedPodConfigId,
         description: selectedPodConfig?.description,
         labels: selectedPodConfig?.labels,
         redirect: selectedPodConfig?.redirect,
@@ -391,7 +399,7 @@ export const WorkspaceFormSummaryPanel: React.FC<WorkspaceFormSummaryPanelProps>
               }
             }
           : undefined,
-        originalDisplayName: originalPodConfig?.displayName,
+        originalDisplayName: originalPodConfig?.displayName ?? originalPodConfigId,
         originalDescription: originalPodConfig?.description,
         originalLabels: originalPodConfig?.labels,
       })}

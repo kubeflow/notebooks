@@ -3,6 +3,7 @@ import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/cr
 import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import {
+  buildMockListValuesData,
   buildMockNamespace,
   buildMockWorkspace,
   buildMockWorkspaceKind,
@@ -12,7 +13,6 @@ import {
   buildMockPodConfigWithLabels,
   interceptListValues,
 } from '~/__tests__/cypress/cypress/utils/testBuilders';
-import type { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 const STEP_NAMES = {
   KIND: 'Workspace Kind',
@@ -58,29 +58,27 @@ describe('Filter Pod Configs by Labels', () => {
     ]),
   ];
 
-  const mockWorkspaceKind: WorkspacekindsWorkspaceKindListItem = buildMockWorkspaceKind({
+  const mockWorkspaceKind = buildMockWorkspaceKind({
     name: 'jupyterlab',
-    podTemplate: {
-      ...buildMockWorkspaceKind().podTemplate,
-      options: {
-        imageConfig: {
-          default: 'jupyter',
-          values: [
-            {
-              id: 'jupyter',
-              displayName: 'Jupyter',
-              description: 'Standard Jupyter image',
-              labels: [],
-              hidden: false,
-              restrictions: { deny: false },
-            },
-          ],
+  });
+
+  const listValues = buildMockListValuesData({
+    imageConfig: {
+      default: 'jupyter',
+      values: [
+        {
+          id: 'jupyter',
+          displayName: 'Jupyter',
+          description: 'Standard Jupyter image',
+          labels: [],
+          hidden: false,
+          restrictions: { deny: false },
         },
-        podConfig: {
-          default: 'tiny-cpu',
-          values: mockPodConfigs,
-        },
-      },
+      ],
+    },
+    podConfig: {
+      default: 'tiny-cpu',
+      values: mockPodConfigs,
     },
   });
 
@@ -102,7 +100,7 @@ describe('Filter Pod Configs by Labels', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKind]),
     ).as('getWorkspaceKinds');
-    interceptListValues(mockWorkspaceKind);
+    interceptListValues(mockWorkspaceKind, { listValues });
 
     workspaces.visit();
     cy.wait('@getNamespaces');

@@ -1,6 +1,10 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
-import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
+import {
+  buildMockListValuesData,
+  buildMockNamespace,
+  buildMockWorkspaceKind,
+} from '~/shared/mock/mockBuilder';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { navBar } from '~/__tests__/cypress/cypress/pages/components/navBar';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
@@ -58,15 +62,12 @@ describe('Workspace Form Styling', () => {
     mockWorkspaceKind = buildMockWorkspaceKind({
       name: 'test-kind',
       displayName: 'Test Workspace Kind',
-      podTemplate: {
-        ...buildMockWorkspaceKind().podTemplate,
-        options: {
-          ...buildMockWorkspaceKind().podTemplate.options,
-          imageConfig: {
-            default: 'normal-image',
-            values: [normalImage, hiddenImage, redirectImage],
-          },
-        },
+    });
+
+    const listValues = buildMockListValuesData({
+      imageConfig: {
+        default: 'normal-image',
+        values: [normalImage, hiddenImage, redirectImage],
       },
     });
 
@@ -87,7 +88,7 @@ describe('Workspace Form Styling', () => {
       headers: { 'content-type': 'image/svg+xml' },
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>',
     });
-    interceptListValues(mockWorkspaceKind);
+    interceptListValues(mockWorkspaceKind, { listValues });
   });
 
   describe('Workspace Kind logo styling', () => {

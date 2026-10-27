@@ -23,6 +23,7 @@ import {
   buildMockStorageClass,
   buildMockWorkspace,
   buildMockWorkspaceCreate,
+  buildMockListValuesData,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
   buildMockWorkspaceList,
@@ -608,11 +609,11 @@ export const mockPVCCreate: PvcsPVCCreate = buildMockPVCCreate({
   storageClassName: 'standard',
 });
 
-// ListValues mock data — extends kind values with CUDA image + GPU pod config
-const defaultKind = buildMockWorkspaceKind();
+// ListValues mock data — extends the default values with CUDA image + GPU pod config
+const defaultListValues = buildMockListValuesData();
 
 export const mockListValuesImages: OptionsImageConfigValue[] = [
-  ...(defaultKind.podTemplate.options.imageConfig.values ?? []),
+  ...(defaultListValues.imageConfig.values ?? []),
   {
     id: 'jupyterlab_scipy_210_cuda',
     displayName: 'jupyter-scipy:v2.1.0-cuda',
@@ -629,7 +630,7 @@ export const mockListValuesImages: OptionsImageConfigValue[] = [
 ];
 
 export const mockListValuesPodConfigs: OptionsPodConfigValue[] = [
-  ...(defaultKind.podTemplate.options.podConfig.values ?? []),
+  ...(defaultListValues.podConfig.values ?? []),
   {
     id: 'big_gpu',
     displayName: 'Big GPU',

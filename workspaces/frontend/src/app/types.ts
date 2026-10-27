@@ -52,8 +52,6 @@ export interface WorkspaceFormData {
 
 export interface WorkspaceCountPerOption {
   count: number;
-  countByImage: Record<OptionsImageConfigValue['id'], number>;
-  countByPodConfig: Record<OptionsPodConfigValue['id'], number>;
   countByNamespace: Record<WorkspacesWorkspaceListItem['namespace'], number>;
 }
 
