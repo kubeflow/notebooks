@@ -1,5 +1,6 @@
 import {
   getResourceErrors,
+  getCustomResourceCriteria,
   isDevicePluginGpu,
 } from '~/app/pages/WorkspaceKinds/Form/podConfig/resourceValidation';
 
@@ -29,6 +30,11 @@ describe('WorkspaceKind resource validation', () => {
     ['gpu.intel.com/i915', '2', '2'],
   ])('accepts %s request=%s limit=%s', (type, request, limit) => {
     expect(errors(type, request, limit)).toEqual([]);
+    expect(
+      getCustomResourceCriteria({ id: 'test', type, request, limit }).every(
+        (criterion) => criterion.isValid,
+      ),
+    ).toBe(true);
   });
 
   it.each([
@@ -49,10 +55,20 @@ describe('WorkspaceKind resource validation', () => {
     ['nvidia.com/gpu', '9007199254740992', '9007199254740993', 'must equal'],
   ])('rejects %s request=%s limit=%s', (type, request, limit, message) => {
     expect(errors(type, request, limit).join(' ')).toContain(message);
+    if (isDevicePluginGpu(type)) {
+      expect(
+        getCustomResourceCriteria({ id: 'test', type, request, limit }).some(
+          (criterion) => !criterion.isValid,
+        ),
+      ).toBe(true);
+    }
   });
 
   it('does not apply GPU rules to unrelated custom resources', () => {
     expect(isDevicePluginGpu('example.com/fpga')).toBe(false);
+    expect(
+      getCustomResourceCriteria({ id: 'test', type: 'example.com/fpga', request: '1', limit: '' }),
+    ).toEqual([]);
     expect(errors('example.com/fpga', '0.5', '')).toEqual([]);
     expect(errors('example.com/fpga', '1', '2')).toEqual([]);
   });

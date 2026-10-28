@@ -5,10 +5,8 @@ import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table/dist/es
 import { Divider } from '@patternfly/react-core/dist/esm/components/Divider';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
 import {
-  Form,
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
-  FormGroup,
 } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Checkbox } from '@patternfly/react-core/dist/esm/components/Checkbox';
@@ -19,7 +17,7 @@ import { useThemeContext } from 'mod-arch-kubeflow';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
-import { getResourceErrors, isDevicePluginGpu } from './resourceValidation';
+import { getResourceErrors } from './resourceValidation';
 
 export type PodResourceEntry = {
   id: string; // Unique identifier for each resource entry
@@ -45,15 +43,6 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
   const [memoryRequestEnabled, setMemoryRequestEnabled] = useState(memory.request.length > 0);
   const [cpuLimitEnabled, setCpuLimitEnabled] = useState(cpu.limit.length > 0);
   const [memoryLimitEnabled, setMemoryLimitEnabled] = useState(memory.limit.length > 0);
-  const [customLimitsEnabled, setCustomLimitsEnabled] = useState<Record<string, boolean>>(() => {
-    const customToggles: Record<string, boolean> = {};
-    custom.forEach((res) => {
-      if (res.limit) {
-        customToggles[res.id] = true;
-      }
-    });
-    return customToggles;
-  });
   const { isMUITheme } = useThemeContext();
   const handleChange = useCallback(
     (resourceId: string, field: 'type' | 'request' | 'limit', value: string) => {
@@ -67,19 +56,15 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
   const handleAddCustom = useCallback(() => {
     setResources((resources: PodResourceEntry[]) => [
       ...resources,
-      { id: generateUniqueId(), type: '', request: '1', limit: '' },
+      { id: generateUniqueId(), type: '', request: '', limit: '1' },
     ]);
   }, [setResources]);
 
   const handleRemoveCustom = useCallback(
     (resourceId: string) => {
       setResources((resources: PodResourceEntry[]) => resources.filter((r) => r.id !== resourceId));
-      // Remove the corresponding limit toggle
-      const newCustomLimitsEnabled = { ...customLimitsEnabled };
-      delete newCustomLimitsEnabled[resourceId];
-      setCustomLimitsEnabled(newCustomLimitsEnabled);
     },
-    [customLimitsEnabled, setResources],
+    [setResources],
   );
 
   const handleCpuLimitToggle = (enabled: boolean) => {
@@ -99,22 +84,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
     handleChange(memory.id, 'request', enabled ? memory.limit || '1Mi' : '');
   };
 
-  const handleCustomLimitToggle = useCallback(
-    (resourceId: string, enabled: boolean) => {
-      setCustomLimitsEnabled((prev) => ({ ...prev, [resourceId]: enabled }));
-      if (!enabled) {
-        handleChange(resourceId, 'limit', '');
-      }
-    },
-    [handleChange],
-  );
-  const resourceErrors = [cpu, memory, ...custom].flatMap(getResourceErrors);
-  const hasCustomRequestAboveLimit = custom.some(
-    (resource) =>
-      !isDevicePluginGpu(resource.type) &&
-      parseFloat(resource.request) > parseFloat(resource.limit),
-  );
-
+  const resourceErrors = [cpu, memory].flatMap(getResourceErrors);
   const getResourceCountText = useCallback(() => {
     const standardResourceCount =
       (cpu.request || cpu.limit ? 1 : 0) + (memory.request || memory.limit ? 1 : 0);
@@ -155,7 +125,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
         />
       }
     >
-      <Form>
+      <div className="pf-v6-c-form">
         <Title headingLevel="h6">Standard Resources</Title>
         <Grid hasGutter className="pf-v6-u-mb-sm">
           <GridItem span={6}>
@@ -284,35 +254,6 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
               </Tbody>
             </Table>
             <ThemeAwareFormGroupWrapper
-              label="Request"
-              fieldId={`custom-resource-request-${res.id}`}
-              skipFieldset
-              className={isMUITheme ? 'pf-v6-u-pl-sm' : undefined}
-            >
-              <ResourceInputWrapper
-                allowEmpty
-                type="custom"
-                value={res.request}
-                onChange={(value) => handleChange(res.id, 'request', value)}
-                placeholder="Request"
-                min={0}
-                aria-label="Custom resource request"
-              />
-            </ThemeAwareFormGroupWrapper>
-            <FormGroup className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mt-lg' : undefined}>
-              <Checkbox
-                data-testid="custom-resource-limit-checkbox"
-                id={`custom-limit-switch-${res.id}`}
-                label="Set Limit"
-                isChecked={!!res.limit || customLimitsEnabled[res.id] || false}
-                onChange={(_event, checked) => {
-                  handleChange(res.id, 'limit', res.request);
-                  handleCustomLimitToggle(res.id, checked);
-                }}
-                aria-label={`Enable limit for ${res.type || 'custom resource'}`}
-              />
-            </FormGroup>
-            <ThemeAwareFormGroupWrapper
               label="Limit"
               fieldId={`custom-resource-limit-${res.id}`}
               skipFieldset
@@ -325,10 +266,21 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
                 onChange={(value) => handleChange(res.id, 'limit', value)}
                 placeholder="Limit"
                 min={0}
-                isDisabled={!res.limit && !customLimitsEnabled[res.id]}
+                inputId={`custom-resource-limit-${res.id}`}
+                aria-describedby={`resource-help-${res.id}`}
                 aria-label={`${res.type || 'Custom resource'} limit`}
               />
             </ThemeAwareFormGroupWrapper>
+            <HelperText id={`resource-help-${res.id}`} data-testid={`resource-help-${res.id}`}>
+              <HelperTextItem>
+                Kubernetes uses this value for both the request and limit.
+              </HelperTextItem>
+              {getResourceErrors(res).map((error) => (
+                <HelperTextItem key={error} variant="error">
+                  {error}
+                </HelperTextItem>
+              ))}
+            </HelperText>
             <Divider />
           </React.Fragment>
         ))}
@@ -342,19 +294,12 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
         >
           Add Custom Resource
         </Button>
-        {hasCustomRequestAboveLimit && (
-          <HelperText>
-            <HelperTextItem variant="error">
-              Resource limit should not be smaller than the request value
-            </HelperTextItem>
-          </HelperText>
-        )}
         {resourceErrors.map((error) => (
           <HelperText key={error}>
             <HelperTextItem variant="error">{error}</HelperTextItem>
           </HelperText>
         ))}
-      </Form>
+      </div>
     </FormFieldGroupExpandable>
   );
 };

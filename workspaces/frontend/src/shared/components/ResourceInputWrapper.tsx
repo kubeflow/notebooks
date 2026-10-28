@@ -25,6 +25,8 @@ interface ResourceInputWrapperProps {
   'aria-label'?: string;
   isDisabled?: boolean;
   allowEmpty?: boolean;
+  inputId?: string;
+  'aria-describedby'?: string;
 }
 
 const unitMap: {
@@ -54,6 +56,8 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
   'aria-label': ariaLabel,
   isDisabled = false,
   allowEmpty = false,
+  inputId,
+  'aria-describedby': ariaDescribedBy,
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [unit, setUnit] = useState<string>('');
@@ -189,6 +193,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
     <Split className="workspacekind-form-resource-input">
       <SplitItem>
         <NumberInput
+          inputProps={{ id: inputId, 'aria-describedby': ariaDescribedBy }}
           value={displayValue}
           placeholder={placeholder}
           onMinus={handleDecrement}

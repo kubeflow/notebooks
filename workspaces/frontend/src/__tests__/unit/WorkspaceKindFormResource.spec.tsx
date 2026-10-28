@@ -42,6 +42,94 @@ const setup = async (
 };
 
 describe('WorkspaceKind pod resource editor', () => {
+  it('defaults a new GPU to a limit of one and keeps request empty when limit changes', async () => {
+    const { user, onSubmit } = await setup();
+    await user.click(screen.getByTestId('add-custom-resource'));
+    expect(
+      screen.getByText('Kubernetes uses this value for both the request and limit.'),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
+    ).not.toBeInTheDocument();
+    await user.type(screen.getByTestId('custom-resource-type'), 'nvidia.com/gpu');
+    const request = screen.queryByRole('spinbutton', { name: 'Custom resource request' });
+    const limit = screen.getByRole('spinbutton', { name: 'nvidia.com/gpu limit' });
+    expect(request).not.toBeInTheDocument();
+    expect(limit).toHaveValue(1);
+    expect(
+      screen.getByText('Kubernetes uses this value for both the request and limit.'),
+    ).toBeVisible();
+    await user.clear(limit);
+    await user.type(limit, '2');
+    expect(request).not.toBeInTheDocument();
+    await user.click(screen.getByTestId('pod-config-modal-submit-button'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resources: { requests: {}, limits: { 'nvidia.com/gpu': '2' } },
+      }),
+    );
+  });
+
+  it('keeps requests hidden when a custom resource is renamed or cleared', async () => {
+    const { user, onSubmit } = await setup({
+      requests: { 'example.com/device': '2' },
+      limits: { 'example.com/device': '1' },
+    });
+    expect(
+      screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
+    ).not.toBeInTheDocument();
+    await user.clear(screen.getByTestId('custom-resource-type'));
+    await user.type(screen.getByTestId('custom-resource-type'), 'nvidia.com/gpu');
+    expect(
+      screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/request must equal/)).not.toBeInTheDocument();
+    await user.click(screen.getByTestId('pod-config-modal-submit-button'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ resources: { requests: {}, limits: { 'nvidia.com/gpu': '1' } } }),
+    );
+  });
+
+  it.each([
+    [{ requests: { 'example.com/device': '2' } }, '2'],
+    [{ limits: { 'example.com/device': '3' } }, '3'],
+    [{ requests: { 'example.com/device': '2' }, limits: { 'example.com/device': '3' } }, '3'],
+    [{ limits: { 'example.com/device': '0' } }, '0'],
+  ])(
+    'saves custom resources as limits while preserving standard requests: %j',
+    async (custom, expected) => {
+      const requests = {
+        cpu: '1',
+        memory: '1Mi',
+        ...('requests' in custom ? custom.requests : {}),
+      };
+      const { user, onSubmit } = await setup({ ...custom, requests });
+      expect(
+        screen.getByText('Kubernetes uses this value for both the request and limit.'),
+      ).toBeVisible();
+      expect(
+        screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('spinbutton', { name: 'example.com/device limit' })).toHaveValue(
+        Number(expected),
+      );
+      await user.click(screen.getByTestId('pod-config-modal-submit-button'));
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          resources: {
+            requests: { cpu: '1', memory: '1Mi' },
+            limits: { 'example.com/device': expected },
+          },
+        }),
+      );
+    },
+  );
+
+  it('renders resource fields without nesting forms', async () => {
+    await setup();
+    expect(screen.getByTestId('pod-config-modal').querySelector('form form')).toBeNull();
+  });
+
   it('enables and saves CPU and memory limits without requests', async () => {
     const { user, onSubmit } = await setup();
     await user.click(screen.getByLabelText('Enable CPU limit'));
@@ -117,11 +205,6 @@ describe('WorkspaceKind pod resource editor', () => {
       { requests: { memory: '2Gi' }, limits: { memory: '1024Mi' } },
       'Memory request must not exceed',
     ],
-    [{ requests: { 'nvidia.com/gpu': '1' } }, 'requires a limit'],
-    [
-      { requests: { 'nvidia.com/gpu': '1' }, limits: { 'nvidia.com/gpu': '2' } },
-      'request must equal',
-    ],
     [{ limits: { 'nvidia.com/gpu': '-1' } }, 'non-negative whole number'],
     [{ limits: { 'nvidia.com/gpu': '0.5' } }, 'non-negative whole number'],
   ])('blocks invalid resources %j', async (resources, message) => {
@@ -133,23 +216,21 @@ describe('WorkspaceKind pod resource editor', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('accepts a GPU pair and allows clearing its request to save a limit only', async () => {
-    const { user, onSubmit } = await setup({
-      requests: { 'nvidia.com/gpu': '1' },
-      limits: { 'nvidia.com/gpu': '1' },
-    });
+  it.each([
+    { requests: { 'nvidia.com/gpu': '1' }, limits: { 'nvidia.com/gpu': '1' } },
+    { requests: { 'nvidia.com/gpu': '1' } },
+  ])('normalizes existing GPU resources to an editable limit: %j', async (resources) => {
+    const { user, onSubmit } = await setup(resources);
+    expect(
+      screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
+    ).not.toBeInTheDocument();
+    const limit = screen.getByRole('spinbutton', { name: 'nvidia.com/gpu limit' });
+    expect(limit).toHaveValue(1);
+    await user.clear(limit);
+    await user.type(limit, '2');
     await user.click(screen.getByTestId('pod-config-modal-submit-button'));
-    expect(onSubmit).toHaveBeenCalledTimes(1);
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Custom resource request' }), {
-      target: { value: '' },
-    });
-    await user.tab();
-    expect(screen.getByRole('spinbutton', { name: 'Custom resource request' })).toHaveValue(null);
-    await user.click(screen.getByTestId('pod-config-modal-submit-button'));
-    expect(onSubmit).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        resources: { requests: {}, limits: { 'nvidia.com/gpu': '1' } },
-      }),
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ resources: { requests: {}, limits: { 'nvidia.com/gpu': '2' } } }),
     );
   });
 });

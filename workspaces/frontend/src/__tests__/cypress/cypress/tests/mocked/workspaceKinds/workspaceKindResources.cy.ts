@@ -106,18 +106,30 @@ describe('WorkspaceKind pod resource requests and limits', () => {
     assertSavedLimits(limits);
   });
 
-  it('blocks invalid GPU combinations and saves a valid limit-only GPU', () => {
+  it('shows only a limit before and after naming a custom resource and saves it', () => {
+    setup();
+    editFirstConfig();
+    editWorkspaceKind.addCustomResource();
+    editWorkspaceKind.assertCustomLimitOnly();
+    editWorkspaceKind.assertResourceValue('Custom resource limit', '1');
+    editWorkspaceKind.setCustomResourceName('example.com/device');
+    editWorkspaceKind.assertCustomLimitOnly();
+    editWorkspaceKind.setResourceValue('example.com/device limit', '2');
+    editWorkspaceKind.setCustomResourceName('');
+    editWorkspaceKind.assertCustomLimitOnly();
+    editWorkspaceKind.setCustomResourceName('example.com/device');
+    editWorkspaceKind.submitPodConfigModal();
+    assertSavedLimits({ 'example.com/device': '2' });
+  });
+
+  it('edits only the GPU limit and rejects invalid counts', () => {
     setup();
     editFirstConfig();
     editWorkspaceKind.addGpuResource();
-    editWorkspaceKind.assertResourceError('requires a limit');
-    editWorkspaceKind.assertPodConfigSaveEnabled(false);
-    editWorkspaceKind.enableGpuLimit();
+    editWorkspaceKind.assertGpuLimitOnly();
+    editWorkspaceKind.assertResourceValue('nvidia.com/gpu limit', '1');
     editWorkspaceKind.assertPodConfigSaveEnabled(true);
     editWorkspaceKind.setResourceValue('nvidia.com/gpu limit', '2');
-    editWorkspaceKind.assertResourceError('request must equal');
-    editWorkspaceKind.assertPodConfigSaveEnabled(false);
-    editWorkspaceKind.setResourceValue('Custom resource request', '');
     editWorkspaceKind.assertPodConfigSaveEnabled(true);
     editWorkspaceKind.setResourceValue('nvidia.com/gpu limit', '0.5');
     editWorkspaceKind.assertResourceError('non-negative whole number');
@@ -125,6 +137,7 @@ describe('WorkspaceKind pod resource requests and limits', () => {
     editWorkspaceKind.setResourceValue('nvidia.com/gpu limit', '-1');
     editWorkspaceKind.assertPodConfigSaveEnabled(false);
     editWorkspaceKind.setResourceValue('nvidia.com/gpu limit', '1');
+    editWorkspaceKind.assertGpuLimitOnly();
     editWorkspaceKind.assertPodConfigSaveEnabled(true);
     editWorkspaceKind.submitPodConfigModal();
     assertSavedLimits({ 'nvidia.com/gpu': '1' });

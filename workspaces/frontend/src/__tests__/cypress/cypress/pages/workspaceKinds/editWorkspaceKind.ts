@@ -463,13 +463,34 @@ class EditWorkspaceKind {
     cy.findByTestId(`${label}-input`).findByLabelText(label).should('have.value', value);
   }
 
-  addGpuResource() {
+  addCustomResource() {
     cy.findByTestId('add-custom-resource').click();
-    cy.findByTestId('custom-resource-type').type('nvidia.com/gpu');
   }
 
-  enableGpuLimit() {
-    cy.findByTestId('custom-resource-limit-checkbox').click();
+  setCustomResourceName(name: string) {
+    cy.findByTestId('custom-resource-type').clear();
+    if (name) {
+      cy.findByTestId('custom-resource-type').type(name);
+    }
+  }
+
+  addGpuResource() {
+    this.addCustomResource();
+    this.setCustomResourceName('nvidia.com/gpu');
+  }
+
+  assertCustomLimitOnly() {
+    cy.findByTestId('Custom resource request-input').should('not.exist');
+    cy.findByTestId('custom-resource-limit-checkbox').should('not.exist');
+    this.findPodConfigModal().should(
+      'contain.text',
+      'Kubernetes uses this value for both the request and limit.',
+    );
+  }
+
+  assertGpuLimitOnly() {
+    this.assertCustomLimitOnly();
+    this.findPodConfigModal().should('not.contain.text', 'request must equal');
   }
 
   assertResourceError(message: string) {
