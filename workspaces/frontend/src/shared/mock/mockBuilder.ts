@@ -21,6 +21,8 @@ import {
   V1PersistentVolumeMode,
   V1PullPolicy,
   SecretsSecretListItem,
+  SecretsSecretUpdate,
+  V1SecretType,
   StorageclassesStorageClassListItem,
   OptionsRedirectMessageLevel,
   WorkspacekindsWorkspaceKindListItem,
@@ -937,6 +939,16 @@ export const buildMockSecret = (
     updatedBy: 'user1',
   },
   ...secret,
+});
+
+export const buildMockSecretResponse = ({
+  type = V1SecretType.SecretTypeOpaque,
+  immutable = false,
+  contents = { username: {}, password: {} },
+}: Partial<SecretsSecretUpdate> = {}): SecretsSecretUpdate => ({
+  type,
+  immutable,
+  contents: Object.fromEntries(Object.keys(contents).map((key) => [key, {}])),
 });
 
 export const buildMockStorageClass = (

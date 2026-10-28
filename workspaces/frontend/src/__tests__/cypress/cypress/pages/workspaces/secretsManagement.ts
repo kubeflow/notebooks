@@ -126,6 +126,63 @@ class SecretsModal {
     return this.findKeyInput().eq(index).clear().type(key);
   }
 
+  findRow(index: number) {
+    return this.find().findAllByTestId('key-value-pair').eq(index);
+  }
+
+  replaceValue({ index, value }: { index: number; value: string }) {
+    this.findRow(index).findByTestId('replace-secret-value').click();
+    return this.typeValue({ index, value });
+  }
+
+  typeValue({ index, value }: { index: number; value: string }) {
+    return this.findRow(index)
+      .findByTestId('value-input')
+      .clear({ log: false })
+      .type(value, { log: false, parseSpecialCharSequences: false });
+  }
+
+  keepValue(index: number) {
+    return this.findRow(index).findByTestId('keep-secret-value').click();
+  }
+
+  deleteKey(index: number) {
+    return this.findRow(index).findByTestId('remove-key-value-pair').click();
+  }
+
+  save() {
+    return this.findSubmitButton().click();
+  }
+
+  cancel() {
+    return this.find().findByTestId('secret-modal-cancel-button').click();
+  }
+
+  assertUndisclosed(count: number) {
+    this.find().findAllByTestId('undisclosed-value').should('have.length', count);
+    this.find().findAllByTestId('value-input').should('not.exist');
+  }
+
+  assertType(type: string) {
+    return this.find().findByTestId('secret-type-select').should('contain.text', type);
+  }
+
+  assertNotEditable() {
+    this.findSubmitButton().should('be.disabled');
+    this.findImmutableSwitch().should('be.disabled');
+    this.find().findAllByTestId('replace-secret-value').should('be.disabled');
+    this.find().findAllByTestId('remove-key-value-pair').should('be.disabled');
+    this.find().findByTestId('another-key-value-pair-button').should('be.disabled');
+  }
+
+  assertClosed() {
+    return this.find().should('not.exist');
+  }
+
+  capture(name: string) {
+    return this.find().screenshot(name);
+  }
+
   findErrorAlert() {
     return this.find().findByTestId('error-alert');
   }

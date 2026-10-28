@@ -9,6 +9,7 @@ import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/comma
 import {
   buildMockNamespace,
   buildMockSecret,
+  buildMockSecretResponse,
   buildMockWorkspace,
   buildMockWorkspaceKind,
   buildMockWorkspaceKindInfo,
@@ -34,7 +35,9 @@ describe('Edit Secret Modal', () => {
     state: V1Beta1WorkspaceState.WorkspaceStateRunning,
   });
 
-  const testSecrets = [{ secretName: 'test-secret', mountPath: '/mnt/secrets', defaultMode: 420 }];
+  const testSecrets = ['test-secret', 'immutable-secret', 'no-update-secret', 'missing-secret'].map(
+    (secretName) => ({ secretName, mountPath: `/mnt/${secretName}`, defaultMode: 420 }),
+  );
 
   const mockWorkspaceUpdate = buildMockWorkspaceUpdateFromWorkspace({
     workspace: mockWorkspaceListItem,
@@ -43,29 +46,22 @@ describe('Edit Secret Modal', () => {
 
   const mockSecrets = [
     buildMockSecret({ name: 'test-secret', canMount: true, canUpdate: true }),
-    buildMockSecret({
-      name: 'immutable-secret',
-      canMount: true,
-      canUpdate: false,
-    }),
+    buildMockSecret({ name: 'immutable-secret', canMount: true, canUpdate: true }),
+    buildMockSecret({ name: 'no-update-secret', canMount: true, canUpdate: false }),
   ];
 
   const mockSecretContents: Record<string, SecretsSecretUpdate> = {
-    'test-secret': {
-      type: V1SecretType.SecretTypeOpaque,
-      immutable: false,
-      contents: {
-        apiKey: { base64: btoa('my-api-key') },
-        username: { base64: btoa('admin') },
-      },
-    },
-    'immutable-secret': {
-      type: V1SecretType.SecretTypeOpaque,
-      immutable: true,
-      contents: {
-        token: { base64: btoa('secret-token') },
-      },
-    },
+    'test-secret': buildMockSecretResponse({ contents: { apiKey: {}, username: {} } }),
+    'immutable-secret': buildMockSecretResponse({ immutable: true, contents: { token: {} } }),
+  };
+  const secretPath = {
+    apiVersion: NOTEBOOKS_API_VERSION,
+    namespace: mockNamespace.name,
+    secretName: 'test-secret',
+  };
+  const openEditor = () => {
+    secretsManagement.openEditModal('test-secret');
+    cy.wait('@getSecret-test-secret');
   };
 
   beforeEach(() => {
@@ -121,12 +117,18 @@ describe('Edit Secret Modal', () => {
       ).as(`getSecret-${name}`);
     });
 
+    cy.interceptApi(
+      'PUT /api/:apiVersion/secrets/:namespace/:secretName',
+      { path: secretPath },
+      { data: mockSecretContents['test-secret'] },
+    ).as('updateSecret');
+
     // Navigate to edit workspace properties step
     workspaces.visit();
     cy.wait('@getNamespaces');
     navBar.selectNamespace(mockNamespace.name);
     cy.wait('@getWorkspaces');
-    workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
+    workspaces.clickEditAction(mockWorkspaceListItem.name);
     cy.wait('@getWorkspace');
     cy.wait('@getWorkspaceKinds');
     editWorkspace.clickNext();
@@ -135,211 +137,184 @@ describe('Edit Secret Modal', () => {
     cy.wait('@listSecrets');
   });
 
-  it('should open edit modal with pre-populated fields when clicking edit', () => {
-    // Open edit modal
-    secretsManagement.openEditModal('test-secret');
-    cy.wait('@getSecret-test-secret');
-
-    // Verify modal is in edit mode
+  it('shows undisclosed values with fixed existing key names', () => {
+    openEditor();
     secretsModal.assertModalVisible();
     secretsModal.assertEditMode();
-
-    // Verify name is pre-populated and disabled
-    secretsModal.findSecretNameInput().should('have.value', 'test-secret');
-    secretsModal.findSecretNameInput().should('be.disabled');
-
-    // Verify permissions labels are shown
+    secretsModal.findSecretNameInput().should('have.value', 'test-secret').and('be.disabled');
     secretsModal.findCanMountLabel().should('contain', 'Can mount');
     secretsModal.findCanUpdateLabel().should('contain', 'Can update');
-
-    // Verify immutable toggle is shown and not checked
     secretsModal.findImmutableSwitch().should('not.be.checked');
-
-    // Verify key-value pairs are loaded
-    secretsModal.findKeyInput().first().should('have.value', 'apiKey');
+    secretsModal.findKeyInput().first().should('have.value', 'apiKey').and('have.attr', 'readonly');
+    secretsModal.assertUndisclosed(2);
+    secretsModal.capture('secret-editor-loaded');
   });
 
-  it('should update secret via API when saving changes', () => {
-    // Mock the update API
-    cy.interceptApi(
-      'PUT /api/:apiVersion/secrets/:namespace/:secretName',
-      {
-        path: {
-          apiVersion: NOTEBOOKS_API_VERSION,
-          namespace: mockNamespace.name,
-          secretName: 'test-secret',
-        },
-      },
-      { data: mockSecretContents['test-secret'] },
-    ).as('updateSecret');
+  it('saves unchanged redacted keys without sending replacement values', () => {
+    openEditor();
+    secretsModal.save();
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data).to.deep.equal({
+        type: 'Opaque',
+        immutable: false,
+        contents: { apiKey: {}, username: {} },
+      });
+    });
+    secretsModal.assertClosed();
+  });
 
-    // Open edit modal
-    secretsManagement.openEditModal('test-secret');
-    cy.wait('@getSecret-test-secret');
+  it('replaces one key and preserves the other undisclosed key', () => {
+    openEditor();
+    secretsModal.replaceValue({ index: 0, value: 'synthetic-replacement' });
+    secretsModal.capture('secret-editor-replacement');
+    secretsModal.save();
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data.contents).to.deep.equal({
+        apiKey: { base64: btoa('synthetic-replacement') },
+        username: {},
+      });
+    });
+    secretsModal.assertClosed();
+  });
 
-    // Toggle immutable
+  it('can mark a mutable secret immutable without replacing undisclosed values', () => {
+    openEditor();
     secretsModal.toggleImmutable();
+    secretsModal.save();
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data).to.deep.equal({
+        type: 'Opaque',
+        immutable: true,
+        contents: { apiKey: {}, username: {} },
+      });
+    });
+    secretsModal.assertClosed();
+  });
 
-    // Click Save
-    secretsModal.findSubmitButton().click();
-
-    // Verify API was called
-    cy.wait('@updateSecret').then((interception) => {
-      expect(interception.request.body.data.immutable).to.equal(true);
-      expect(interception.request.body.data.type).to.equal('Opaque');
+  it('deletes a key by omitting it from the update', () => {
+    openEditor();
+    secretsModal.deleteKey(1);
+    secretsModal.capture('secret-editor-deletion');
+    secretsModal.save();
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data.contents).to.deep.equal({ apiKey: {} });
     });
   });
 
-  it('should show a failed update in the modal footer and clear it once the form is edited', () => {
+  it('permits deleting the last existing key', () => {
+    openEditor();
+    secretsModal.deleteKey(1);
+    secretsModal.deleteKey(0);
+    secretsModal.save();
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data.contents).to.deep.equal({});
+    });
+  });
+
+  it('encodes Unicode replacements as UTF-8 bytes', () => {
+    openEditor();
+    secretsModal.replaceValue({ index: 0, value: '日本語🔑 café' });
+    secretsModal.save();
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data.contents).to.deep.equal({
+        apiKey: { base64: '5pel5pys6Kqe8J+UkSBjYWbDqQ==' },
+        username: {},
+      });
+    });
+    secretsModal.assertClosed();
+  });
+
+  it('can discard replacement text and keep the existing value', () => {
+    openEditor();
+    secretsModal.replaceValue({ index: 0, value: 'discarded-synthetic-text' });
+    secretsModal.keepValue(0);
+    secretsModal.assertUndisclosed(2);
+    secretsModal.save();
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data.contents).to.deep.equal({ apiKey: {}, username: {} });
+    });
+  });
+
+  it('preserves the type returned by the API', () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/secrets/:namespace/:secretName',
+      { path: secretPath },
+      {
+        data: buildMockSecretResponse({
+          type: V1SecretType.SecretTypeSSHAuth,
+          contents: { 'ssh-privatekey': {} },
+        }),
+      },
+    ).as('getSecret-test-secret');
+    openEditor();
+    secretsModal.assertType('kubernetes.io/ssh-auth');
+    secretsModal.save();
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data).to.deep.equal({
+        type: 'kubernetes.io/ssh-auth',
+        immutable: false,
+        contents: { 'ssh-privatekey': {} },
+      });
+    });
+  });
+
+  it('keeps immutable resources read-only even when canUpdate is true', () => {
+    secretsManagement.openEditModal('immutable-secret');
+    cy.wait('@getSecret-immutable-secret');
+    secretsModal.findCanUpdateLabel().should('contain.text', 'Can update');
+    secretsModal.findImmutableSwitch().should('be.checked');
+    secretsModal.assertNotEditable();
+  });
+
+  it('disables Edit when the API denies updates', () => {
+    secretsManagement.clickKebabMenu('no-update-secret');
+    secretsManagement.findEditAction('no-update-secret').should('have.class', 'pf-m-aria-disabled');
+    secretsModal.assertClosed();
+  });
+
+  it('disables Edit when permission metadata is missing', () => {
+    secretsManagement.clickKebabMenu('missing-secret');
+    secretsManagement.findEditAction('missing-secret').should('have.class', 'pf-m-aria-disabled');
+    secretsModal.assertClosed();
+  });
+
+  it('allows correction and retry after a failed save without overwriting untouched keys', () => {
     cy.interceptApi(
       'PUT /api/:apiVersion/secrets/:namespace/:secretName',
-      {
-        path: {
-          apiVersion: NOTEBOOKS_API_VERSION,
-          namespace: mockNamespace.name,
-          secretName: 'test-secret',
-        },
-      },
-      {
-        error: {
-          code: '409',
-          message: 'Secret was modified',
-        },
-      },
+      { path: secretPath },
+      { error: { code: '409', message: 'Secret was modified' } },
     ).as('updateSecretError');
-
-    secretsManagement.openEditModal('test-secret');
-    cy.wait('@getSecret-test-secret');
-
-    secretsModal.findSubmitButton().click();
-    cy.wait('@updateSecretError');
-
+    openEditor();
+    secretsModal.save();
+    cy.wait('@updateSecretError').then(({ request }) => {
+      expect(request.body.data.contents).to.deep.equal({ apiKey: {}, username: {} });
+    });
     secretsModal.findErrorAlert().should('contain.text', 'Request failed with status code 409');
     secretsModal.assertErrorAlertInFooter();
-
-    // Editing a key clears the failure from the last attempt; the modal stays open
-    secretsModal.typeKey(0, 'apiKey2');
+    secretsModal.capture('secret-editor-save-error');
+    cy.interceptApi(
+      'PUT /api/:apiVersion/secrets/:namespace/:secretName',
+      { path: secretPath },
+      { data: mockSecretContents['test-secret'] },
+    ).as('updateSecret');
+    secretsModal.replaceValue({ index: 0, value: 'corrected-synthetic-text' });
     secretsModal.findErrorAlert().should('not.exist');
-    secretsModal.assertModalVisible();
+    secretsModal.save();
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data.contents).to.deep.equal({
+        apiKey: { base64: btoa('corrected-synthetic-text') },
+        username: {},
+      });
+    });
+    secretsModal.assertClosed();
   });
 
-  it('should disable edit action for immutable secrets', () => {
-    // Create a workspace with immutable secret attached
-    const workspaceWithImmutableSecret = buildMockWorkspace({
-      name: 'test-workspace',
-      namespace: mockNamespace.name,
-      workspaceKind: mockWorkspaceKindInfo,
-      state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-    });
-    const immutableSecrets = [
-      { secretName: 'immutable-secret', mountPath: '/mnt/immutable', defaultMode: 420 },
-    ];
-
-    // Re-intercept getWorkspaces with updated workspace data
-    cy.interceptApi(
-      'GET /api/:apiVersion/workspaces/:namespace',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-      mockModArchResponse([workspaceWithImmutableSecret]),
-    ).as('getWorkspacesImmutable');
-
-    // Re-intercept getWorkspace with updated workspace data
-    const updatedWorkspace = buildMockWorkspaceUpdateFromWorkspace({
-      workspace: workspaceWithImmutableSecret,
-      volumes: { secrets: immutableSecrets },
-    });
-    cy.interceptApi(
-      'GET /api/:apiVersion/workspaces/:namespace/:workspaceName',
-      {
-        path: {
-          apiVersion: NOTEBOOKS_API_VERSION,
-          namespace: mockNamespace.name,
-          workspaceName: workspaceWithImmutableSecret.name,
-        },
-      },
-      mockModArchResponse(updatedWorkspace),
-    ).as('getWorkspace');
-
-    // Re-intercept listSecrets with a fresh alias
-    cy.interceptApi(
-      'GET /api/:apiVersion/secrets/:namespace',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-      { data: mockSecrets },
-    ).as('listSecretsImmutable');
-
-    // Re-visit the page with fresh intercepts for this test
-    workspaces.visit();
-    cy.wait('@getNamespaces');
-    navBar.selectNamespace(mockNamespace.name);
-    cy.wait('@getWorkspacesImmutable');
-    workspaces
-      .findAction({ action: 'edit', workspaceName: workspaceWithImmutableSecret.name })
-      .click();
-    cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKinds');
-    editWorkspace.clickNext();
-    editWorkspace.advancePastRedirectModal();
-    editWorkspace.advancePastRedirectModal();
-    cy.wait('@listSecretsImmutable');
-
-    // Open kebab menu for immutable secret
-    secretsManagement.clickKebabMenu('immutable-secret');
-
-    // Verify Edit action is disabled for immutable secrets
-    secretsManagement.findEditAction('immutable-secret').should('have.class', 'pf-m-aria-disabled');
-  });
-
-  it('should show Cannot update label for secrets without update permission', () => {
-    // Modify mock to have canUpdate: false
-    const secretWithoutUpdate = buildMockSecret({
-      name: 'no-update-secret',
-      canMount: true,
-      canUpdate: false,
-    });
-
-    cy.interceptApi(
-      'GET /api/:apiVersion/secrets/:namespace',
-      { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
-      { data: [...mockSecrets, secretWithoutUpdate] },
-    ).as('listSecretsUpdated');
-
-    // Add this secret to workspace and re-visit the page
-    const noUpdateSecrets = [
-      { secretName: 'no-update-secret', mountPath: '/mnt/no-update', defaultMode: 420 },
-    ];
-
-    // Re-intercept getWorkspace with updated workspace data
-    const updatedWorkspace = buildMockWorkspaceUpdateFromWorkspace({
-      workspace: mockWorkspaceListItem,
-      volumes: { secrets: noUpdateSecrets },
-    });
-    cy.interceptApi(
-      'GET /api/:apiVersion/workspaces/:namespace/:workspaceName',
-      {
-        path: {
-          apiVersion: NOTEBOOKS_API_VERSION,
-          namespace: mockNamespace.name,
-          workspaceName: mockWorkspaceListItem.name,
-        },
-      },
-      mockModArchResponse(updatedWorkspace),
-    ).as('getWorkspace');
-
-    workspaces.visit();
-    cy.wait('@getNamespaces');
-    navBar.selectNamespace(mockNamespace.name);
-    cy.wait('@getWorkspaces');
-    workspaces.findAction({ action: 'edit', workspaceName: mockWorkspaceListItem.name }).click();
-    cy.wait('@getWorkspace');
-    cy.wait('@getWorkspaceKinds');
-    editWorkspace.clickNext();
-    editWorkspace.advancePastRedirectModal();
-    editWorkspace.advancePastRedirectModal();
-    cy.wait('@listSecretsUpdated');
-
-    // Open kebab menu for secret without update permission
-    secretsManagement.clickKebabMenu('no-update-secret');
-
-    // Edit action is disabled when canUpdate is false (modal is not opened)
-    secretsManagement.findEditAction('no-update-secret').should('have.class', 'pf-m-aria-disabled');
+  it('discards unsaved replacement text when reopened', () => {
+    openEditor();
+    secretsModal.replaceValue({ index: 0, value: 'discarded-synthetic-text' });
+    secretsModal.cancel();
+    secretsModal.assertClosed();
+    openEditor();
+    secretsModal.assertUndisclosed(2);
   });
 });
