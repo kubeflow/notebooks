@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Grid, GridItem } from '@patternfly/react-core/dist/esm/layouts/Grid';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table/dist/esm/components/Table';
@@ -18,8 +18,8 @@ import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-i
 import { useThemeContext } from 'mod-arch-kubeflow';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
-import { isMemoryLimitLarger } from '~/shared/utilities/valueUnits';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
+import { getResourceErrors, isDevicePluginGpu } from './resourceValidation';
 
 export type PodResourceEntry = {
   id: string; // Unique identifier for each resource entry
@@ -41,7 +41,6 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
   memory,
   custom,
 }) => {
-  // State for tracking limit toggles
   const [cpuRequestEnabled, setCpuRequestEnabled] = useState(cpu.request.length > 0);
   const [memoryRequestEnabled, setMemoryRequestEnabled] = useState(memory.request.length > 0);
   const [cpuLimitEnabled, setCpuLimitEnabled] = useState(cpu.limit.length > 0);
@@ -56,13 +55,6 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
     return customToggles;
   });
   const { isMUITheme } = useThemeContext();
-  useEffect(() => {
-    setCpuRequestEnabled(cpu.request.length > 0);
-    setMemoryRequestEnabled(memory.request.length > 0);
-    setCpuLimitEnabled(cpu.request.length > 0 && cpu.limit.length > 0);
-    setMemoryLimitEnabled(memory.request.length > 0 && memory.limit.length > 0);
-  }, [cpu.limit.length, cpu.request.length, memory.limit.length, memory.request.length]);
-
   const handleChange = useCallback(
     (resourceId: string, field: 'type' | 'request' | 'limit', value: string) => {
       setResources((resources: PodResourceEntry[]) =>
@@ -90,51 +82,22 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
     [customLimitsEnabled, setResources],
   );
 
-  const handleCpuLimitToggle = useCallback(
-    (enabled: boolean) => {
-      setCpuLimitEnabled(enabled);
-      handleChange(cpu.id, 'limit', cpu.request);
-      if (!enabled) {
-        handleChange(cpu.id, 'limit', '');
-      }
-    },
-    [cpu.id, cpu.request, handleChange],
-  );
-
-  const handleCpuRequestToggle = useCallback(
-    (enabled: boolean) => {
-      setCpuRequestEnabled(enabled);
-      handleChange(cpu.id, 'request', '1');
-      if (!enabled) {
-        handleChange(cpu.id, 'request', '');
-        handleCpuLimitToggle(enabled);
-      }
-    },
-    [cpu.id, handleChange, handleCpuLimitToggle],
-  );
-
-  const handleMemoryLimitToggle = useCallback(
-    (enabled: boolean) => {
-      setMemoryLimitEnabled(enabled);
-      handleChange(memory.id, 'limit', memory.request);
-      if (!enabled) {
-        handleChange(memory.id, 'limit', '');
-      }
-    },
-    [handleChange, memory.id, memory.request],
-  );
-
-  const handleMemoryRequestToggle = useCallback(
-    (enabled: boolean) => {
-      setMemoryRequestEnabled(enabled);
-      handleChange(memory.id, 'request', '1Mi');
-      if (!enabled) {
-        handleChange(memory.id, 'request', '');
-        handleMemoryLimitToggle(enabled);
-      }
-    },
-    [handleChange, handleMemoryLimitToggle, memory.id],
-  );
+  const handleCpuLimitToggle = (enabled: boolean) => {
+    setCpuLimitEnabled(enabled);
+    handleChange(cpu.id, 'limit', enabled ? cpu.request || '1' : '');
+  };
+  const handleCpuRequestToggle = (enabled: boolean) => {
+    setCpuRequestEnabled(enabled);
+    handleChange(cpu.id, 'request', enabled ? cpu.limit || '1' : '');
+  };
+  const handleMemoryLimitToggle = (enabled: boolean) => {
+    setMemoryLimitEnabled(enabled);
+    handleChange(memory.id, 'limit', enabled ? memory.request || '1Mi' : '');
+  };
+  const handleMemoryRequestToggle = (enabled: boolean) => {
+    setMemoryRequestEnabled(enabled);
+    handleChange(memory.id, 'request', enabled ? memory.limit || '1Mi' : '');
+  };
 
   const handleCustomLimitToggle = useCallback(
     (resourceId: string, enabled: boolean) => {
@@ -145,30 +108,16 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
     },
     [handleChange],
   );
-  const cpuRequestLargerThanLimit = useMemo(
-    () => parseFloat(cpu.request) > parseFloat(cpu.limit),
-    [cpu.request, cpu.limit],
-  );
-
-  const memoryRequestLargerThanLimit = useMemo(
-    () =>
-      memory.request.length > 0 &&
-      memory.limit.length > 0 &&
-      !isMemoryLimitLarger(memory.request, memory.limit, true),
-    [memory.request, memory.limit],
-  );
-
-  const requestRequestLargerThanLimit = useMemo(
-    () =>
-      custom.reduce(
-        (prev, curr) => prev || parseFloat(curr.request) > parseFloat(curr.limit),
-        false,
-      ),
-    [custom],
+  const resourceErrors = [cpu, memory, ...custom].flatMap(getResourceErrors);
+  const hasCustomRequestAboveLimit = custom.some(
+    (resource) =>
+      !isDevicePluginGpu(resource.type) &&
+      parseFloat(resource.request) > parseFloat(resource.limit),
   );
 
   const getResourceCountText = useCallback(() => {
-    const standardResourceCount = (cpu.request ? 1 : 0) + (memory.request ? 1 : 0);
+    const standardResourceCount =
+      (cpu.request || cpu.limit ? 1 : 0) + (memory.request || memory.limit ? 1 : 0);
     const customResourceCount = custom.length;
     if (standardResourceCount > 0 && customResourceCount > 0) {
       return `${standardResourceCount} standard and ${customResourceCount} custom resources added`;
@@ -180,10 +129,11 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
       return `${customResourceCount} custom resources added`;
     }
     return '0 added';
-  }, [cpu.request, memory.request, custom.length]);
+  }, [cpu.request, cpu.limit, memory.request, memory.limit, custom.length]);
 
   return (
     <FormFieldGroupExpandable
+      data-testid="pod-config-resources"
       className="form-label-field-group"
       toggleAriaLabel="Resources"
       header={
@@ -211,6 +161,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
           <GridItem span={6}>
             <Checkbox
               id="cpu-request-checkbox"
+              data-testid="cpu-request-checkbox"
               onChange={(_event, checked) => handleCpuRequestToggle(checked)}
               isChecked={cpuRequestEnabled}
               label="CPU Request"
@@ -219,6 +170,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
           <GridItem span={6}>
             <Checkbox
               id="memory-request-checkbox"
+              data-testid="memory-request-checkbox"
               onChange={(_event, checked) => handleMemoryRequestToggle(checked)}
               isChecked={memoryRequestEnabled}
               label="Memory Request"
@@ -226,22 +178,24 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
           </GridItem>
           <GridItem span={6}>
             <ResourceInputWrapper
+              allowEmpty
               type="cpu"
               value={cpu.request}
               onChange={(value) => handleChange(cpu.id, 'request', value)}
               placeholder="e.g. 1"
-              min={1}
+              min={0}
               aria-label="CPU request"
               isDisabled={!cpuRequestEnabled}
             />
           </GridItem>
           <GridItem span={6}>
             <ResourceInputWrapper
+              allowEmpty
               type="memory"
               value={memory.request}
               onChange={(value) => handleChange(memory.id, 'request', value)}
               placeholder="e.g. 512Mi"
-              min={1}
+              min={0}
               aria-label="Memory request"
               isDisabled={!memoryRequestEnabled}
             />
@@ -249,63 +203,47 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
           <GridItem span={6}>
             <Checkbox
               id="cpu-limit-checkbox"
+              data-testid="cpu-limit-checkbox"
               onChange={(_event, checked) => handleCpuLimitToggle(checked)}
               isChecked={cpuLimitEnabled}
               label="CPU Limit"
-              isDisabled={!cpuRequestEnabled}
               aria-label="Enable CPU limit"
             />
           </GridItem>
           <GridItem span={6}>
             <Checkbox
               id="memory-limit-checkbox"
+              data-testid="memory-limit-checkbox"
               onChange={(_event, checked) => handleMemoryLimitToggle(checked)}
               isChecked={memoryLimitEnabled}
-              isDisabled={!memoryRequestEnabled}
               label="Memory Limit"
               aria-label="Enable Memory limit"
             />
           </GridItem>
           <GridItem span={6}>
             <ResourceInputWrapper
+              allowEmpty
               type="cpu"
               value={cpu.limit}
               onChange={(value) => handleChange(cpu.id, 'limit', value)}
               placeholder="e.g. 2"
-              min={parseFloat(cpu.request)}
+              min={0}
               step={1}
               aria-label="CPU limit"
-              isDisabled={!cpuRequestEnabled || !cpuLimitEnabled}
+              isDisabled={!cpuLimitEnabled}
             />
           </GridItem>
           <GridItem span={6}>
             <ResourceInputWrapper
+              allowEmpty
               type="memory"
               value={memory.limit}
               onChange={(value) => handleChange(memory.id, 'limit', value)}
               placeholder="e.g. 1Gi"
-              min={parseFloat(memory.request)}
+              min={0}
               aria-label="Memory limit"
-              isDisabled={!memoryRequestEnabled || !memoryLimitEnabled}
+              isDisabled={!memoryLimitEnabled}
             />
-          </GridItem>
-          <GridItem span={6}>
-            {cpuRequestLargerThanLimit && (
-              <HelperText>
-                <HelperTextItem variant="error">
-                  CPU limit should not be smaller than the request value
-                </HelperTextItem>
-              </HelperText>
-            )}
-          </GridItem>
-          <GridItem span={6}>
-            {memoryRequestLargerThanLimit && (
-              <HelperText>
-                <HelperTextItem variant="error">
-                  Memory limit should not be smaller than the request value
-                </HelperTextItem>
-              </HelperText>
-            )}
           </GridItem>
         </Grid>
         <Title headingLevel="h6">Custom Resources</Title>
@@ -323,6 +261,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
                   <Td>
                     <ThemeAwareFormGroupWrapper fieldId={`custom-resource-type-${res.id}`}>
                       <TextInput
+                        data-testid="custom-resource-type"
                         value={res.type}
                         placeholder="Resource name (e.g. nvidia.com/gpu)"
                         aria-label="Custom resource type"
@@ -351,19 +290,21 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
               className={isMUITheme ? 'pf-v6-u-pl-sm' : undefined}
             >
               <ResourceInputWrapper
+                allowEmpty
                 type="custom"
                 value={res.request}
                 onChange={(value) => handleChange(res.id, 'request', value)}
                 placeholder="Request"
-                min={1}
+                min={0}
                 aria-label="Custom resource request"
               />
             </ThemeAwareFormGroupWrapper>
             <FormGroup className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mt-lg' : undefined}>
               <Checkbox
+                data-testid="custom-resource-limit-checkbox"
                 id={`custom-limit-switch-${res.id}`}
                 label="Set Limit"
-                isChecked={customLimitsEnabled[res.id] || false}
+                isChecked={!!res.limit || customLimitsEnabled[res.id] || false}
                 onChange={(_event, checked) => {
                   handleChange(res.id, 'limit', res.request);
                   handleCustomLimitToggle(res.id, checked);
@@ -378,12 +319,13 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
               className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mb-lg' : undefined}
             >
               <ResourceInputWrapper
+                allowEmpty
                 type="custom"
                 value={res.limit}
                 onChange={(value) => handleChange(res.id, 'limit', value)}
                 placeholder="Limit"
-                min={parseFloat(res.request)}
-                isDisabled={!customLimitsEnabled[res.id]}
+                min={0}
+                isDisabled={!res.limit && !customLimitsEnabled[res.id]}
                 aria-label={`${res.type || 'Custom resource'} limit`}
               />
             </ThemeAwareFormGroupWrapper>
@@ -391,6 +333,7 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
           </React.Fragment>
         ))}
         <Button
+          data-testid="add-custom-resource"
           style={{ width: 'fit-content' }}
           variant="link"
           icon={<PlusCircleIcon />}
@@ -399,13 +342,18 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
         >
           Add Custom Resource
         </Button>
-        {requestRequestLargerThanLimit && (
+        {hasCustomRequestAboveLimit && (
           <HelperText>
             <HelperTextItem variant="error">
               Resource limit should not be smaller than the request value
             </HelperTextItem>
           </HelperText>
         )}
+        {resourceErrors.map((error) => (
+          <HelperText key={error}>
+            <HelperTextItem variant="error">{error}</HelperTextItem>
+          </HelperText>
+        ))}
       </Form>
     </FormFieldGroupExpandable>
   );

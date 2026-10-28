@@ -24,6 +24,7 @@ interface ResourceInputWrapperProps {
   placeholder?: string;
   'aria-label'?: string;
   isDisabled?: boolean;
+  allowEmpty?: boolean;
 }
 
 const unitMap: {
@@ -52,6 +53,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
   placeholder,
   'aria-label': ariaLabel,
   isDisabled = false,
+  allowEmpty = false,
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [unit, setUnit] = useState<string>('');
@@ -92,7 +94,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
         return;
       }
       const [numericValue, extractedUnit] = parseResourceValue(value, type);
-      setInputValue(String(numericValue || ''));
+      setInputValue(String(numericValue ?? ''));
       setUnit(extractedUnit?.unit || DEFAULT_UNITS[type]);
     }
   }, [type, value, unit]);
@@ -149,10 +151,16 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
 
   const handleNumberInputChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
-      const newValue = (event.target as HTMLInputElement).value;
-      handleInputChange(newValue);
+      const input = event.target as HTMLInputElement;
+      // NumberInput normalizes an empty field to zero before forwarding blur events.
+      if (allowEmpty && event.type === 'blur' && inputValue === '') {
+        input.value = '';
+        handleInputChange('');
+        return;
+      }
+      handleInputChange(input.value);
     },
-    [handleInputChange],
+    [allowEmpty, handleInputChange, inputValue],
   );
 
   const unitOptions = useMemo(

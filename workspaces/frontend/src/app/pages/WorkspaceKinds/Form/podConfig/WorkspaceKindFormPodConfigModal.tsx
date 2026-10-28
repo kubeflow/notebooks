@@ -16,6 +16,7 @@ import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { OptionsOptionLabel } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
+import { getResourceErrors } from './resourceValidation';
 
 interface WorkspaceKindFormPodConfigModalProps {
   isOpen: boolean;
@@ -26,7 +27,16 @@ interface WorkspaceKindFormPodConfigModalProps {
   setCurrConfig: (currConfig: WorkspaceKindPodConfigValue) => void;
 }
 
-export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfigModalProps> = ({
+export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfigModalProps> = (
+  props,
+) => (
+  <WorkspaceKindFormPodConfigModalContent
+    key={`${props.isOpen}-${props.editIndex}-${props.currConfig.id}`}
+    {...props}
+  />
+);
+
+const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfigModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
@@ -81,7 +91,12 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
     return parsedResources;
   }, []);
 
+  const hasResourceErrors = resources.some((resource) => getResourceErrors(resource).length > 0);
+
   const handleSubmit = useCallback(() => {
+    if (hasResourceErrors) {
+      return;
+    }
     const updatedConfig = {
       ...currConfig,
       id,
@@ -98,6 +113,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
     onSubmit(updatedConfig);
   }, [
     currConfig,
+    hasResourceErrors,
     description,
     displayName,
     hidden,
@@ -226,6 +242,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
           key="confirm"
           variant="primary"
           onClick={handleSubmit}
+          isDisabled={hasResourceErrors}
           data-testid="pod-config-modal-submit-button"
         >
           {editIndex !== null ? 'Save' : 'Create'}

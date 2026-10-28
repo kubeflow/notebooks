@@ -438,6 +438,48 @@ class EditWorkspaceKind {
     return cy.findByTestId('pod-config-modal');
   }
 
+  expandResources() {
+    cy.findByTestId('pod-config-resources')
+      .findByRole('button', { name: /Resources/ })
+      .click();
+  }
+
+  toggleResource(field: 'cpu-request' | 'cpu-limit' | 'memory-request' | 'memory-limit') {
+    cy.findByTestId(`${field}-checkbox`).click();
+  }
+
+  assertResourceToggle(field: string, checked: boolean) {
+    cy.findByTestId(`${field}-checkbox`).should(checked ? 'be.checked' : 'not.be.checked');
+  }
+
+  setResourceValue(label: string, value: string) {
+    cy.findByTestId(`${label}-input`).findByLabelText(label).clear();
+    if (value) {
+      cy.findByTestId(`${label}-input`).findByLabelText(label).type(value);
+    }
+  }
+
+  assertResourceValue(label: string, value: string) {
+    cy.findByTestId(`${label}-input`).findByLabelText(label).should('have.value', value);
+  }
+
+  addGpuResource() {
+    cy.findByTestId('add-custom-resource').click();
+    cy.findByTestId('custom-resource-type').type('nvidia.com/gpu');
+  }
+
+  enableGpuLimit() {
+    cy.findByTestId('custom-resource-limit-checkbox').click();
+  }
+
+  assertResourceError(message: string) {
+    this.findPodConfigModal().should('contain.text', message);
+  }
+
+  assertPodConfigSaveEnabled(enabled: boolean) {
+    this.findPodConfigModalSubmitButton().should(enabled ? 'not.be.disabled' : 'be.disabled');
+  }
+
   findPodConfigModalTitle() {
     return cy.findByTestId('pod-config-modal-title');
   }
