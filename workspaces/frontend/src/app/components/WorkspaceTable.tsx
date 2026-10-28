@@ -237,10 +237,10 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
 
     const filterableProperties: Record<
       WorkspaceFilterKey,
-      (ws: WorkspacesWorkspaceListItem) => string
+      (ws: WorkspacesWorkspaceListItem) => string | string[]
     > = useMemo(
       () => ({
-        name: (ws) => getWorkspaceDisplayName(ws),
+        name: (ws) => [getWorkspaceDisplayName(ws), ws.name],
         kind: (ws) => ws.workspaceKind.name,
         image: (ws) => ws.podTemplate.options.imageConfig.current.displayName,
         podConfig: (ws) => ws.podTemplate.options.podConfig.current.displayName,

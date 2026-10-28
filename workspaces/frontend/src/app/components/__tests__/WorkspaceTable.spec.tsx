@@ -111,6 +111,187 @@ describe('WorkspaceTable name column', () => {
   });
 });
 
+describe('WorkspaceTable name filter', () => {
+  const getVisibleNames = () => screen.getAllByTestId('workspace-name').map((el) => el.textContent);
+
+  it('matches a workspace by its display name when displayName is set', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({
+      name: 'my-resource-name',
+      displayName: 'My Display Name',
+    });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText('Filter by name'), 'My Display Name');
+
+    expect(getVisibleNames()).toEqual(['My Display Name']);
+  });
+
+  it('matches a workspace by its resource name when displayName is set', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({
+      name: 'my-resource-name',
+      displayName: 'My Display Name',
+    });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText('Filter by name'), 'my-resource-name');
+
+    expect(getVisibleNames()).toEqual(['My Display Name']);
+  });
+
+  it('matches a workspace by resource name when displayName is absent', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({ name: 'my-resource-name' });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText('Filter by name'), 'my-resource-name');
+
+    expect(getVisibleNames()).toEqual(['my-resource-name']);
+  });
+
+  it('matches a workspace by resource name when displayName is empty', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({ name: 'my-resource-name', displayName: '' });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText('Filter by name'), 'my-resource-name');
+
+    expect(getVisibleNames()).toEqual(['my-resource-name']);
+  });
+
+  it('matches a workspace by resource name when displayName is whitespace-only', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({ name: 'my-resource-name', displayName: '   ' });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText('Filter by name'), 'my-resource-name');
+
+    expect(getVisibleNames()).toEqual(['my-resource-name']);
+  });
+
+  it('hides a workspace when the filter matches neither display name nor resource name', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({
+      name: 'my-resource-name',
+      displayName: 'My Display Name',
+    });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText('Filter by name'), 'no-match');
+
+    expect(screen.queryByTestId('workspace-name')).not.toBeInTheDocument();
+  });
+
+  it('matches a workspace by its resource name case-insensitively when displayName is set', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({
+      name: 'my-resource-name',
+      displayName: 'My Display Name',
+    });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    await user.type(screen.getByPlaceholderText('Filter by name'), 'MY-RESOURCE-NAME');
+
+    expect(getVisibleNames()).toEqual(['My Display Name']);
+  });
+
+  it('matches a workspace when a $ anchor matches the end of the display name independently', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({
+      name: 'my-resource',
+      displayName: 'My Display',
+    });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    // 'Display$' anchors to the end of the display name string.
+    // The joined-string approach would fail here because the full joined string ends with the
+    // resource name, not the display name, making $ match at the wrong boundary.
+    await user.type(screen.getByPlaceholderText('Filter by name'), 'Display$');
+
+    expect(getVisibleNames()).toEqual(['My Display']);
+  });
+
+  it('does not match when the filter is a newline pattern that would only match the old join boundary', async () => {
+    const user = userEvent.setup();
+    const workspace = buildMockWorkspace({
+      name: 'beta-resource',
+      displayName: 'Alpha Name',
+    });
+
+    render(
+      <WorkspaceTable
+        workspaces={[workspace]}
+        refreshWorkspaces={jest.fn()}
+        rowActions={() => []}
+      />,
+    );
+
+    // Typing the two characters '\' and 'n' produces the regex /\n/i (matches literal newlines).
+    // The old approach joined names with '\n', so this regex would have matched.
+    // The new OR-based approach tests each name independently; neither contains a newline.
+    await user.type(screen.getByPlaceholderText('Filter by name'), '\\n');
+
+    expect(screen.queryByTestId('workspace-name')).not.toBeInTheDocument();
+  });
+});
+
 describe('WorkspaceTable row order stability during background refresh', () => {
   const getVisibleWorkspaceNames = () =>
     screen.getAllByTestId('workspace-name').map((el) => el.textContent);
