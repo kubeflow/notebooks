@@ -239,6 +239,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
             toggleText="Data Volumes"
             onToggle={() => setIsDataVolumesExpanded((prev) => !prev)}
             isExpanded={isDataVolumesExpanded}
+            data-testid="workspace-data-volume-expandable-section"
           >
             {dataVolumesInfo}
             {isDataVolumesExpanded && (

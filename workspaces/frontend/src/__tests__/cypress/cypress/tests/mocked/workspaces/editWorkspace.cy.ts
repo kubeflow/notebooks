@@ -354,10 +354,11 @@ describe('Edit workspace', () => {
       editWorkspace.assertResourceName(TEST_WORKSPACE_NAME);
 
       editWorkspace.assertVolumesCount(2);
-      cy.findByTestId('secrets-count').scrollIntoView();
+      editWorkspace.scrollSecretsIntoView();
       editWorkspace.assertSecretsCount(1);
-      cy.contains('button', 'Data Volumes').should('have.attr', 'aria-expanded', 'true');
-      cy.contains('button', 'Secrets').should('have.attr', 'aria-expanded', 'true');
+
+      editWorkspace.assertDataVolumesSectionExpanded();
+      editWorkspace.assertSecretsSectionExpanded();
     });
   });
 

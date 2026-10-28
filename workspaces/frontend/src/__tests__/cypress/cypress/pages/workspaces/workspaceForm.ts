@@ -291,6 +291,13 @@ class WorkspaceForm {
     return cy.contains('button', 'Secrets') as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
   }
 
+  findDataVolumesExpandableToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId('workspace-data-volume-expandable-section')
+      .find('button[aria-expanded]')
+      .first();
+  }
+
   expandSecretsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findSecretsExpandableToggle().click();
   }

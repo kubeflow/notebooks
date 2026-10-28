@@ -58,6 +58,18 @@ class EditWorkspace extends WorkspaceForm {
     return this.findResourceNameCannotBeChangedHelper().should('be.visible');
   }
 
+  scrollSecretsIntoView(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('secrets-count').scrollIntoView();
+  }
+
+  assertDataVolumesSectionExpanded(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findDataVolumesExpandableToggle().should('have.attr', 'aria-expanded', 'true');
+  }
+
+  assertSecretsSectionExpanded(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSecretsExpandableToggle().should('have.attr', 'aria-expanded', 'true');
+  }
+
   /** In update mode the resource name is always shown as plain read-only text, never an editable input. */
   assertResourceNameNotEditable(): void {
     this.findResourceNameText().should('exist');
