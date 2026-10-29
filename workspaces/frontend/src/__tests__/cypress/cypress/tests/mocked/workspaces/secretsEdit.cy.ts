@@ -132,7 +132,6 @@ describe('Edit Secret Modal', () => {
     editWorkspace.clickNext();
     editWorkspace.advancePastRedirectModal();
     editWorkspace.advancePastRedirectModal();
-    secretsManagement.expandSecretsSection();
     cy.wait('@listSecrets');
   });
 
@@ -280,7 +279,6 @@ describe('Edit Secret Modal', () => {
     editWorkspace.clickNext();
     editWorkspace.advancePastRedirectModal();
     editWorkspace.advancePastRedirectModal();
-    secretsManagement.expandSecretsSection();
     cy.wait('@listSecretsImmutable');
 
     // Open kebab menu for immutable secret
@@ -336,7 +334,6 @@ describe('Edit Secret Modal', () => {
     editWorkspace.clickNext();
     editWorkspace.advancePastRedirectModal();
     editWorkspace.advancePastRedirectModal();
-    secretsManagement.expandSecretsSection();
     cy.wait('@listSecretsUpdated');
 
     // Open kebab menu for secret without update permission

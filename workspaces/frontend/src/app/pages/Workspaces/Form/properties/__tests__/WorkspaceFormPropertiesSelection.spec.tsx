@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { WorkspaceFormPropertiesSelection } from '~/app/pages/Workspaces/Form/properties/WorkspaceFormPropertiesSelection';
-import { WorkspaceFormProperties } from '~/app/types';
+import { WorkspaceFormMode, WorkspaceFormProperties } from '~/app/types';
 
 jest.mock('~/app/hooks/usePVCs', () => ({
   __esModule: true,
@@ -16,6 +16,11 @@ jest.mock('~/app/hooks/useNotebookAPI', () => ({
 jest.mock('~/app/hooks/useStorageClasses', () => ({
   __esModule: true,
   default: () => ({ storageClasses: [], storageClassLoadError: null }),
+}));
+
+jest.mock('~/app/hooks/useSecrets', () => ({
+  __esModule: true,
+  default: () => ({ secrets: [], refreshSecrets: jest.fn() }),
 }));
 
 jest.mock('~/app/pages/Workspaces/Form/properties/volumes/VolumesAttachModal', () => ({
@@ -71,7 +76,6 @@ describe('WorkspaceFormPropertiesSelection mount paths', () => {
     expect(screen.getByText('/home/jovyan')).toBeInTheDocument();
     expect(screen.getByTestId('edit-mount-path-home-pvc')).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Data Volumes' }));
     const dataMountPathEdit = screen.getByTestId('edit-mount-path-data-pvc');
     expect(dataMountPathEdit).toBeEnabled();
 
@@ -149,4 +153,57 @@ describe('WorkspaceFormPropertiesSelection mount paths', () => {
     expect(screen.getByTestId('mount-path-input')).toBeDisabled();
     expect(screen.queryByTestId('mount-path-edit')).not.toBeInTheDocument();
   });
+});
+
+describe('WorkspaceFormPropertiesSelection expansion', () => {
+  it.each<[WorkspaceFormMode, number, number]>([
+    ['update', 0, 0],
+    ['update', 1, 0],
+    ['update', 0, 1],
+    ['update', 1, 1],
+    ['create', 0, 0],
+  ])(
+    'preserves defaults and manual toggles in %s mode (%i volumes, %i secrets)',
+    (mode, volumes, secrets) => {
+      const props: React.ComponentProps<typeof WorkspaceFormPropertiesSelection> = {
+        mode,
+        namespace: 'default',
+        selectedProperties: {
+          displayName: 'workspace',
+          name: 'workspace',
+          homeVolume: undefined,
+          volumes: volumes ? [{ pvcName: 'data-pvc', mountPath: '/data', readOnly: false }] : [],
+          secrets: secrets
+            ? [{ secretName: 'secret', mountPath: '/secrets', defaultMode: 420 }]
+            : [],
+        },
+        onSelect: jest.fn(),
+        displayNameError: null,
+        onDisplayNameChange: jest.fn(),
+        resourceNameError: null,
+        isResourceNameEditing: false,
+        onStartResourceNameEdit: jest.fn(),
+        onResourceNameChange: jest.fn(),
+      };
+      const { rerender } = render(<WorkspaceFormPropertiesSelection {...props} />);
+
+      for (const [name, count] of [
+        ['Data Volumes', volumes],
+        ['Secrets', secrets],
+      ] as const) {
+        const toggle = screen.getByRole('button', { name });
+        expect(toggle).toHaveAttribute('aria-expanded', String(count > 0));
+        for (const expanded of [count === 0, count > 0]) {
+          fireEvent.click(toggle);
+          rerender(
+            <WorkspaceFormPropertiesSelection
+              {...props}
+              selectedProperties={{ ...props.selectedProperties, displayName: 'renamed' }}
+            />,
+          );
+          expect(toggle).toHaveAttribute('aria-expanded', String(expanded));
+        }
+      }
+    },
+  );
 });

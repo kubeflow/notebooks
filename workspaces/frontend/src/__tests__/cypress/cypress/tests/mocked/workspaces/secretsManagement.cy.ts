@@ -127,8 +127,7 @@ describe('Secrets Expandable Key/Value Pairs', () => {
     editWorkspace.advancePastRedirectModal(); // Skip image step
     editWorkspace.advancePastRedirectModal(); // Skip pod config step, now on properties
 
-    // Expand the Secrets section (it's collapsed by default)
-    cy.contains('button', 'Secrets').click();
+    editWorkspace.assertSecretsSectionExpanded();
   });
 
   it('should display secret keys with masked values in expanded row', () => {

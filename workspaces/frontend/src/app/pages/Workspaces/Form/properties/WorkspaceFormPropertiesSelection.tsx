@@ -48,8 +48,10 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
   onStartResourceNameEdit,
   onResourceNameChange,
 }) => {
-  const [isDataVolumesExpanded, setIsDataVolumesExpanded] = useState(false);
-  const [isSecretsExpanded, setIsSecretsExpanded] = useState(false);
+  const [isDataVolumesExpanded, setIsDataVolumesExpanded] = useState(
+    selectedProperties.volumes.length > 0,
+  );
+  const [isSecretsExpanded, setIsSecretsExpanded] = useState(selectedProperties.secrets.length > 0);
 
   const homeVolumeArray: WorkspacesPodVolumeMountValue[] = useMemo(
     () =>
@@ -237,6 +239,7 @@ const WorkspaceFormPropertiesSelection: React.FunctionComponent<
             toggleText="Data Volumes"
             onToggle={() => setIsDataVolumesExpanded((prev) => !prev)}
             isExpanded={isDataVolumesExpanded}
+            data-testid="workspace-data-volume-expandable-section"
           >
             {dataVolumesInfo}
             {isDataVolumesExpanded && (
