@@ -15,10 +15,8 @@ import { Content } from '@patternfly/react-core/dist/esm/components/Content';
 import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
 import { Label } from '@patternfly/react-core/dist/esm/components/Label';
 import { ToolbarItem } from '@patternfly/react-core/dist/esm/components/Toolbar';
-import { EmptyState, EmptyStateBody } from '@patternfly/react-core/dist/esm/components/EmptyState';
 import { Bullseye } from '@patternfly/react-core/dist/esm/layouts/Bullseye';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import { LockIcon } from '@patternfly/react-icons/dist/esm/icons/lock-icon';
 import {
   Table,
   Thead,
@@ -43,6 +41,7 @@ import { useTypedNavigate } from '~/app/routerHelper';
 import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 import { LoadError } from '~/app/components/LoadError';
 import { LoadingSpinner } from '~/app/components/LoadingSpinner';
+import { WorkspaceKindsRestrictedAccess } from '~/app/components/WorkspaceKindsRestrictedAccess';
 import ToolbarFilter, { FilterConfigMap } from '~/shared/components/ToolbarFilter';
 import { useToolbarFilters, applyFilters } from '~/shared/hooks/useToolbarFilters';
 import {
@@ -57,24 +56,6 @@ export enum ActionType {
   ViewDetails,
   Delete,
 }
-
-const WorkspaceKindsRestrictedState: React.FunctionComponent = () => (
-  <PageSection isFilled>
-    <Bullseye>
-      <EmptyState
-        headingLevel="h4"
-        titleText="WorkspaceKind management is restricted to administrators"
-        icon={LockIcon}
-        status="info"
-        data-testid="workspace-kinds-access-empty-state"
-      >
-        <EmptyStateBody>
-          Please contact your admin if you need changes to workspace configurations.
-        </EmptyStateBody>
-      </EmptyState>
-    </Bullseye>
-  </PageSection>
-);
 
 const filterConfig = {
   name: { type: 'text', label: 'Name', placeholder: 'Filter by name' },
@@ -318,7 +299,7 @@ const WorkspaceKindsAdminView: React.FunctionComponent = () => {
 
   if (workspaceKindsError) {
     if (axios.isAxiosError(workspaceKindsError) && workspaceKindsError.response?.status === 403) {
-      return <WorkspaceKindsRestrictedState />;
+      return <WorkspaceKindsRestrictedAccess />;
     }
     return <LoadError title="Failed to load workspace kinds" error={workspaceKindsError} />;
   }
@@ -536,7 +517,7 @@ export const WorkspaceKinds: React.FunctionComponent = () => {
   const canManageWorkspaceKinds = Boolean(user?.clusterAdmin);
 
   if (!canManageWorkspaceKinds) {
-    return <WorkspaceKindsRestrictedState />;
+    return <WorkspaceKindsRestrictedAccess />;
   }
 
   return <WorkspaceKindsAdminView />;
