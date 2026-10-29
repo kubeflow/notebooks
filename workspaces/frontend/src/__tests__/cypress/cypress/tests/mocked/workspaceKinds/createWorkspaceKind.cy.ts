@@ -295,15 +295,48 @@ describe('Create workspace kind', () => {
           },
         },
       ).as('createWorkspaceKindError');
-
       createWorkspaceKind.visit();
-
       createWorkspaceKind.uploadYamlContent(invalidWorkspaceKindYaml);
       createWorkspaceKind.clickSubmit();
       cy.wait('@createWorkspaceKindError');
-
       createWorkspaceKind.assertErrorAlertContainsMessage('Name is required: metadata.name');
       createWorkspaceKind.uploadYamlContent(validWorkspaceKindYaml);
+    });
+    it('should display structured 422 validation errors as a list in the error toast', () => {
+      cy.interceptApi(
+        'POST /api/:apiVersion/workspacekinds',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+        {
+          error: {
+            code: '422',
+            message: 'request body was invalid',
+            cause: {
+              validation_errors: [
+                {
+                  field: 'spec.spawner.displayName',
+                  message: "Missing required 'spec.spawner.displayName' property",
+                  type: FieldErrorType.ErrorTypeRequired,
+                },
+                {
+                  field: 'spec.spawner.xyz',
+                  message: "Unknown property 'spec.spawner.xyz'",
+                  type: FieldErrorType.ErrorTypeInvalid,
+                },
+              ],
+            },
+          },
+        },
+      ).as('createWorkspaceKind422Error');
+      createWorkspaceKind.visit();
+      createWorkspaceKind.uploadYamlContent(invalidWorkspaceKindYaml);
+      createWorkspaceKind.clickSubmit();
+      cy.wait('@createWorkspaceKind422Error');
+      createWorkspaceKind.assertErrorAlertContainsMessage(
+        "spec.spawner.displayName: Missing required 'spec.spawner.displayName' property",
+      );
+      createWorkspaceKind.assertErrorAlertContainsMessage(
+        "spec.spawner.xyz: Unknown property 'spec.spawner.xyz'",
+      );
     });
   });
 });

@@ -120,14 +120,8 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
         };
         throw buildAxiosError(apiErrorEnvelope, 422);
       }
-      const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind1);
       return {
-        data: {
-          name: name || mockWorkspaceKind1.name,
-          revision: update.revision,
-          podTemplate: update.podTemplate,
-          spawner: update.spawner,
-        },
+        data: buildMockWorkspaceKindUpdate(mockWorkspaceKind1),
       };
     },
     deleteWorkspaceKind: async () => {
