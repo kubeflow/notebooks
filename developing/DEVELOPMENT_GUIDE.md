@@ -162,6 +162,17 @@ What this does:
 >
 > `ctlptl` sends anonymized usage statistics by default; opt out with `./bin/ctlptl-* analytics opt out`.
 
+> [!TIP]
+>
+> To persist these options instead of typing them on every invocation, copy [`tilt.env.example`](./tilt.env.example) to `tilt.env` (gitignored) and uncomment the options you need:
+>
+> ```bash
+> cp tilt.env.example tilt.env
+> ```
+>
+> Options set on the command line (`make tilt-up VAR=x`) or in the environment (`VAR=x make tilt-up`) still take precedence over `tilt.env`.
+> Run `make show-config` to print the effective value of each option and where it came from.
+
 Wait until all resources show green/healthy status. 
 The frontend may take a couple of minutes on first start as webpack compiles the bundle.
 
