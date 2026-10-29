@@ -508,8 +508,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                     alignItems={{ default: 'alignItemsCenter' }}
                                     gap={{ default: 'gapXs' }}
                                   >
-                                    {workspace.state ===
-                                    V1Beta1WorkspaceState.WorkspaceStateRunning ? (
+                                    {!workspace.paused ? (
                                       <Tooltip content="Stop workspace" trigger="mouseenter">
                                         <Button
                                           variant="plain"
@@ -525,8 +524,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                           }
                                         />
                                       </Tooltip>
-                                    ) : workspace.state !==
-                                      V1Beta1WorkspaceState.WorkspaceStateError ? (
+                                    ) : (
                                       <Tooltip content="Start workspace" trigger="mouseenter">
                                         <Button
                                           variant="plain"
@@ -542,7 +540,7 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
                                           }
                                         />
                                       </Tooltip>
-                                    ) : null}
+                                    )}
                                     <ActionsColumn
                                       items={rowActions(workspace).map((action) => ({
                                         ...action,

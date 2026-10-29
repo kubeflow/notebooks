@@ -198,25 +198,26 @@ describe('Workspaces', () => {
       });
     });
 
-    it('displays the applicable status button and omits Start and Stop from the menu', () => {
-      const { mockNamespace, mockWorkspaces } = setupSingleNamespaceWorkspaces(
-        DEFAULT_NAMESPACE,
-        2,
-      );
-
-      navigateToNamespace(mockNamespace.name);
-
-      mockWorkspaces.forEach((workspace) => {
-        workspaces.assertWorkspaceStatusAction(
-          workspace.name,
-          workspace.state === V1Beta1WorkspaceState.WorkspaceStateRunning
-            ? 'stop'
-            : workspace.state === V1Beta1WorkspaceState.WorkspaceStateError
-              ? 'none'
-              : 'start',
+    [true, false].forEach((paused) => {
+      it(`displays ${paused ? 'Start' : 'Stop'} in every state when paused is ${paused} and omits both from the menu`, () => {
+        const { mockNamespace } = setupSingleNamespaceWorkspaces(DEFAULT_NAMESPACE, 0);
+        const mockWorkspaces = Object.values(V1Beta1WorkspaceState).map((state) =>
+          buildMockWorkspace({ name: `workspace-${state}`, state, paused }),
         );
+
+        cy.interceptApi(
+          'GET /api/:apiVersion/workspaces/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse(mockWorkspaces),
+        ).as('getWorkspaces');
+
+        navigateToNamespace(mockNamespace.name);
+
+        mockWorkspaces.forEach((workspace) => {
+          workspaces.assertWorkspaceStatusAction(workspace.name, paused ? 'start' : 'stop');
+        });
+        workspaces.assertNoStartOrStopMenuActions(mockWorkspaces[0].name);
       });
-      workspaces.assertNoStartOrStopMenuActions(mockWorkspaces[0].name);
     });
 
     it('should display "unknown" for last activity when epoch is 0', () => {
@@ -772,7 +773,13 @@ describe('Workspaces', () => {
       namespaceName = DEFAULT_NAMESPACE,
     ) => {
       const mockNamespace = buildMockNamespace({ name: namespaceName });
-      const mockWorkspaces = [buildMockWorkspace({ name: workspaceName, state })];
+      const mockWorkspaces = [
+        buildMockWorkspace({
+          name: workspaceName,
+          state,
+          paused: state === V1Beta1WorkspaceState.WorkspaceStatePaused,
+        }),
+      ];
 
       cy.interceptApi(
         'GET /api/:apiVersion/namespaces',
