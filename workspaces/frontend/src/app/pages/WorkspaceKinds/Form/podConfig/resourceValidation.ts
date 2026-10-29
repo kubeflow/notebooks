@@ -65,7 +65,8 @@ export interface ResourceCriterion {
 }
 
 export const getCustomResourceCriteria = (resource: PodResourceEntry): ResourceCriterion[] => {
-  const { type, request, limit } = resource;
+  const { type, limit } = resource;
+  const request = resource.isExtendedResource ? '' : resource.request;
   if (!isDevicePluginGpu(type)) {
     return [];
   }
@@ -106,7 +107,8 @@ export const getCustomResourceCriteria = (resource: PodResourceEntry): ResourceC
 };
 
 export const getResourceErrors = (resource: PodResourceEntry): string[] => {
-  const { type, request, limit } = resource;
+  const { type, limit } = resource;
+  const request = resource.isExtendedResource ? '' : resource.request;
   if (isDevicePluginGpu(type)) {
     return getCustomResourceCriteria(resource)
       .filter((criterion) => !criterion.isValid)

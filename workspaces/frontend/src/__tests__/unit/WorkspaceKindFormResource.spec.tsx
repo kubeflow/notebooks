@@ -46,18 +46,21 @@ describe('WorkspaceKind pod resource editor', () => {
     const { user, onSubmit } = await setup();
     await user.click(screen.getByTestId('add-custom-resource'));
     expect(
-      screen.getByText('Kubernetes uses this value for both the request and limit.'),
+      screen.getByText(
+        'For GPUs, FPGAs, huge pages, and other extended resources. When selected, only a limit can be set; Kubernetes uses it as the request.',
+      ),
     ).toBeVisible();
-    expect(
-      screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton', { name: 'Custom resource request' })).toBeVisible();
+    await user.click(screen.getByTestId('custom-resource-mode'));
     await user.type(screen.getByTestId('custom-resource-type'), 'nvidia.com/gpu');
     const request = screen.queryByRole('spinbutton', { name: 'Custom resource request' });
     const limit = screen.getByRole('spinbutton', { name: 'nvidia.com/gpu limit' });
     expect(request).not.toBeInTheDocument();
     expect(limit).toHaveValue(1);
     expect(
-      screen.getByText('Kubernetes uses this value for both the request and limit.'),
+      screen.getByText(
+        'For GPUs, FPGAs, huge pages, and other extended resources. When selected, only a limit can be set; Kubernetes uses it as the request.',
+      ),
     ).toBeVisible();
     await user.clear(limit);
     await user.type(limit, '2');
@@ -70,60 +73,64 @@ describe('WorkspaceKind pod resource editor', () => {
     );
   });
 
-  it('keeps requests hidden when a custom resource is renamed or cleared', async () => {
+  it('restores the entered request when the checkbox is unchecked', async () => {
     const { user, onSubmit } = await setup({
       requests: { 'example.com/device': '2' },
-      limits: { 'example.com/device': '1' },
+      limits: { 'example.com/device': '3' },
     });
+    const checkbox = screen.getByTestId('custom-resource-mode');
+    expect(checkbox).not.toBeChecked();
+    expect(screen.getByRole('spinbutton', { name: 'Custom resource request' })).toHaveValue(2);
+    await user.click(checkbox);
     expect(
       screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
     ).not.toBeInTheDocument();
-    await user.clear(screen.getByTestId('custom-resource-type'));
-    await user.type(screen.getByTestId('custom-resource-type'), 'nvidia.com/gpu');
-    expect(
-      screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText(/request must equal/)).not.toBeInTheDocument();
+    await user.click(checkbox);
+    expect(screen.getByRole('spinbutton', { name: 'Custom resource request' })).toHaveValue(2);
     await user.click(screen.getByTestId('pod-config-modal-submit-button'));
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ resources: { requests: {}, limits: { 'nvidia.com/gpu': '1' } } }),
+      expect.objectContaining({
+        resources: {
+          requests: { 'example.com/device': '2' },
+          limits: { 'example.com/device': '3' },
+        },
+      }),
     );
   });
 
-  it.each([
-    [{ requests: { 'example.com/device': '2' } }, '2'],
-    [{ limits: { 'example.com/device': '3' } }, '3'],
-    [{ requests: { 'example.com/device': '2' }, limits: { 'example.com/device': '3' } }, '3'],
-    [{ limits: { 'example.com/device': '0' } }, '0'],
-  ])(
-    'saves custom resources as limits while preserving standard requests: %j',
-    async (custom, expected) => {
-      const requests = {
-        cpu: '1',
-        memory: '1Mi',
-        ...('requests' in custom ? custom.requests : {}),
-      };
-      const { user, onSubmit } = await setup({ ...custom, requests });
-      expect(
-        screen.getByText('Kubernetes uses this value for both the request and limit.'),
-      ).toBeVisible();
-      expect(
-        screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
-      ).not.toBeInTheDocument();
-      expect(screen.getByRole('spinbutton', { name: 'example.com/device limit' })).toHaveValue(
-        Number(expected),
+  // cspell:ignore hugepages
+  it.each(['example.com/device', 'hugepages-2Mi'])(
+    'saves only the limit for a checked %s entry without affecting another row',
+    async (type) => {
+      const { user, onSubmit } = await setup({
+        requests: { [type]: '2', 'example.com/other': '1', cpu: '1' },
+        limits: { [type]: '4', 'example.com/other': '2' },
+      });
+      await user.click(screen.getAllByTestId('custom-resource-mode')[0]);
+      expect(screen.getAllByRole('spinbutton', { name: 'Custom resource request' })).toHaveLength(
+        1,
       );
       await user.click(screen.getByTestId('pod-config-modal-submit-button'));
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           resources: {
-            requests: { cpu: '1', memory: '1Mi' },
-            limits: { 'example.com/device': expected },
+            requests: { 'example.com/other': '1', cpu: '1' },
+            limits: { [type]: '4', 'example.com/other': '2' },
           },
         }),
       );
     },
   );
+
+  it('preserves an existing request-only custom resource when unchecked', async () => {
+    const { user, onSubmit } = await setup({ requests: { 'example.com/device': '2' } });
+    await user.click(screen.getByTestId('pod-config-modal-submit-button'));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resources: { requests: { 'example.com/device': '2' }, limits: {} },
+      }),
+    );
+  });
 
   it('renders resource fields without nesting forms', async () => {
     await setup();
@@ -219,8 +226,9 @@ describe('WorkspaceKind pod resource editor', () => {
   it.each([
     { requests: { 'nvidia.com/gpu': '1' }, limits: { 'nvidia.com/gpu': '1' } },
     { requests: { 'nvidia.com/gpu': '1' } },
-  ])('normalizes existing GPU resources to an editable limit: %j', async (resources) => {
+  ])('uses the limit for existing GPU resources when checked: %j', async (resources) => {
     const { user, onSubmit } = await setup(resources);
+    await user.click(screen.getByTestId('custom-resource-mode'));
     expect(
       screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
     ).not.toBeInTheDocument();

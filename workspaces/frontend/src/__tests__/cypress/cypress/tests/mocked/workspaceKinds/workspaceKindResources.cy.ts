@@ -106,11 +106,17 @@ describe('WorkspaceKind pod resource requests and limits', () => {
     assertSavedLimits(limits);
   });
 
-  it('shows only a limit before and after naming a custom resource and saves it', () => {
+  it('toggles custom requests and saves checked resources as limits only', () => {
     setup();
     editFirstConfig();
     editWorkspaceKind.addCustomResource();
+    editWorkspaceKind.assertCustomRequestVisible();
+    editWorkspaceKind.setResourceValue('Custom resource request', '1');
+    editWorkspaceKind.setCustomResourceMode(true);
     editWorkspaceKind.assertCustomLimitOnly();
+    editWorkspaceKind.setCustomResourceMode(false);
+    editWorkspaceKind.assertResourceValue('Custom resource request', '1');
+    editWorkspaceKind.setCustomResourceMode(true);
     editWorkspaceKind.assertResourceValue('Custom resource limit', '1');
     editWorkspaceKind.setCustomResourceName('example.com/device');
     editWorkspaceKind.assertCustomLimitOnly();
@@ -126,6 +132,7 @@ describe('WorkspaceKind pod resource requests and limits', () => {
     setup();
     editFirstConfig();
     editWorkspaceKind.addGpuResource();
+    editWorkspaceKind.setCustomResourceMode(true);
     editWorkspaceKind.assertGpuLimitOnly();
     editWorkspaceKind.assertResourceValue('nvidia.com/gpu limit', '1');
     editWorkspaceKind.assertPodConfigSaveEnabled(true);

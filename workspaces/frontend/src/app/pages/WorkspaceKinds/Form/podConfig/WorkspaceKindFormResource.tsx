@@ -24,6 +24,7 @@ export type PodResourceEntry = {
   type: string;
   request: string;
   limit: string;
+  isExtendedResource?: boolean;
 };
 
 interface WorkspaceKindFormResourceProps {
@@ -52,6 +53,20 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
     },
     [setResources],
   );
+
+  const handleResourceModeChange = (resourceId: string, checked: boolean) => {
+    setResources((resources) =>
+      resources.map((resource) =>
+        resource.id === resourceId
+          ? {
+              ...resource,
+              isExtendedResource: checked,
+              limit: checked ? resource.limit || resource.request || '1' : resource.limit,
+            }
+          : resource,
+      ),
+    );
+  };
 
   const handleAddCustom = useCallback(() => {
     setResources((resources: PodResourceEntry[]) => [
@@ -253,28 +268,59 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
                 </Tr>
               </Tbody>
             </Table>
-            <ThemeAwareFormGroupWrapper
-              label="Limit"
-              fieldId={`custom-resource-limit-${res.id}`}
-              skipFieldset
-              className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mb-lg' : undefined}
-            >
-              <ResourceInputWrapper
-                allowEmpty
-                type="custom"
-                value={res.limit}
-                onChange={(value) => handleChange(res.id, 'limit', value)}
-                placeholder="Limit"
-                min={0}
-                inputId={`custom-resource-limit-${res.id}`}
-                aria-describedby={`resource-help-${res.id}`}
-                aria-label={`${res.type || 'Custom resource'} limit`}
-              />
-            </ThemeAwareFormGroupWrapper>
+            <Checkbox
+              id={`custom-resource-mode-${res.id}`}
+              data-testid="custom-resource-mode"
+              label="Extended resource (e.g. GPU, FPGA) or huge page"
+              isChecked={res.isExtendedResource ?? false}
+              onChange={(_event, checked) => handleResourceModeChange(res.id, checked)}
+              description="For GPUs, FPGAs, huge pages, and other extended resources. When selected, only a limit can be set; Kubernetes uses it as the request."
+            />
+            <Grid hasGutter className="pf-v6-u-mb-sm">
+              {!res.isExtendedResource && (
+                <GridItem span={6}>
+                  <ThemeAwareFormGroupWrapper
+                    label="Request"
+                    fieldId={`custom-resource-request-${res.id}`}
+                    className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mb-lg' : undefined}
+                    skipFieldset
+                  >
+                    <ResourceInputWrapper
+                      allowEmpty
+                      type="custom"
+                      value={res.request}
+                      onChange={(value) => handleChange(res.id, 'request', value)}
+                      placeholder="Request"
+                      min={0}
+                      inputId={`custom-resource-request-${res.id}`}
+                      aria-label="Custom resource request"
+                    />
+                  </ThemeAwareFormGroupWrapper>
+                </GridItem>
+              )}
+              <GridItem span={6}>
+                <ThemeAwareFormGroupWrapper
+                  label="Limit"
+                  fieldId={`custom-resource-limit-${res.id}`}
+                  skipFieldset
+                  className={isMUITheme ? 'pf-v6-u-pl-sm pf-v6-u-mb-lg' : undefined}
+                >
+                  <ResourceInputWrapper
+                    allowEmpty
+                    type="custom"
+                    value={res.limit}
+                    onChange={(value) => handleChange(res.id, 'limit', value)}
+                    placeholder="Limit"
+                    min={0}
+                    inputId={`custom-resource-limit-${res.id}`}
+                    aria-describedby={`resource-help-${res.id}`}
+                    aria-label={`${res.type || 'Custom resource'} limit`}
+                  />
+                </ThemeAwareFormGroupWrapper>
+              </GridItem>
+            </Grid>
+
             <HelperText id={`resource-help-${res.id}`} data-testid={`resource-help-${res.id}`}>
-              <HelperTextItem>
-                Kubernetes uses this value for both the request and limit.
-              </HelperTextItem>
               {getResourceErrors(res).map((error) => (
                 <HelperTextItem key={error} variant="error">
                   {error}

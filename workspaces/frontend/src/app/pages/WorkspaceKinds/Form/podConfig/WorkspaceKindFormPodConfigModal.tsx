@@ -18,13 +18,6 @@ import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupW
 import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
 import { getResourceErrors } from './resourceValidation';
 
-const getEditableResources = (config: WorkspaceKindPodConfigValue): PodResourceEntry[] =>
-  getResources(config).map((resource) =>
-    resource.type !== 'cpu' && resource.type !== 'memory'
-      ? { ...resource, request: '', limit: resource.limit || resource.request }
-      : resource,
-  );
-
 interface WorkspaceKindFormPodConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -51,7 +44,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   currConfig,
   setCurrConfig,
 }) => {
-  const initialResources = useMemo(() => getEditableResources(currConfig), [currConfig]);
+  const initialResources = useMemo(() => getResources(currConfig), [currConfig]);
 
   const [resources, setResources] = useState<PodResourceEntry[]>(initialResources);
   const [labels, setLabels] = useState<OptionsOptionLabel[]>(currConfig.labels ?? []);
@@ -64,7 +57,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   const [hidden, setHidden] = useState<boolean>(currConfig.hidden || false);
 
   useEffect(() => {
-    setResources(getEditableResources(currConfig));
+    setResources(getResources(currConfig));
     setId(currConfig.id);
     setDisplayName(currConfig.displayName);
     setDescription(currConfig.description);
@@ -84,7 +77,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
           if (r.limit.length) {
             acc.limits[r.type] = r.limit;
           }
-          if (r.request.length && (r.type === 'cpu' || r.type === 'memory')) {
+          if (r.request.length && !r.isExtendedResource) {
             acc.requests[r.type] = r.request;
           }
         }
