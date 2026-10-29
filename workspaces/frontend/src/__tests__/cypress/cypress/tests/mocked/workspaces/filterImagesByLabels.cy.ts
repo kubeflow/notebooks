@@ -249,6 +249,37 @@ describe('Filter Images by Labels', () => {
   });
 
   describe('Extra filters', () => {
+    [
+      {
+        key: 'showHidden',
+        label: 'Show hidden',
+        tooltip: 'Also show images that were hidden by your cluster administrator.',
+      },
+      {
+        key: 'showRedirected',
+        label: 'Show redirected',
+        tooltip: 'Also show images that have a successor defined by your cluster administrator.',
+      },
+    ].forEach(({ key, label, tooltip }) => {
+      it(`should explain "${label}" on hover and focus without changing the filter`, () => {
+        createWorkspace.hoverExtraFilterHelp(label);
+        createWorkspace.assertExtraFilterTooltipVisible(label, tooltip);
+        createWorkspace.leaveExtraFilterHelp(label);
+        createWorkspace.assertExtraFilterTooltipHidden(label);
+
+        createWorkspace.focusExtraFilterHelp(label);
+        createWorkspace.assertExtraFilterTooltipVisible(label, tooltip);
+        createWorkspace.clickExtraFilterHelp(label);
+        createWorkspace.assertExtraFilterNotChecked(key);
+
+        createWorkspace.blurExtraFilterHelp(label);
+        createWorkspace.clickExtraFilter(key);
+        createWorkspace.assertExtraFilterChecked(key);
+        createWorkspace.focusExtraFilterHelp(label);
+        createWorkspace.assertExtraFilterTooltipVisible(label, tooltip);
+      });
+    });
+
     it('should display extra filter checkboxes', () => {
       createWorkspace.findExtraFilter('showHidden').should('exist');
       createWorkspace.findExtraFilter('showRedirected').should('exist');
