@@ -106,6 +106,34 @@ const visitEditWorkspaceKind = (kind: string) => {
   cy.wait('@getWorkspaceKind');
 };
 
+// Deny the workspacekinds list request that the admin-route guard relies on. The individual
+// workspacekind GET is still stubbed (and aliased) so the test can assert the guard prevents it
+// from firing; it is registered before the 403 list intercept, so the denied list response wins.
+const setupForbiddenEditWorkspaceKind = () => {
+  const mockNamespace = buildMockNamespace({ name: DEFAULT_NAMESPACE });
+  const mockWorkspaceKind = buildMockWorkspaceKind({ name: TEST_WORKSPACE_KIND_NAME });
+
+  cy.interceptApi(
+    'GET /api/:apiVersion/namespaces',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+    mockModArchResponse([mockNamespace]),
+  ).as('getNamespaces');
+
+  cy.interceptApi(
+    'GET /api/:apiVersion/workspacekinds/:kind',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+    mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+  ).as('getWorkspaceKind');
+
+  cy.interceptApi(
+    'GET /api/:apiVersion/workspacekinds',
+    { path: { apiVersion: NOTEBOOKS_API_VERSION } },
+    { error: { code: '403', message: 'Forbidden' } },
+  ).as('getWorkspaceKindsForbidden');
+
+  return { mockWorkspaceKind };
+};
+
 describe('Edit workspace kind', () => {
   describe('Basic', () => {
     it('should display the edit workspace kind page with correct title', () => {
@@ -1591,6 +1619,28 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickRevert();
 
       editWorkspaceKind.assertSubmitButtonDisabled(true);
+    });
+  });
+
+  describe('Restricted access', () => {
+    it('shows the restricted-access message and never fetches the workspace kind on a forbidden list request', () => {
+      const { mockWorkspaceKind } = setupForbiddenEditWorkspaceKind();
+
+      // Navigate directly rather than via editWorkspaceKind.visit(), whose helper waits for
+      // the form page title that never renders when access is denied.
+      cy.visit(`/workspacekinds/${mockWorkspaceKind.name}/edit`);
+
+      cy.wait('@getWorkspaceKindsForbidden').its('response.statusCode').should('eq', 403);
+
+      cy.findByTestId('workspace-kinds-access-empty-state').should('be.visible');
+      cy.contains('WorkspaceKind management is restricted to administrators').should('be.visible');
+
+      editWorkspaceKind.findFormProperties().should('not.exist');
+      editWorkspaceKind.findSubmitButton().should('not.exist');
+      cy.findByTestId('app-page-title').should('not.exist');
+
+      // The guard short-circuits before the form mounts, so the individual kind is never fetched.
+      cy.get('@getWorkspaceKind.all').should('have.length', 0);
     });
   });
 });
