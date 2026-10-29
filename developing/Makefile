@@ -15,22 +15,12 @@ KUSTOMIZE_VERSION ?= v5.5.0
 
 # Options passed to the setup scripts and the Tiltfile.
 # They can be persisted in an optional, gitignored config file (see tilt.env.example).
-# Precedence: command line (make VAR=x) > environment (VAR=x make) > config file > built-in defaults.
+# The config file uses `?=`, so the precedence is:
+# command line (make VAR=x) > environment (VAR=x make) > config file > built-in defaults.
 TILT_CONFIG_FILE ?= tilt.env
 TILT_CONFIG_VARS := ENABLE_FRONTEND ENABLE_DASHBOARD ENABLE_PROMETHEUS ENABLE_METRICS_SERVER KIND_EXPERIMENTAL_PROVIDER
 
-# Remember where each option came from, and save environment values so the config file can't override them
-$(foreach v,$(TILT_CONFIG_VARS),\
-  $(if $(filter environment command,$(firstword $(origin $(v)))),\
-    $(eval _TILT_SRC_$(v) := $(origin $(v)))\
-    $(eval _TILT_ENV_$(v) := $(value $(v)))))
-
 -include $(TILT_CONFIG_FILE)
-
-$(foreach v,$(TILT_CONFIG_VARS),\
-  $(if $(filter environment,$(_TILT_SRC_$(v))),$(eval $(v) := $(_TILT_ENV_$(v))))\
-  $(if $(_TILT_SRC_$(v)),,\
-    $(eval _TILT_SRC_$(v) := $(if $(filter file,$(origin $(v))),$(TILT_CONFIG_FILE),default))))
 
 # Only export options that are set: exporting an undefined variable would pass an empty
 # string to the scripts/Tiltfile and override their built-in defaults
@@ -41,7 +31,7 @@ export $(foreach v,$(TILT_CONFIG_VARS),$(if $($(v)),$(v)))
 .PHONY: show-config
 show-config:
 	@echo "Config file: $(TILT_CONFIG_FILE) ($(if $(wildcard $(TILT_CONFIG_FILE)),found,not found))"
-	@$(foreach v,$(TILT_CONFIG_VARS),printf '  %-28s %-10s (%s)\n' '$(v)' '$(if $($(v)),$($(v)),<unset>)' '$(_TILT_SRC_$(v))';)
+	@$(foreach v,$(TILT_CONFIG_VARS),printf '  %-28s %-10s (%s)\n' '$(v)' '$(if $($(v)),$($(v)),<unset>)' '$(patsubst file,$(TILT_CONFIG_FILE),$(patsubst undefined,default,$(origin $(v))))';)
 
 # Check if tilt is installed
 .PHONY: check-tilt
