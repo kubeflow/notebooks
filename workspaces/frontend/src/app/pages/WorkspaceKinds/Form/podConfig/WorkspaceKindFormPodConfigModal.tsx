@@ -16,7 +16,14 @@ import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { OptionsOptionLabel } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
-import { getResourceErrors } from './resourceValidation';
+import { getResourceErrors, requiresMatchingResources } from './resourceValidation';
+
+const getEditableResources = (config: WorkspaceKindPodConfigValue): PodResourceEntry[] =>
+  getResources(config).map((resource) =>
+    requiresMatchingResources(resource.type)
+      ? { ...resource, request: '', limit: resource.limit || resource.request }
+      : resource,
+  );
 
 interface WorkspaceKindFormPodConfigModalProps {
   isOpen: boolean;
@@ -44,7 +51,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   currConfig,
   setCurrConfig,
 }) => {
-  const initialResources = useMemo(() => getResources(currConfig), [currConfig]);
+  const initialResources = useMemo(() => getEditableResources(currConfig), [currConfig]);
 
   const [resources, setResources] = useState<PodResourceEntry[]>(initialResources);
   const [labels, setLabels] = useState<OptionsOptionLabel[]>(currConfig.labels ?? []);
@@ -57,7 +64,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   const [hidden, setHidden] = useState<boolean>(currConfig.hidden || false);
 
   useEffect(() => {
-    setResources(getResources(currConfig));
+    setResources(getEditableResources(currConfig));
     setId(currConfig.id);
     setDisplayName(currConfig.displayName);
     setDescription(currConfig.description);
@@ -77,7 +84,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
           if (r.limit.length) {
             acc.limits[r.type] = r.limit;
           }
-          if (r.request.length && !r.isExtendedResource) {
+          if (r.request.length && !requiresMatchingResources(r.type)) {
             acc.requests[r.type] = r.request;
           }
         }

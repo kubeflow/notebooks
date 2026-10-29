@@ -479,10 +479,6 @@ class EditWorkspaceKind {
     this.setCustomResourceName('nvidia.com/gpu');
   }
 
-  setCustomResourceMode(checked: boolean) {
-    cy.findByTestId('custom-resource-mode')[checked ? 'check' : 'uncheck']();
-  }
-
   assertCustomRequestVisible() {
     cy.findByTestId('Custom resource request-input').scrollIntoView();
     cy.findByTestId('Custom resource request-input').should('be.visible');
@@ -491,9 +487,10 @@ class EditWorkspaceKind {
   assertCustomLimitOnly() {
     cy.findByTestId('Custom resource request-input').should('not.exist');
     cy.findByTestId('custom-resource-limit-checkbox').should('not.exist');
+    cy.findByTestId('custom-resource-mode').should('not.exist');
     this.findPodConfigModal().should(
       'contain.text',
-      'For GPUs, FPGAs, huge pages, and other extended resources. When selected, only a limit can be set; Kubernetes uses it as the request.',
+      'Extended resources and huge pages use the limit as the request.',
     );
   }
 

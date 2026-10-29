@@ -17,14 +17,17 @@ import { useThemeContext } from 'mod-arch-kubeflow';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { generateUniqueId } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { ResourceInputWrapper } from '~/shared/components/ResourceInputWrapper';
-import { getResourceErrors } from './resourceValidation';
+import {
+  getResourceErrors,
+  requiresMatchingResources,
+  isHugePageResourceName,
+} from './resourceValidation';
 
 export type PodResourceEntry = {
   id: string; // Unique identifier for each resource entry
   type: string;
   request: string;
   limit: string;
-  isExtendedResource?: boolean;
 };
 
 interface WorkspaceKindFormResourceProps {
@@ -48,25 +51,19 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
   const handleChange = useCallback(
     (resourceId: string, field: 'type' | 'request' | 'limit', value: string) => {
       setResources((resources: PodResourceEntry[]) =>
-        resources.map((r) => (r.id === resourceId ? { ...r, [field]: value } : r)),
+        resources.map((r) => {
+          if (r.id !== resourceId) {
+            return r;
+          }
+          const updated = { ...r, [field]: value };
+          return field === 'type' && requiresMatchingResources(value)
+            ? { ...updated, request: '', limit: updated.limit || updated.request }
+            : updated;
+        }),
       );
     },
     [setResources],
   );
-
-  const handleResourceModeChange = (resourceId: string, checked: boolean) => {
-    setResources((resources) =>
-      resources.map((resource) =>
-        resource.id === resourceId
-          ? {
-              ...resource,
-              isExtendedResource: checked,
-              limit: checked ? resource.limit || resource.request || '1' : resource.limit,
-            }
-          : resource,
-      ),
-    );
-  };
 
   const handleAddCustom = useCallback(() => {
     setResources((resources: PodResourceEntry[]) => [
@@ -268,16 +265,8 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
                 </Tr>
               </Tbody>
             </Table>
-            <Checkbox
-              id={`custom-resource-mode-${res.id}`}
-              data-testid="custom-resource-mode"
-              label="Extended resource (e.g. GPU, FPGA) or huge page"
-              isChecked={res.isExtendedResource ?? false}
-              onChange={(_event, checked) => handleResourceModeChange(res.id, checked)}
-              description="For GPUs, FPGAs, huge pages, and other extended resources. When selected, only a limit can be set; Kubernetes uses it as the request."
-            />
             <Grid hasGutter className="pf-v6-u-mb-sm">
-              {!res.isExtendedResource && (
+              {!requiresMatchingResources(res.type) && (
                 <GridItem span={6}>
                   <ThemeAwareFormGroupWrapper
                     label="Request"
@@ -287,7 +276,11 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
                   >
                     <ResourceInputWrapper
                       allowEmpty
-                      type="custom"
+                      type={
+                        res.type === 'ephemeral-storage' || isHugePageResourceName(res.type)
+                          ? 'memory'
+                          : 'custom'
+                      }
                       value={res.request}
                       onChange={(value) => handleChange(res.id, 'request', value)}
                       placeholder="Request"
@@ -307,7 +300,11 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
                 >
                   <ResourceInputWrapper
                     allowEmpty
-                    type="custom"
+                    type={
+                      res.type === 'ephemeral-storage' || isHugePageResourceName(res.type)
+                        ? 'memory'
+                        : 'custom'
+                    }
                     value={res.limit}
                     onChange={(value) => handleChange(res.id, 'limit', value)}
                     placeholder="Limit"
@@ -321,6 +318,11 @@ export const WorkspaceKindFormResource: React.FC<WorkspaceKindFormResourceProps>
             </Grid>
 
             <HelperText id={`resource-help-${res.id}`} data-testid={`resource-help-${res.id}`}>
+              {requiresMatchingResources(res.type) && (
+                <HelperTextItem>
+                  Extended resources and huge pages use the limit as the request.
+                </HelperTextItem>
+              )}
               {getResourceErrors(res).map((error) => (
                 <HelperTextItem key={error} variant="error">
                   {error}

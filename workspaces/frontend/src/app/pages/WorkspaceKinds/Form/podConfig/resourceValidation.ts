@@ -53,84 +53,90 @@ const compareQuantities = (left: Quantity, right: Quantity): bigint => {
   );
 };
 
-export const isDevicePluginGpu = (type: string): boolean =>
-  /^[^/]+\/gpu$/.test(type) ||
-  /^nvidia\.com\/mig-.+$/.test(type) ||
-  /^gpu\.intel\.com\/(i915|xe)$/.test(type);
-
-export interface ResourceCriterion {
-  key: string;
-  label: string;
-  isValid: boolean;
-}
-
-export const getCustomResourceCriteria = (resource: PodResourceEntry): ResourceCriterion[] => {
-  const { type, limit } = resource;
-  const request = resource.isExtendedResource ? '' : resource.request;
-  if (!isDevicePluginGpu(type)) {
-    return [];
+// Match Kubernetes IsExtendedResourceName, including validation of the quota-prefixed name.
+export const isExtendedResourceName = (name: string): boolean => {
+  if (!name.includes('/') || name.includes('kubernetes.io/') || name.startsWith('requests.')) {
+    return false;
   }
-  const parsedRequest = request ? parseQuantity(request) : undefined;
-  const parsedLimit = limit ? parseQuantity(limit) : undefined;
-  const hasWholeCounts = [request, limit].every((value) => {
-    if (!value) {
-      return true;
-    }
-    const parsed = parseQuantity(value);
-    return (
-      !!parsed &&
-      parsed.amount >= BigInt(0) &&
-      (parsed.exponent >= 0 || parsed.amount % power(BigInt(10), -parsed.exponent) === BigInt(0))
-    );
-  });
-  return [
-    {
-      key: 'limit',
-      label: `${type} requires a limit when a request is provided.`,
-      isValid: !request || !!limit,
-    },
-    {
-      key: 'equal',
-      label: `${type} request must equal its limit, or be omitted.`,
-      isValid:
-        !request ||
-        (!!parsedRequest &&
-          !!parsedLimit &&
-          compareQuantities(parsedRequest, parsedLimit) === BigInt(0)),
-    },
-    {
-      key: 'counts',
-      label: `${type} counts must be non-negative whole numbers.`,
-      isValid: hasWholeCounts,
-    },
-  ];
+  const parts = `requests.${name}`.split('/');
+  if (parts.length !== 2) {
+    return false;
+  }
+  const [prefix, resource] = parts;
+  const dnsLabel = '[a-z0-9](?:[-a-z0-9]*[a-z0-9])?';
+  return (
+    prefix.length <= 253 &&
+    new RegExp(`^${dnsLabel}(?:\\.${dnsLabel})*$`).test(prefix) &&
+    resource.length <= 63 &&
+    /^[a-zA-Z0-9](?:[-_.a-zA-Z0-9]*[a-zA-Z0-9])?$/.test(resource)
+  );
 };
 
-export const getResourceErrors = (resource: PodResourceEntry): string[] => {
-  const { type, limit } = resource;
-  const request = resource.isExtendedResource ? '' : resource.request;
-  if (isDevicePluginGpu(type)) {
-    return getCustomResourceCriteria(resource)
-      .filter((criterion) => !criterion.isValid)
-      .map((criterion) => criterion.label);
-  }
-  if (type !== 'cpu' && type !== 'memory') {
+// cspell:ignore hugepages
+export const isHugePageResourceName = (name: string): boolean => name.startsWith('hugepages-');
+
+export const requiresMatchingResources = (name: string): boolean =>
+  isExtendedResourceName(name) || isHugePageResourceName(name);
+
+export const getResourceErrors = ({ type, request, limit }: PodResourceEntry): string[] => {
+  if (!type) {
     return [];
+  }
+  const extended = isExtendedResourceName(type);
+  const hugePages = isHugePageResourceName(type);
+  if (!extended && !hugePages && !['cpu', 'memory', 'ephemeral-storage'].includes(type)) {
+    return [
+      `${type} is not a supported resource name. Extended resources require a valid domain prefix, such as example.com/device.`,
+    ];
   }
   const errors: string[] = [];
   const parsedRequest = request ? parseQuantity(request) : undefined;
   const parsedLimit = limit ? parseQuantity(limit) : undefined;
-  const label = type === 'cpu' ? 'CPU' : 'Memory';
+  const label = type === 'cpu' ? 'CPU' : type === 'memory' ? 'Memory' : type;
   [
     { name: 'request', value: request, parsed: parsedRequest },
     { name: 'limit', value: limit, parsed: parsedLimit },
   ].forEach(({ name, value, parsed }) => {
-    if (value && (!parsed || parsed.amount < BigInt(0))) {
-      errors.push(`${label} ${name} must be a non-negative Kubernetes quantity.`);
+    if (!value) {
+      return;
+    }
+    if (!parsed || parsed.amount < BigInt(0)) {
+      errors.push(
+        `${label} ${name} must be a non-negative ${extended ? 'whole number' : 'Kubernetes quantity'}.`,
+      );
+    } else if (
+      extended &&
+      parsed.exponent < 0 &&
+      parsed.amount % power(BigInt(10), -parsed.exponent) !== BigInt(0)
+    ) {
+      errors.push(`${label} ${name} must be a non-negative whole number.`);
     }
   });
-  if (parsedRequest && parsedLimit && compareQuantities(parsedRequest, parsedLimit) > BigInt(0)) {
-    errors.push(`${label} request must not exceed its limit.`);
+  if (parsedRequest && parsedLimit) {
+    const difference = compareQuantities(parsedRequest, parsedLimit);
+    if ((extended || hugePages) && difference !== BigInt(0)) {
+      errors.push(`${label} request must equal its limit, or be omitted.`);
+    } else if (!extended && !hugePages && difference > BigInt(0)) {
+      errors.push(`${label} request must not exceed its limit.`);
+    }
+  }
+  if (hugePages) {
+    // cspell:ignore hugepages
+    const pageSize = parseQuantity(type.slice('hugepages-'.length));
+    if (!pageSize || pageSize.amount <= BigInt(0)) {
+      errors.push(`${label} must specify a positive page size.`);
+    } else {
+      [parsedRequest, parsedLimit].forEach((quantity) => {
+        if (quantity) {
+          const exponent = Math.min(quantity.exponent, pageSize.exponent);
+          const amount = quantity.amount * power(BigInt(10), quantity.exponent - exponent);
+          const page = pageSize.amount * power(BigInt(10), pageSize.exponent - exponent);
+          if (amount % page !== BigInt(0)) {
+            errors.push(`${label} quantities must be multiples of the page size.`);
+          }
+        }
+      });
+    }
   }
   return errors;
 };

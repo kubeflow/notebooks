@@ -97,6 +97,11 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
         setInputValue(value);
         return;
       }
+      if (value === '') {
+        setInputValue('');
+        setUnit((current) => current || DEFAULT_UNITS[type]);
+        return;
+      }
       const [numericValue, extractedUnit] = parseResourceValue(value, type);
       setInputValue(String(numericValue ?? ''));
       setUnit(extractedUnit?.unit || DEFAULT_UNITS[type]);

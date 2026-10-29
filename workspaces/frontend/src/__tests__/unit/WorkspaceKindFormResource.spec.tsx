@@ -45,22 +45,14 @@ describe('WorkspaceKind pod resource editor', () => {
   it('defaults a new GPU to a limit of one and keeps request empty when limit changes', async () => {
     const { user, onSubmit } = await setup();
     await user.click(screen.getByTestId('add-custom-resource'));
-    expect(
-      screen.getByText(
-        'For GPUs, FPGAs, huge pages, and other extended resources. When selected, only a limit can be set; Kubernetes uses it as the request.',
-      ),
-    ).toBeVisible();
     expect(screen.queryByRole('spinbutton', { name: 'Custom resource request' })).toBeVisible();
-    await user.click(screen.getByTestId('custom-resource-mode'));
     await user.type(screen.getByTestId('custom-resource-type'), 'nvidia.com/gpu');
     const request = screen.queryByRole('spinbutton', { name: 'Custom resource request' });
     const limit = screen.getByRole('spinbutton', { name: 'nvidia.com/gpu limit' });
     expect(request).not.toBeInTheDocument();
     expect(limit).toHaveValue(1);
     expect(
-      screen.getByText(
-        'For GPUs, FPGAs, huge pages, and other extended resources. When selected, only a limit can be set; Kubernetes uses it as the request.',
-      ),
+      screen.getByText('Extended resources and huge pages use the limit as the request.'),
     ).toBeVisible();
     await user.clear(limit);
     await user.type(limit, '2');
@@ -73,61 +65,74 @@ describe('WorkspaceKind pod resource editor', () => {
     );
   });
 
-  it('restores the entered request when the checkbox is unchecked', async () => {
+  it.each<NonNullable<WorkspaceKindPodConfigValue['resources']>>([
+    { requests: { 'ephemeral-storage': '1Gi' }, limits: { 'ephemeral-storage': '4Gi' } },
+    { requests: { 'ephemeral-storage': '1Gi' }, limits: {} },
+  ])('preserves ephemeral storage on open and save: %j', async (resources) => {
+    const { user, onSubmit } = await setup(resources);
+    expect(screen.getByRole('spinbutton', { name: 'Custom resource request' })).toHaveValue(1);
+    await user.click(screen.getByTestId('pod-config-modal-submit-button'));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ resources }));
+  });
+
+  // cspell:ignore hugepages
+  it.each([
+    ['google.com/tpu', '2', 2],
+    ['example.com/fpga', '2', 2],
+    ['hugepages-2Mi', '80Mi', 80],
+  ])('derives limit-only mode for %s when opening', async (type, quantity, display) => {
     const { user, onSubmit } = await setup({
-      requests: { 'example.com/device': '2' },
-      limits: { 'example.com/device': '3' },
+      requests: { [type]: String(quantity) },
+      limits: { [type]: String(quantity) },
     });
-    const checkbox = screen.getByTestId('custom-resource-mode');
-    expect(checkbox).not.toBeChecked();
-    expect(screen.getByRole('spinbutton', { name: 'Custom resource request' })).toHaveValue(2);
-    await user.click(checkbox);
     expect(
       screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
     ).not.toBeInTheDocument();
-    await user.click(checkbox);
-    expect(screen.getByRole('spinbutton', { name: 'Custom resource request' })).toHaveValue(2);
+    expect(screen.getByRole('spinbutton', { name: `${type} limit` })).toHaveValue(display);
     await user.click(screen.getByTestId('pod-config-modal-submit-button'));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        resources: {
-          requests: { 'example.com/device': '2' },
-          limits: { 'example.com/device': '3' },
-        },
+        resources: { requests: {}, limits: { [type]: String(quantity) } },
       }),
     );
   });
 
-  // cspell:ignore hugepages
-  it.each(['example.com/device', 'hugepages-2Mi'])(
-    'saves only the limit for a checked %s entry without affecting another row',
-    async (type) => {
-      const { user, onSubmit } = await setup({
-        requests: { [type]: '2', 'example.com/other': '1', cpu: '1' },
-        limits: { [type]: '4', 'example.com/other': '2' },
-      });
-      await user.click(screen.getAllByTestId('custom-resource-mode')[0]);
-      expect(screen.getAllByRole('spinbutton', { name: 'Custom resource request' })).toHaveLength(
-        1,
-      );
-      await user.click(screen.getByTestId('pod-config-modal-submit-button'));
-      expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          resources: {
-            requests: { 'example.com/other': '1', cpu: '1' },
-            limits: { [type]: '4', 'example.com/other': '2' },
-          },
-        }),
-      );
-    },
-  );
+  it('updates mode on rename and flags unknown names', async () => {
+    const { user } = await setup();
+    await user.click(screen.getByTestId('add-custom-resource'));
+    const name = screen.getByTestId('custom-resource-type');
+    await user.type(name, 'device');
+    expect(screen.getByText(/valid domain prefix/)).toBeVisible();
+    expect(screen.getByTestId('pod-config-modal-submit-button')).toBeDisabled();
+    await user.clear(name);
+    await user.type(name, 'example.com/device');
+    expect(
+      screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
+    ).not.toBeInTheDocument();
+    await user.clear(name);
+    await user.type(name, 'ephemeral-storage');
+    expect(screen.getByRole('spinbutton', { name: 'Custom resource request' })).toBeVisible();
+  });
 
-  it('preserves an existing request-only custom resource when unchecked', async () => {
-    const { user, onSubmit } = await setup({ requests: { 'example.com/device': '2' } });
+  it('preserves storage units while replacing a request and validates the edited quantity', async () => {
+    const { user, onSubmit } = await setup({
+      requests: { 'ephemeral-storage': '1Gi' },
+      limits: { 'ephemeral-storage': '4Gi' },
+    });
+    const request = screen.getByRole('spinbutton', { name: 'Custom resource request' });
+    await user.clear(request);
+    await user.type(request, '5');
+    expect(screen.getByText(/request must not exceed/)).toBeVisible();
+    expect(screen.getByTestId('pod-config-modal-submit-button')).toBeDisabled();
+    await user.clear(request);
+    await user.type(request, '2');
     await user.click(screen.getByTestId('pod-config-modal-submit-button'));
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        resources: { requests: { 'example.com/device': '2' }, limits: {} },
+        resources: {
+          requests: { 'ephemeral-storage': '2Gi' },
+          limits: { 'ephemeral-storage': '4Gi' },
+        },
       }),
     );
   });
@@ -212,6 +217,10 @@ describe('WorkspaceKind pod resource editor', () => {
       { requests: { memory: '2Gi' }, limits: { memory: '1024Mi' } },
       'Memory request must not exceed',
     ],
+    [
+      { requests: { 'ephemeral-storage': '2Gi' }, limits: { 'ephemeral-storage': '1Gi' } },
+      'must not exceed',
+    ],
     [{ limits: { 'nvidia.com/gpu': '-1' } }, 'non-negative whole number'],
     [{ limits: { 'nvidia.com/gpu': '0.5' } }, 'non-negative whole number'],
   ])('blocks invalid resources %j', async (resources, message) => {
@@ -228,7 +237,6 @@ describe('WorkspaceKind pod resource editor', () => {
     { requests: { 'nvidia.com/gpu': '1' } },
   ])('uses the limit for existing GPU resources when checked: %j', async (resources) => {
     const { user, onSubmit } = await setup(resources);
-    await user.click(screen.getByTestId('custom-resource-mode'));
     expect(
       screen.queryByRole('spinbutton', { name: 'Custom resource request' }),
     ).not.toBeInTheDocument();

@@ -8,11 +8,14 @@ import {
 } from '~/shared/mock/mockBuilder';
 import type { WorkspacekindsWorkspaceKindUpdate, V1ResourceList } from '~/generated/data-contracts';
 
-const setup = (limits: Record<string, string> = {}) => {
+const setup = (limits: Record<string, string> = {}, requests: Record<string, string> = {}) => {
   const kind = buildMockWorkspaceKind({ name: 'resource-kind' });
   const update = buildMockWorkspaceKindUpdate(kind);
   const configs = update.podTemplate.options.podConfig.values;
-  configs[0].spec.resources = { requests: {}, limits: limits as unknown as V1ResourceList };
+  configs[0].spec.resources = {
+    requests: requests as unknown as V1ResourceList,
+    limits: limits as unknown as V1ResourceList,
+  };
   cy.interceptApi(
     'GET /api/:apiVersion/namespaces',
     { path: { apiVersion: NOTEBOOKS_API_VERSION } },
@@ -55,7 +58,10 @@ const editFirstConfig = () => {
   editWorkspaceKind.expandResources();
 };
 
-const assertSavedLimits = (expected: Record<string, string>) => {
+const assertSavedLimits = (
+  expected: Record<string, string>,
+  requests: Record<string, string> = {},
+) => {
   editWorkspaceKind.clickSubmit();
   cy.wait('@saveKind').then(({ request }) => {
     const { data: body } = request.body as { data: WorkspacekindsWorkspaceKindUpdate };
@@ -63,7 +69,7 @@ const assertSavedLimits = (expected: Record<string, string>) => {
       Object.keys(expected).every((key) => value.spec.resources?.limits?.[key] === expected[key]),
     );
     expect(config, 'saved configuration').not.to.equal(undefined);
-    expect(config?.spec.resources?.requests ?? {}).to.deep.equal({});
+    expect(config?.spec.resources?.requests ?? {}).to.deep.equal(requests);
   });
 };
 
@@ -106,33 +112,60 @@ describe('WorkspaceKind pod resource requests and limits', () => {
     assertSavedLimits(limits);
   });
 
-  it('toggles custom requests and saves checked resources as limits only', () => {
+  it('classifies extended resources as the name changes and flags unknown names', () => {
     setup();
     editFirstConfig();
     editWorkspaceKind.addCustomResource();
     editWorkspaceKind.assertCustomRequestVisible();
-    editWorkspaceKind.setResourceValue('Custom resource request', '1');
-    editWorkspaceKind.setCustomResourceMode(true);
+    editWorkspaceKind.setCustomResourceName('device');
+    editWorkspaceKind.assertResourceError('valid domain prefix');
+    editWorkspaceKind.assertPodConfigSaveEnabled(false);
+    editWorkspaceKind.setCustomResourceName('google.com/tpu');
     editWorkspaceKind.assertCustomLimitOnly();
-    editWorkspaceKind.setCustomResourceMode(false);
-    editWorkspaceKind.assertResourceValue('Custom resource request', '1');
-    editWorkspaceKind.setCustomResourceMode(true);
-    editWorkspaceKind.assertResourceValue('Custom resource limit', '1');
-    editWorkspaceKind.setCustomResourceName('example.com/device');
-    editWorkspaceKind.assertCustomLimitOnly();
-    editWorkspaceKind.setResourceValue('example.com/device limit', '2');
+    editWorkspaceKind.setResourceValue('google.com/tpu limit', '0.5');
+    editWorkspaceKind.assertResourceError('whole number');
+    editWorkspaceKind.assertPodConfigSaveEnabled(false);
+    editWorkspaceKind.setResourceValue('google.com/tpu limit', '2');
     editWorkspaceKind.setCustomResourceName('');
-    editWorkspaceKind.assertCustomLimitOnly();
-    editWorkspaceKind.setCustomResourceName('example.com/device');
+    editWorkspaceKind.assertCustomRequestVisible();
+    editWorkspaceKind.setCustomResourceName('google.com/tpu');
     editWorkspaceKind.submitPodConfigModal();
-    assertSavedLimits({ 'example.com/device': '2' });
+    assertSavedLimits({ 'google.com/tpu': '2' });
+  });
+
+  [true, false].forEach((hasLimit) => {
+    it(`preserves ephemeral storage requests with${hasLimit ? '' : 'out'} a limit`, () => {
+      const limits: Record<string, string> = hasLimit ? { 'ephemeral-storage': '4Gi' } : {};
+      const requests = { 'ephemeral-storage': '1Gi' };
+      setup(limits, requests);
+      editFirstConfig();
+      editWorkspaceKind.assertCustomRequestVisible();
+      editWorkspaceKind.assertResourceValue('Custom resource request', '1');
+      if (hasLimit) {
+        editWorkspaceKind.setResourceValue('Custom resource request', '5');
+        editWorkspaceKind.assertResourceError('request must not exceed');
+        editWorkspaceKind.assertPodConfigSaveEnabled(false);
+        editWorkspaceKind.setResourceValue('Custom resource request', '1');
+      }
+      editWorkspaceKind.submitPodConfigModal();
+      assertSavedLimits(limits, requests);
+    });
+  });
+
+  // cspell:ignore hugepages
+  it('edits huge pages as byte quantities and saves a limit only', () => {
+    setup({ 'hugepages-2Mi': '80Mi' });
+    editFirstConfig();
+    editWorkspaceKind.assertCustomLimitOnly();
+    editWorkspaceKind.assertResourceValue('hugepages-2Mi limit', '80');
+    editWorkspaceKind.submitPodConfigModal();
+    assertSavedLimits({ 'hugepages-2Mi': '80Mi' });
   });
 
   it('edits only the GPU limit and rejects invalid counts', () => {
     setup();
     editFirstConfig();
     editWorkspaceKind.addGpuResource();
-    editWorkspaceKind.setCustomResourceMode(true);
     editWorkspaceKind.assertGpuLimitOnly();
     editWorkspaceKind.assertResourceValue('nvidia.com/gpu limit', '1');
     editWorkspaceKind.assertPodConfigSaveEnabled(true);
