@@ -41,6 +41,9 @@ class CreateWorkspaceKind {
   assertErrorAlertContainsMessage(message: string) {
     this.findErrorToast().should('contain.text', message);
   }
+  assertErrorToastContainsListItem(message: string) {
+    this.findErrorToast().find('li').should('contain.text', message);
+  }
 
   findFormPropertiesSection() {
     return cy.findByTestId('workspace-kind-form-properties');

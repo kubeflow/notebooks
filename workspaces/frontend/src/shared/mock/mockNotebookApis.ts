@@ -120,14 +120,8 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
         };
         throw buildAxiosError(apiErrorEnvelope, 422);
       }
-      const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind1);
       return {
-        data: {
-          name: name || mockWorkspaceKind1.name,
-          revision: update.revision,
-          podTemplate: update.podTemplate,
-          spawner: update.spawner,
-        },
+        data: buildMockWorkspaceKindUpdate(mockWorkspaceKind1),
       };
     },
     deleteWorkspaceKind: async () => {
@@ -177,7 +171,7 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
       if (isInvalidYaml(body)) {
         const apiErrorEnvelope: ApiErrorEnvelope = {
           error: {
-            code: 'invalid_yaml',
+            code: '422',
             message: 'Invalid YAML provided',
             cause: {
               // eslint-disable-next-line camelcase

@@ -4,6 +4,7 @@ import yaml from 'js-yaml';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List';
 import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import {
@@ -21,18 +22,21 @@ import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { ImagePullPolicy, WorkspaceKindFormData } from '~/app/types';
-import { extractErrorMessage, safeApiCall } from '~/shared/api/apiUtils';
 import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
-import { ErrorAlert } from '~/shared/components/ErrorAlert';
 import {
-  ApiErrorEnvelope,
   OptionsOptionRedirect,
   OptionsRedirectMessageLevel,
   V1Beta1OptionRedirect,
   WorkspacekindsWorkspaceKindUpdate,
 } from '~/generated/data-contracts';
+import {
+  extractErrorMessage,
+  formatConflictErrorMessages,
+  formatValidationErrorMessages,
+  safeApiCall,
+} from '~/shared/api/apiUtils';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
@@ -169,7 +173,6 @@ export const WorkspaceKindForm: React.FC = () => {
   const [editYamlValue, setEditYamlValue] = useState('');
   const [originalYaml, setOriginalYaml] = useState('');
   const [yamlParseError, setYamlParseError] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | ApiErrorEnvelope | null>(null);
   const lastApiObjectRef = useRef<WorkspacekindsWorkspaceKindUpdate | null>(null);
   const mode: FormMode = useCurrentRouteKey() === 'workspaceKindCreate' ? 'create' : 'edit';
   const [validated, setValidated] = useState<ValidationStatus>(
@@ -183,13 +186,7 @@ export const WorkspaceKindForm: React.FC = () => {
   const [data, setData, resetData, replaceData] = useGenericObjectState<WorkspaceKindFormData>(
     initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
   );
-  const updateData = useCallback(
-    <K extends keyof WorkspaceKindFormData>(key: K, value: WorkspaceKindFormData[K]) => {
-      setApiError(null);
-      setData(key, value);
-    },
-    [setData],
-  );
+
   const [originalFormData, setOriginalFormData] = useState<WorkspaceKindFormData | null>(null);
 
   useEffect(() => {
@@ -240,7 +237,6 @@ export const WorkspaceKindForm: React.FC = () => {
   );
 
   const handleRevert = useCallback(() => {
-    setApiError(null);
     if (initialFormData) {
       const converted = convertToFormData(initialFormData);
       replaceData(converted);
@@ -254,7 +250,6 @@ export const WorkspaceKindForm: React.FC = () => {
   }, [initialFormData, replaceData]);
 
   const handleYamlChange = useCallback((value: string) => {
-    setApiError(null);
     setEditYamlValue(value);
     try {
       yaml.load(value);
@@ -266,7 +261,6 @@ export const WorkspaceKindForm: React.FC = () => {
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
-    setApiError(null);
     // TODO: Complete handleCreate with API call to create a new WS kind
     try {
       if (mode === 'create') {
@@ -315,10 +309,32 @@ export const WorkspaceKindForm: React.FC = () => {
       navigate('workspaceKinds');
     } catch (err) {
       const extracted = extractErrorMessage(err);
-      setApiError(extracted);
+      let message: React.ReactNode;
+      if (typeof extracted === 'string') {
+        message = extracted;
+      } else {
+        const validationErrors = extracted.error.cause?.validation_errors;
+        if (extracted.error.code === '422' && validationErrors && validationErrors.length > 0) {
+          message = (
+            <List>
+              {validationErrors.map((validationError, index) => (
+                <ListItem key={`${validationError.field}-${index}`}>
+                  {validationError.field}: {validationError.message}
+                </ListItem>
+              ))}
+            </List>
+          );
+        } else {
+          const details = [
+            ...formatValidationErrorMessages(extracted),
+            ...formatConflictErrorMessages(extracted),
+          ];
+          message = details.length > 0 ? details.join('; ') : extracted.error.message;
+        }
+      }
       notification.error(
         `Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`,
-        'Please review the errors below.',
+        message,
       );
       if (mode === 'create') {
         setValidated('error');
@@ -405,29 +421,15 @@ export const WorkspaceKindForm: React.FC = () => {
       </PageGroup>
       <PageSection isFilled>
         <Stack hasGutter>
-          {apiError && (
-            <StackItem>
-              <ErrorAlert
-                title={`Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`}
-                content={apiError}
-                testId="workspace-kind-form-error"
-              />
-            </StackItem>
-          )}
           {mode === 'create' && (
             <StackItem style={{ height: '100%' }}>
               <WorkspaceKindFileUpload
                 resetData={resetData}
                 value={yamlValue}
-                setValue={(v) => {
-                  setApiError(null);
-                  setYamlValue(v);
-                }}
+                setValue={setYamlValue}
                 validated={validated}
                 setValidated={setValidated}
-                onClear={() => {
-                  setApiError(null);
-                }}
+                onClear={() => undefined}
               />
             </StackItem>
           )}
@@ -467,7 +469,7 @@ export const WorkspaceKindForm: React.FC = () => {
                       <WorkspaceKindFormProperties
                         mode={mode}
                         properties={data.properties}
-                        updateField={(properties) => updateData('properties', properties)}
+                        updateField={(properties) => setData('properties', properties)}
                       />
                     </StackItem>
                     <StackItem>
@@ -475,7 +477,7 @@ export const WorkspaceKindForm: React.FC = () => {
                         mode={mode}
                         imageConfig={data.imageConfig}
                         updateImageConfig={(imageInput) => {
-                          updateData('imageConfig', imageInput);
+                          setData('imageConfig', imageInput);
                         }}
                       />
                     </StackItem>
@@ -483,7 +485,7 @@ export const WorkspaceKindForm: React.FC = () => {
                       <WorkspaceKindFormPodConfig
                         podConfig={data.podConfig}
                         updatePodConfig={(podConfig) => {
-                          updateData('podConfig', podConfig);
+                          setData('podConfig', podConfig);
                         }}
                       />
                     </StackItem>
@@ -491,11 +493,11 @@ export const WorkspaceKindForm: React.FC = () => {
                       <WorkspaceKindFormPodTemplate
                         podTemplate={data.podTemplate}
                         updatePodTemplate={(podTemplate) => {
-                          updateData('podTemplate', podTemplate);
+                          setData('podTemplate', podTemplate);
                         }}
                         activityRules={data.activityRules ?? []}
                         updateActivityRules={(rules) => {
-                          updateData('activityRules', rules);
+                          setData('activityRules', rules);
                         }}
                       />
                     </StackItem>
