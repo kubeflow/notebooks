@@ -421,75 +421,71 @@ describe('WorkspaceTable row order stability during background refresh', () => {
 });
 
 describe('WorkspaceTable actions column', () => {
-  it('shows Start for a paused workspace and requests the start modal on click', async () => {
-    const user = userEvent.setup();
-    const workspace = buildMockWorkspace({
-      name: 'example-workspace',
-      state: V1Beta1WorkspaceState.WorkspaceStatePaused,
-    });
-    const refreshWorkspaces = jest.fn();
+  it.each(Object.values(V1Beta1WorkspaceState))(
+    'shows Start when paused is true in %s state and requests the start modal on click',
+    async (state) => {
+      const user = userEvent.setup();
+      const workspace = buildMockWorkspace({
+        name: 'example-workspace',
+        paused: true,
+        state,
+      });
+      const refreshWorkspaces = jest.fn();
 
-    render(
-      <WorkspaceTable
-        workspaces={[workspace]}
-        refreshWorkspaces={refreshWorkspaces}
-        rowActions={() => []}
-      />,
-    );
+      render(
+        <WorkspaceTable
+          workspaces={[workspace]}
+          refreshWorkspaces={refreshWorkspaces}
+          rowActions={() => []}
+        />,
+      );
 
-    const actionsCell = screen.getByTestId('action-column');
-    expect(actionsCell).toContainElement(screen.getByTestId(`start${workspace.name}`));
-    expect(screen.queryByTestId(`stop${workspace.name}`)).not.toBeInTheDocument();
-    expect(screen.getByTestId(`start${workspace.name}`)).toHaveAttribute(
-      'aria-label',
-      'start workspace',
-    );
+      const actionsCell = screen.getByTestId('action-column');
+      expect(actionsCell).toContainElement(screen.getByTestId(`start${workspace.name}`));
+      expect(screen.queryByTestId(`stop${workspace.name}`)).not.toBeInTheDocument();
+      expect(screen.getByTestId(`start${workspace.name}`)).toHaveAttribute(
+        'aria-label',
+        'start workspace',
+      );
 
-    await user.click(screen.getByTestId(`start${workspace.name}`));
-    expect(requestStartAction).toHaveBeenCalledWith({ workspace, onActionDone: refreshWorkspaces });
-  });
+      await user.click(screen.getByTestId(`start${workspace.name}`));
+      expect(requestStartAction).toHaveBeenCalledWith({
+        workspace,
+        onActionDone: refreshWorkspaces,
+      });
+    },
+  );
 
-  it('shows Stop for a running workspace and requests the stop modal on click', async () => {
-    const user = userEvent.setup();
-    const workspace = buildMockWorkspace({
-      name: 'running-workspace',
-      state: V1Beta1WorkspaceState.WorkspaceStateRunning,
-    });
-    const refreshWorkspaces = jest.fn();
+  it.each(Object.values(V1Beta1WorkspaceState))(
+    'shows Stop when paused is false in %s state and requests the stop modal on click',
+    async (state) => {
+      const user = userEvent.setup();
+      const workspace = buildMockWorkspace({
+        name: 'running-workspace',
+        paused: false,
+        state,
+      });
+      const refreshWorkspaces = jest.fn();
 
-    render(
-      <WorkspaceTable
-        workspaces={[workspace]}
-        refreshWorkspaces={refreshWorkspaces}
-        rowActions={() => []}
-      />,
-    );
+      render(
+        <WorkspaceTable
+          workspaces={[workspace]}
+          refreshWorkspaces={refreshWorkspaces}
+          rowActions={() => []}
+        />,
+      );
 
-    const actionsCell = screen.getByTestId('action-column');
-    expect(actionsCell).toContainElement(screen.getByTestId(`stop${workspace.name}`));
-    expect(screen.queryByTestId(`start${workspace.name}`)).not.toBeInTheDocument();
+      const actionsCell = screen.getByTestId('action-column');
+      expect(actionsCell).toContainElement(screen.getByTestId(`stop${workspace.name}`));
+      expect(screen.queryByTestId(`start${workspace.name}`)).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId(`stop${workspace.name}`));
-    expect(requestStopAction).toHaveBeenCalledWith({ workspace, onActionDone: refreshWorkspaces });
-  });
-
-  it('shows no status button for a workspace in error', () => {
-    const workspace = buildMockWorkspace({
-      name: 'error-workspace',
-      state: V1Beta1WorkspaceState.WorkspaceStateError,
-    });
-
-    render(
-      <WorkspaceTable
-        workspaces={[workspace]}
-        refreshWorkspaces={jest.fn()}
-        rowActions={() => []}
-      />,
-    );
-
-    expect(screen.queryByTestId(`start${workspace.name}`)).not.toBeInTheDocument();
-    expect(screen.queryByTestId(`stop${workspace.name}`)).not.toBeInTheDocument();
-  });
+      await user.click(screen.getByTestId(`stop${workspace.name}`));
+      expect(requestStopAction).toHaveBeenCalledWith({
+        workspace,
+        onActionDone: refreshWorkspaces,
+      });
+    },
+  );
 });
 
 describe('WorkspaceTable activity indicators', () => {
