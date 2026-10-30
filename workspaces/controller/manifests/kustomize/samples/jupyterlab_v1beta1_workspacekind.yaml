@@ -143,27 +143,6 @@ spec:
   ## ================================================================
   podTemplate:
 
-    ## metadata for Workspace Pods (MUTABLE)
-    ##
-    podMetadata:
-      labels:
-        my-workspace-kind-label: "my-value"
-      annotations:
-        my-workspace-kind-annotation: "my-value"
-
-    ## metadata for the Workspace StatefulSet (MUTABLE)
-    ##  - labels and annotations applied to the StatefulSet object itself,
-    ##    unlike `podMetadata` which applies to the Workspace Pods
-    ##  - this is an admin-only default for all Workspaces of this WorkspaceKind
-    ##  - the controller-managed `workspaces.kubeflow.org/workspace-name` label
-    ##    always takes precedence and cannot be overridden here
-    ##
-    statefulSetMetadata:
-      labels:
-        my-workspace-kind-sts-label: "my-value"
-      annotations:
-        my-workspace-kind-sts-annotation: "my-value"
-
     ## service account configs for Workspace Pods
     ##  - each Workspace runs as its own ServiceAccount named
     ##    "ws-{WORKSPACE_NAME}-{RANDOM_SUFFIX}", which the controller creates, owns,
@@ -181,8 +160,7 @@ spec:
       ## NOTE: commented out because these ClusterRoles are provided by the Kubeflow
       ##       platform, they do NOT exist in a standalone install of this controller
       ##
-      #clusterRoles:
-      #  - name: "kubeflow-view"
+      clusterRoles: []
 
       ## metadata for the ServiceAccount of each Workspace (MUTABLE)
       ##  - labels and annotations applied to the ServiceAccount object itself,
@@ -271,6 +249,27 @@ spec:
           ##
           requestHeaders: {}
 
+    ## metadata for the Workspace StatefulSet (MUTABLE)
+    ##  - labels and annotations applied to the StatefulSet object itself,
+    ##    unlike `podMetadata` which applies to the Workspace Pods
+    ##  - this is an admin-only default for all Workspaces of this WorkspaceKind
+    ##  - the controller-managed `workspaces.kubeflow.org/workspace-name` label
+    ##    always takes precedence and cannot be overridden here
+    ##
+    statefulSetMetadata:
+      labels:
+        my-workspace-kind-sts-label: "my-value"
+      annotations:
+        my-workspace-kind-sts-annotation: "my-value"
+
+    ## metadata for Workspace Pods (MUTABLE)
+    ##
+    podMetadata:
+      labels:
+        my-workspace-kind-label: "my-value"
+      annotations:
+        my-workspace-kind-annotation: "my-value"
+
     ## Pod-level fields that apply to the Workspace Pod, mirroring `corev1.PodSpec`
     ##
     podSpec:
@@ -337,8 +336,14 @@ spec:
         ##  - spec for Probe:
         ##    https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core
         ##
-        #readinessProbe:
-        #  ...
+        readinessProbe:
+          periodSeconds: 5
+          tcpSocket:
+            ##
+            ## TODO: we need to ensure that if a string is provided, that it is a valid port name in the `spec.ports` list,
+            ##       otherwise the controller will fail to reconcile the Workspace
+            ##
+            port: "jupyterlab"
 
         ## environment variables for the main container (MUTABLE)
         ##  - spec for EnvVar:

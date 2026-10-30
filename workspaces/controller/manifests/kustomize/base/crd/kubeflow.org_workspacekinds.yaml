@@ -748,9 +748,9 @@ spec:
                                               the id of the port
                                                - this is NOT used as the Container or Service port name, but as part of the HTTP path
                                             example: jupyterlab
-                                            maxLength: 32
+                                            maxLength: 15
                                             minLength: 1
-                                            pattern: ^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
+                                            pattern: ^(?:[0-9]-?)*[a-z](?:-?[a-z0-9])*$
                                             type: string
                                           port:
                                             description: the port number
@@ -5369,9 +5369,9 @@ spec:
                             the id of the port
                             - identifier for the port in `imageconfig` ports.[].id
                           example: jupyterlab
-                          maxLength: 32
+                          maxLength: 15
                           minLength: 1
-                          pattern: ^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
+                          pattern: ^(?:[0-9]-?)*[a-z](?:-?[a-z0-9])*$
                           type: string
                         protocol:
                           description: the protocol of the port

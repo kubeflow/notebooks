@@ -224,7 +224,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 						},
 					},
 					{
-						Id:                 "my_port",
+						Id:                 "my-port",
 						DefaultDisplayName: "My Port",
 						Protocol:           "HTTP",
 					},
@@ -339,7 +339,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Image: "redirect-test:step-1",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
-											Id:          "my_port",
+											Id:          "my-port",
 											DisplayName: new("something"),
 											Port:        1234,
 										},
@@ -359,7 +359,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Image: "redirect-test:step-2",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
-											Id:   "my_port",
+											Id:   "my-port",
 											Port: 1234,
 										},
 									},
@@ -375,7 +375,7 @@ func NewExampleWorkspaceKind(name string) *kubefloworgv1beta1.WorkspaceKind {
 									Image: "redirect-test:step-3",
 									Ports: []kubefloworgv1beta1.ImagePort{
 										{
-											Id:   "my_port",
+											Id:   "my-port",
 											Port: 1234,
 										},
 									},
@@ -765,7 +765,7 @@ func NewExampleWorkspaceKindWithNonExistentPortIdInImageConfig(name string) *kub
 	workspaceKind := NewExampleWorkspaceKind(name)
 	workspaceKind.Spec.PodTemplate.Ports = []kubefloworgv1beta1.WorkspaceKindPort{
 		{
-			Id:                 "non-existent-port-id",
+			Id:                 "not-exist-port",
 			DefaultDisplayName: "Non Existent Port",
 		},
 	}
