@@ -6,6 +6,8 @@ import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts'
 
 export const EMPTY_FORM_DATA: WorkspaceFormData = {
   revision: '',
+  originalDisplayName: undefined,
+  podMetadata: { labels: {}, annotations: {} },
   kind: undefined,
   imageConfig: undefined,
   podConfig: undefined,
@@ -60,6 +62,8 @@ const useWorkspaceFormData = (args: {
 
     return {
       revision: workspaceUpdate.revision,
+      originalDisplayName: workspaceUpdate.displayName,
+      podMetadata: workspaceUpdate.podTemplate.podMetadata,
       kind: workspaceKind,
       imageConfig,
       podConfig,

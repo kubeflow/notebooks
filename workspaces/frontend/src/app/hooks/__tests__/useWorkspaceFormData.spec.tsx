@@ -110,6 +110,8 @@ describe('useWorkspaceFormData', () => {
         }
       : undefined;
     expect(workspaceFormData).toEqual({
+      originalDisplayName: mockWorkspaceUpdate.displayName,
+      podMetadata: podTemplate.podMetadata,
       kind: mockWorkspaceKind,
       imageConfig: podTemplate.options.imageConfig,
       podConfig: podTemplate.options.podConfig,
