@@ -491,4 +491,67 @@ describe('applyFilters', () => {
       expect(result).toHaveLength(0);
     });
   });
+
+  describe('array (string[]) property getters', () => {
+    interface DualNameItem {
+      id: number;
+      displayName: string;
+      resourceName: string;
+    }
+
+    const dualNameData: DualNameItem[] = [
+      { id: 1, displayName: 'My Workspace', resourceName: 'my-workspace' },
+      { id: 2, displayName: 'Another', resourceName: 'another-resource' },
+    ];
+
+    const dualNameGetters = {
+      name: (item: DualNameItem): string | string[] => [item.displayName, item.resourceName],
+    };
+
+    it('matches an item when the filter matches the first value in the array', () => {
+      const filterValues = { name: 'My Workspace' };
+      const result = applyFilters(dualNameData, filterValues, dualNameGetters);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+
+    it('matches an item when the filter matches the second value in the array', () => {
+      const filterValues = { name: 'my-workspace' };
+      const result = applyFilters(dualNameData, filterValues, dualNameGetters);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+
+    it('hides an item when the filter matches neither value in the array', () => {
+      const filterValues = { name: 'no-match' };
+      const result = applyFilters(dualNameData, filterValues, dualNameGetters);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('applies OR semantics within an array: matching any value is sufficient', () => {
+      const filterValues = { name: 'Another' };
+      const result = applyFilters(dualNameData, filterValues, dualNameGetters);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(2);
+    });
+
+    it('does not match a pattern that spans across two array values with a literal newline', () => {
+      const filterValues = { name: 'My Workspace\nanother-resource' };
+      const result = applyFilters(dualNameData, filterValues, dualNameGetters);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('matches with a $ anchor applied independently to each array value', () => {
+      const filterValues = { name: 'Workspace$' };
+      const result = applyFilters(dualNameData, filterValues, dualNameGetters);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+  });
 });

@@ -106,7 +106,7 @@ export function useToolbarFilters<K extends string>(
 export function applyFilters<T, K extends string>(
   data: T[],
   filterValues: FilterState<K>,
-  propertyGetters: Record<K, (item: T) => string>,
+  propertyGetters: Record<K, (item: T) => string | string[]>,
 ): T[] {
   type ActiveStringFilter = { key: K; regex: RegExp };
   type ActiveMultiselectFilter = { key: K; selectedLower: Set<string> };
@@ -121,6 +121,9 @@ export function applyFilters<T, K extends string>(
       return new RegExp(escapeRegExp(input), 'i');
     }
   };
+
+  const toStrings = (value: string | string[]): string[] =>
+    Array.isArray(value) ? value : [value];
 
   const getActiveFilters = (): {
     stringFilters: ActiveStringFilter[];
@@ -149,11 +152,13 @@ export function applyFilters<T, K extends string>(
   };
 
   const matchesStringFilters = (item: T, filters: ActiveStringFilter[]) =>
-    filters.every(({ key, regex }) => regex.test(propertyGetters[key](item)));
+    filters.every(({ key, regex }) =>
+      toStrings(propertyGetters[key](item)).some((v) => regex.test(v)),
+    );
 
   const matchesMultiselectFilters = (item: T, filters: ActiveMultiselectFilter[]) =>
     filters.every(({ key, selectedLower }) =>
-      selectedLower.has(propertyGetters[key](item).toLowerCase()),
+      toStrings(propertyGetters[key](item)).some((v) => selectedLower.has(v.toLowerCase())),
     );
 
   const { stringFilters, multiselectFilters } = getActiveFilters();
