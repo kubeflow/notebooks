@@ -1517,7 +1517,22 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.assertFormTabActive();
       editWorkspaceKind.assertFormPropertiesVisible();
-      editWorkspaceKind.assertYamlEditorNotVisible();
+      editWorkspaceKind.assertYamlEditorNotCreated();
+    });
+
+    it('should not create the Monaco editor until the YAML tab is opened', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      // The WorkspaceKind has to be loaded before the YAML tab can be opened.
+      editWorkspaceKind.assertWorkspaceKindName(mockWorkspaceKind.displayName);
+
+      editWorkspaceKind.assertYamlEditorNotCreated();
+
+      editWorkspaceKind.clickYamlTab();
+
+      editWorkspaceKind.assertYamlEditorVisible();
     });
 
     it('should switch to YAML tab and show editor', () => {

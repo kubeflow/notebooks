@@ -1237,6 +1237,12 @@ class EditWorkspaceKind {
     this.findYamlEditor().should('not.be.visible');
   }
 
+  // The Monaco editor is only created once the YAML tab is opened, so it is not part of the DOM
+  // at all while the form is being edited.
+  assertYamlEditorNotCreated() {
+    this.findYamlEditor().should('not.exist');
+  }
+
   findYamlParseError() {
     return cy.findByTestId('yaml-parse-error');
   }
