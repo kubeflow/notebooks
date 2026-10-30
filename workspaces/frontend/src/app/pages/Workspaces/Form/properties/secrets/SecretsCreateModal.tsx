@@ -16,11 +16,11 @@ import { MenuToggle } from '@patternfly/react-core/dist/esm/components/MenuToggl
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { useThemeContext } from 'mod-arch-kubeflow';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
-import { SecretsSecretListItem, V1SecretType } from '~/generated/data-contracts';
+import { SecretsSecretData, SecretsSecretListItem, V1SecretType } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { ModalErrorFooter } from '~/shared/components/ModalErrorFooter';
 import useSecret, { SecretKeyValuePair } from '~/app/hooks/useSecret';
-import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
+import { SecretsDataTable } from '~/app/pages/Workspaces/Form/properties/secrets/SecretsDataTable';
 
 interface SecretsCreateModalProps {
   isOpen: boolean;
@@ -33,7 +33,16 @@ interface SecretsCreateModalProps {
   onSecretUpdated?: (secretName: string) => void;
 }
 
-const EMPTY_KEY_VALUE_PAIR: SecretKeyValuePair = { key: '', value: '' };
+const EMPTY_KEY_VALUE_PAIR: SecretKeyValuePair = { key: '', kind: 'new', value: '' };
+
+const encodeSecretText = (text: string): string => {
+  const bytes = new TextEncoder().encode(text);
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+};
 
 // DNS-1123 subdomain regex - lowercase alphanumeric, hyphens, dots
 // Must start and end with alphanumeric, max 253 chars
@@ -78,15 +87,17 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
 
   // Sync fetched secret data to form state
   useEffect(() => {
-    if (isSecretLoaded) {
-      if (secretDetails.keyValuePairs.length > 0) {
-        setKeyValuePairs(secretDetails.keyValuePairs);
-      }
-      if (isEditMode) {
-        setImmutable(secretDetails.immutable);
-      }
+    if (isOpen && isEditMode && isSecretLoaded) {
+      setKeyValuePairs(secretDetails.keyValuePairs);
+      setImmutable(secretDetails.immutable);
     }
-  }, [isSecretLoaded, secretDetails, isEditMode]);
+  }, [isOpen, isSecretLoaded, secretDetails, isEditMode]);
+
+  const isEditBlocked =
+    isEditMode &&
+    (!isSecretLoaded || !!secretLoadError || secretDetails.immutable || !secretToEdit.canUpdate);
+  const isFormDisabled = isSubmitting || isEditBlocked;
+  const secretType = isEditMode ? secretDetails.type : V1SecretType.SecretTypeOpaque;
 
   const loadError = secretLoadError ? 'Failed to load secret contents' : null;
 
@@ -136,7 +147,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
       if (keyError) {
         return `${keyError} (pair ${i + 1})`;
       }
-      if (!pair.value) {
+      if (pair.kind !== 'unchanged' && !pair.value) {
         return `Value is required (pair ${i + 1})`;
       }
       if (seenKeys.has(pair.key)) {
@@ -164,16 +175,18 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
   }, []);
 
   const buildContentsPayload = useCallback(() => {
-    const contents: Record<string, { base64?: string }> = {};
-    keyValuePairs.forEach((pair) => {
-      contents[pair.key] = { base64: btoa(pair.value) };
-    });
+    const contents: SecretsSecretData = Object.fromEntries(
+      keyValuePairs.map((pair) => [
+        pair.key,
+        pair.kind === 'unchanged' ? {} : { base64: encodeSecretText(pair.value) },
+      ]),
+    );
     return contents;
   }, [keyValuePairs]);
 
   const handleSubmit = useCallback(async () => {
     setHasAttemptedSubmit(true);
-    if (validationError) {
+    if (validationError || isFormDisabled) {
       return;
     }
 
@@ -187,7 +200,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
       if (isEditMode) {
         await api.secrets.updateSecret(namespace, secretName, {
           data: {
-            type: V1SecretType.SecretTypeOpaque,
+            type: secretType,
             immutable,
             contents,
           },
@@ -218,6 +231,8 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
     }
   }, [
     validationError,
+    isFormDisabled,
+    secretType,
     buildContentsPayload,
     secretName,
     isEditMode,
@@ -316,12 +331,12 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
                 setImmutable(checked);
                 setSubmitError(null);
               }}
-              isDisabled={isEditMode && secretDetails.immutable}
+              isDisabled={isFormDisabled}
             />
           </FormGroup>
           <ThemeAwareFormGroupWrapper label="Secret type" isRequired fieldId="secret-type">
             <Select
-              selected="Opaque"
+              selected={secretType}
               toggle={(toggleRef) => (
                 <MenuToggle
                   isFullWidth
@@ -340,24 +355,19 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
                   isDisabled
                   data-testid="secret-type-select"
                 >
-                  Opaque
+                  {secretType}
                 </MenuToggle>
               )}
             />
           </ThemeAwareFormGroupWrapper>
-          <EditableRowsTable
+          <SecretsDataTable
             rows={keyValuePairs}
             setRows={(rows) => {
               setKeyValuePairs(rows);
               setSubmitError(null);
             }}
-            title="Secret data"
-            description="Key/value pairs stored in the secret."
-            buttonLabel="key-value pair"
-            valueInputType="password"
-            addButtonTestId="another-key-value-pair-button"
-            isExpanded
-            minRows={1}
+            isDisabled={isFormDisabled}
+            isEditMode={isEditMode}
           />
         </Form>
       </ModalBody>
@@ -367,12 +377,7 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
           variant="primary"
           onClick={handleSubmit}
           isLoading={isSubmitting}
-          isDisabled={
-            isSubmitting ||
-            (isEditMode && !isSecretLoaded) ||
-            (isEditMode && secretDetails.immutable) ||
-            (isEditMode && !secretToEdit.canUpdate)
-          }
+          isDisabled={isFormDisabled}
           data-testid="secret-modal-submit-button"
         >
           {submitButtonText}
