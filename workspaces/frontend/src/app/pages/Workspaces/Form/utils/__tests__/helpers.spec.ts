@@ -25,12 +25,12 @@ describe('Validate Workspace Name', () => {
     expect(result).toEqual(`Must be no more than ${MAX_WORKSPACE_NAME_LENGTH} characters`);
   });
 
-  it('should be alphanumeric characters, "-" or "."', () => {
-    const name = 'a-b.c@';
+  it('should be alphanumeric characters or "-"', () => {
+    const name = 'a-b-c@';
 
     const result = validateName(name);
 
-    expect(result).toEqual('Only lowercase alphanumeric characters, "-" or "." are allowed');
+    expect(result).toEqual('Only lowercase alphanumeric characters or "-" are allowed');
   });
 
   it('should start with an alphanumeric character', () => {
@@ -58,27 +58,30 @@ describe('Validate Workspace Name', () => {
   });
 
   it('should be valid', () => {
-    const name = 'a-b.c';
+    const name = 'a-b-c';
 
     const result = validateName(name);
 
     expect(result).toEqual(null);
   });
 
-  it.each(['foo..bar', 'foo.-bar', 'foo-.bar'])(
-    'should reject "%s" as an invalid DNS subdomain even though it passes the overall start/end check',
-    (name) => {
-      const result = validateName(name);
+  it('should accept a name of exactly the max length', () => {
+    expect(validateName('a'.repeat(MAX_WORKSPACE_NAME_LENGTH))).toEqual(null);
+  });
 
-      expect(result).toEqual(
-        'Each "."-separated segment must start and end with an alphanumeric character',
+  it('should accept a name starting with a digit', () => {
+    expect(validateName('1-workspace')).toEqual(null);
+  });
+
+  // Workspace names must be DNS-1123 labels: the controller cannot reconcile dotted names.
+  it.each(['a.b', 'foo.bar.baz-1', 'foo..bar', 'my-workspace.v1'])(
+    'should reject the dotted name "%s"',
+    (name) => {
+      expect(validateName(name)).toEqual(
+        'Only lowercase alphanumeric characters or "-" are allowed',
       );
     },
   );
-
-  it('should accept multiple valid dot-separated segments', () => {
-    expect(validateName('foo.bar.baz-1')).toEqual(null);
-  });
 });
 
 describe('Validate Display Name', () => {
@@ -178,13 +181,14 @@ describe('slugifyDisplayName', () => {
     expect(slugifyDisplayName('Hello, World!!')).toEqual('hello-world');
   });
 
-  it('should preserve dots and not collapse repeated separators', () => {
-    expect(slugifyDisplayName('foo.bar')).toEqual('foo.bar');
+  it('should convert dots to dashes and not collapse repeated separators', () => {
+    expect(slugifyDisplayName('foo.bar')).toEqual('foo-bar');
+    expect(slugifyDisplayName('Café 2.0')).toEqual('cafe-2-0');
     expect(slugifyDisplayName('  --Foo--Bar--  ')).toEqual('foo--bar');
   });
 
-  it('should trim leading and trailing dashes and dots but keep them in the middle', () => {
-    expect(slugifyDisplayName('--.foo.bar.--')).toEqual('foo.bar');
+  it('should trim leading and trailing dashes and dots', () => {
+    expect(slugifyDisplayName('--.foo.bar.--')).toEqual('foo-bar');
   });
 
   it('should return an empty string when nothing allowed remains', () => {
@@ -207,14 +211,8 @@ describe('generateResourceNameBase', () => {
     expect(mockGenerate).toHaveBeenCalledWith({ exactly: 2, minLength: 5, maxLength: 7 });
   });
 
-  it('should fall back to random words when the slug would be an invalid DNS subdomain', () => {
-    mockGenerate.mockReturnValue(['apple', 'mango']);
-
-    // "foo..bar" converts to itself (dots are preserved) but is not a valid DNS
-    // subdomain, so it must not be accepted as-is.
-    const result = generateResourceNameBase('foo..bar');
-
-    expect(result).toEqual('apple-mango');
+  it('should derive a dot-free slug from a display name containing dots', () => {
+    expect(generateResourceNameBase('Version 2.0')).toEqual('version-2-0');
   });
 });
 
@@ -230,6 +228,13 @@ describe('generateResourceName', () => {
     const result = generateResourceName('a'.repeat(100));
 
     expect(result.length).toBeLessThanOrEqual(MAX_WORKSPACE_NAME_LENGTH);
+    expect(validateName(result)).toEqual(null);
+  });
+
+  it('should never produce a dotted name from a dotted display name', () => {
+    const result = generateResourceName('My.Workspace.v1');
+
+    expect(result).toMatch(/^my-workspace-v1-[a-z0-9]{4}$/);
     expect(validateName(result)).toEqual(null);
   });
 
@@ -253,12 +258,11 @@ describe('getResourceNameCriteria', () => {
       { key: 'chars', label: expect.any(String), isValid: false },
       { key: 'start', label: expect.any(String), isValid: false },
       { key: 'end', label: expect.any(String), isValid: false },
-      { key: 'segments', label: expect.any(String), isValid: false },
     ]);
   });
 
   it('should mark all criteria valid for a fully valid name', () => {
-    const criteria = getResourceNameCriteria('my-workspace.v1');
+    const criteria = getResourceNameCriteria('my-workspace-v1');
     expect(criteria.every((c) => c.isValid)).toBe(true);
   });
 
@@ -283,11 +287,10 @@ describe('getResourceNameCriteria', () => {
     expect(isValid('my-workspace-', 'start')).toBe(true);
   });
 
-  it('should flag segments for an invalid dot-separated label even when start/end/chars are fine', () => {
-    expect(isValid('foo..bar', 'segments')).toBe(false);
-    expect(isValid('foo..bar', 'start')).toBe(true);
-    expect(isValid('foo..bar', 'end')).toBe(true);
-    expect(isValid('foo..bar', 'chars')).toBe(true);
+  it('should flag chars for a dotted name even when start/end are fine', () => {
+    expect(isValid('my.workspace', 'chars')).toBe(false);
+    expect(isValid('my.workspace', 'start')).toBe(true);
+    expect(isValid('my.workspace', 'end')).toBe(true);
   });
 
   it('should match validateName overall pass/fail for arbitrary inputs', () => {
@@ -302,6 +305,7 @@ describe('getResourceNameCriteria', () => {
       'foo.-bar',
       'foo-.bar',
       'foo.bar.baz',
+      'my.workspace',
     ];
     names.forEach((name) => {
       const allValid = getResourceNameCriteria(name).every((c) => c.isValid);
