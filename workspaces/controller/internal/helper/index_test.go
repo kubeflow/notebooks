@@ -22,6 +22,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 )
 
 var _ = Describe("indexWorkspaceOwner", func() {
@@ -165,5 +168,56 @@ var _ = Describe("isWorkspaceControllerRef", func() {
 			Name:       "my-workspace",
 		}
 		Expect(isWorkspaceControllerRef(refInvalid)).To(BeFalse())
+	})
+})
+
+var _ = Describe("indexWorkspaceOwnedResourceUIDs", func() {
+	It("should return nil for non-Workspace objects", func() {
+		pod := &corev1.Pod{}
+		Expect(indexWorkspaceOwnedResourceUIDs(pod)).To(BeNil())
+	})
+
+	It("should return empty slice when both Pod and StatefulSet UIDs are empty", func() {
+		ws := &kubefloworgv1beta1.Workspace{}
+		Expect(indexWorkspaceOwnedResourceUIDs(ws)).To(BeEmpty())
+	})
+
+	It("should return both UIDs when Pod and StatefulSet UIDs are set", func() {
+		ws := &kubefloworgv1beta1.Workspace{
+			Status: kubefloworgv1beta1.WorkspaceStatus{
+				PodTemplatePod: kubefloworgv1beta1.WorkspacePodStatus{
+					UID: types.UID("pod-uid-123"),
+				},
+				PodTemplateStatefulSet: kubefloworgv1beta1.WorkspaceStatefulSetStatus{
+					UID: types.UID("sts-uid-456"),
+				},
+			},
+		}
+		uids := indexWorkspaceOwnedResourceUIDs(ws)
+		Expect(uids).To(ConsistOf("pod-uid-123", "sts-uid-456"))
+	})
+
+	It("should return only Pod UID when only Pod UID is set", func() {
+		ws := &kubefloworgv1beta1.Workspace{
+			Status: kubefloworgv1beta1.WorkspaceStatus{
+				PodTemplatePod: kubefloworgv1beta1.WorkspacePodStatus{
+					UID: types.UID("pod-uid-123"),
+				},
+			},
+		}
+		uids := indexWorkspaceOwnedResourceUIDs(ws)
+		Expect(uids).To(ConsistOf("pod-uid-123"))
+	})
+
+	It("should return only StatefulSet UID when only StatefulSet UID is set", func() {
+		ws := &kubefloworgv1beta1.Workspace{
+			Status: kubefloworgv1beta1.WorkspaceStatus{
+				PodTemplateStatefulSet: kubefloworgv1beta1.WorkspaceStatefulSetStatus{
+					UID: types.UID("sts-uid-456"),
+				},
+			},
+		}
+		uids := indexWorkspaceOwnedResourceUIDs(ws)
+		Expect(uids).To(ConsistOf("sts-uid-456"))
 	})
 })
