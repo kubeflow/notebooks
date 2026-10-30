@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -56,6 +57,10 @@ import (
 )
 
 const (
+	// resource kinds
+	kindPod         = "Pod"
+	kindStatefulSet = "StatefulSet"
+
 	// label keys
 	workspaceNameLabel     = "workspaces.kubeflow.org/workspace-name"
 	workspaceSelectorLabel = "statefulset"
@@ -660,12 +665,11 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{})
 
-	if r.Config.UseIstio {
-
+	if r.Config != nil && r.Config.UseIstio {
 		controllerBuilder = controllerBuilder.Owns(&istiov1.VirtualService{})
 	}
 
-	return controllerBuilder.
+	controllerBuilder = controllerBuilder.
 		Watches(
 			&kubefloworgv1beta1.WorkspaceKind{},
 			handler.EnqueueRequestsFromMapFunc(r.mapWorkspaceKindToRequest),
@@ -675,8 +679,25 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 			&corev1.Pod{},
 			handler.EnqueueRequestsFromMapFunc(mapPodToRequest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, predPodHasWSLabel),
-		).
-		Complete(r)
+		)
+
+	// Watch Warning Events for owned Pods and StatefulSets, so that a Workspace is reconciled as
+	// soon as one is posted (rather than waiting for a Pod update or a requeue).
+	//
+	// NOTE: registering this watch creates a cluster-wide Event informer, whose size is bounded only
+	//       by the API server's `--event-ttl`, so `--watch-warning-events` exists as a kill switch
+	//       for clusters where an event storm would OOM the controller. Disabling it only removes
+	//       the event-driven TRIGGER: `generateWorkspaceState()` still reports Warning Events in
+	//       `status.stateMessage`, by reading them directly from the API server.
+	if r.Config != nil && r.Config.WatchWarningEvents {
+		controllerBuilder = controllerBuilder.Watches(
+			&corev1.Event{},
+			handler.EnqueueRequestsFromMapFunc(r.mapEventToRequest),
+			builder.WithPredicates(predWarningEvent),
+		)
+	}
+
+	return controllerBuilder.Complete(r)
 }
 
 // updateWorkspaceState attempts to immediately update the Workspace status with the provided state and message
@@ -719,6 +740,79 @@ func (r *WorkspaceReconciler) mapWorkspaceKindToRequest(ctx context.Context, wor
 				Namespace: item.GetNamespace(),
 			},
 		}
+	}
+	return requests
+}
+
+// isWarningEvent checks if the object is a Warning-type Event for a Pod or StatefulSet.
+// While the cache streams only Warning events from the API server, filtering for Pod and
+// StatefulSet kinds specifically is done here because Kubernetes field selectors do not
+// support OR / set-based filtering across kinds.
+func isWarningEvent(ev *corev1.Event) bool {
+	if ev.Type != corev1.EventTypeWarning {
+		return false
+	}
+	return ev.InvolvedObject.Kind == kindPod || ev.InvolvedObject.Kind == kindStatefulSet
+}
+
+// predWarningEvent filters for Warning-type events on owned Pods and StatefulSets on creation only
+var predWarningEvent = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		ev, ok := e.Object.(*corev1.Event)
+		if !ok {
+			return false
+		}
+		return isWarningEvent(ev)
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		// we need to reconcile on updates because when there are multiple warning events causing the workspace
+		// to be in an error state, and one is resolved, we need to update the workspace state to reflect the
+		// warning event that is still firing.
+		//
+		// TODO: the need for this can probably be avoided if we always requeue workspaces which have
+		//       a state derived from warning events (e.g. every 1-5 minutes).
+		//
+		newEv, ok := e.ObjectNew.(*corev1.Event)
+		if !ok {
+			return false
+		}
+		return isWarningEvent(newEv)
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		return false // Deleting an event should not trigger parent reconciliation
+	},
+	GenericFunc: func(e event.GenericEvent) bool {
+		return false
+	},
+}
+
+// mapEventToRequest converts Warning Event objects on owned resources to reconcile requests for Workspaces
+func (r *WorkspaceReconciler) mapEventToRequest(ctx context.Context, obj client.Object) []reconcile.Request {
+	ev, ok := obj.(*corev1.Event)
+	if !ok || ev.InvolvedObject.UID == "" {
+		return nil
+	}
+	if ev.InvolvedObject.Kind != kindPod && ev.InvolvedObject.Kind != kindStatefulSet {
+		return nil
+	}
+
+	workspaces := &kubefloworgv1beta1.WorkspaceList{}
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(
+			helper.IndexWorkspaceOwnedResourceUIDField,
+			string(ev.InvolvedObject.UID),
+		),
+		Namespace: ev.InvolvedObject.Namespace,
+	}
+	if err := r.List(ctx, workspaces, listOpts); err != nil {
+		return nil
+	}
+
+	requests := make([]reconcile.Request, 0, len(workspaces.Items))
+	for _, ws := range workspaces.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: client.ObjectKeyFromObject(&ws),
+		})
 	}
 	return requests
 }
@@ -1540,6 +1634,7 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 	//       known even when the Pod does not exist yet (e.g. while the Workspace is paused)
 	status.PodTemplatePod = generateWorkspacePodStatus(pod)
 	status.PodTemplatePod.ServiceAccountName = serviceAccountName
+	status.PodTemplateStatefulSet = generateWorkspaceStatefulSetStatus(statefulSet)
 
 	// populate the workspace state and state message
 	workspaceState, workspaceStateMessage, result, err := r.generateWorkspaceState(ctx, log, workspacePaused, statefulSet, pod)
@@ -1585,6 +1680,9 @@ func generateWorkspacePodStatus(pod *corev1.Pod) kubefloworgv1beta1.WorkspacePod
 	// populate the name
 	podStatus.Name = pod.Name
 
+	// populate the UID
+	podStatus.UID = pod.UID
+
 	// populate the node name
 	podStatus.NodeName = pod.Spec.NodeName
 
@@ -1609,13 +1707,68 @@ func generateWorkspacePodStatus(pod *corev1.Pod) kubefloworgv1beta1.WorkspacePod
 	return podStatus
 }
 
+// generateWorkspaceStatefulSetStatus generates a WorkspaceStatefulSetStatus for a StatefulSet
+func generateWorkspaceStatefulSetStatus(sts *appsv1.StatefulSet) kubefloworgv1beta1.WorkspaceStatefulSetStatus {
+	stsStatus := kubefloworgv1beta1.WorkspaceStatefulSetStatus{}
+
+	// return an empty status if the statefulset does not exist
+	if sts == nil || sts.UID == "" {
+		return stsStatus
+	}
+
+	// populate the name
+	stsStatus.Name = sts.Name
+
+	// populate the UID
+	stsStatus.UID = sts.UID
+
+	return stsStatus
+}
+
+// getLastWarningEvent returns the most recent Warning Event involving the object with the given
+// UID, or nil if there are none.
+//
+// NOTE: this works whether or not Events are cached (`--watch-warning-events`):
+//   - when they are cached, the field selector is resolved against the `IndexEventInvolvedObjectUidField`
+//     cache index, and no API call is made
+//   - when they are not cached, the field selector is sent to the API server as a real
+//     `involvedObject.uid` field selector, scoped to a single namespace
+//
+// The read only happens for Workspaces that are not yet Running, so healthy Workspaces never pay
+// for it in either mode.
+func (r *WorkspaceReconciler) getLastWarningEvent(ctx context.Context, namespace string, uid types.UID) (*corev1.Event, error) {
+	events := &corev1.EventList{}
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(helper.IndexEventInvolvedObjectUidField, string(uid)),
+		Namespace:     namespace,
+	}
+	if err := r.List(ctx, events, listOpts); err != nil {
+		return nil, err
+	}
+
+	// NOTE: the cached Events are already filtered to Warning types, but the uncached ones are not,
+	//       so we always have to check the type here
+	var lastWarningEvent *corev1.Event
+	for i, event := range events.Items {
+		if event.Type != corev1.EventTypeWarning {
+			continue
+		}
+		if lastWarningEvent == nil || lastWarningEvent.LastTimestamp.Time.Before(event.LastTimestamp.Time) {
+			lastWarningEvent = &events.Items[i]
+		}
+	}
+
+	return lastWarningEvent, nil
+}
+
 // generateWorkspaceState gets current state and stateMessage for a Workspace
-func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log logr.Logger, paused bool, statefulSet *appsv1.StatefulSet, pod *corev1.Pod) (kubefloworgv1beta1.WorkspaceState, string, ctrl.Result, error) { //nolint:gocyclo
+func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log logr.Logger, paused bool, statefulSet *appsv1.StatefulSet, pod *corev1.Pod) (kubefloworgv1beta1.WorkspaceState, string, ctrl.Result, error) {
 	state := kubefloworgv1beta1.WorkspaceStateUnknown
 	stateMessage := stateMsgUnknown
 
 	// STATUS: Pending (kubernetes might not have processed StatefulSet)
-	if statefulSet.GetGeneration() != statefulSet.Status.ObservedGeneration {
+	// NOTE: `statefulSet` may be nil, e.g. when the StatefulSet has not been created yet
+	if statefulSet != nil && statefulSet.GetGeneration() != statefulSet.Status.ObservedGeneration {
 		return kubefloworgv1beta1.WorkspaceStatePending,
 			stateMsgWaitingStatefulSetReconcile,
 			ctrl.Result{},
@@ -1632,36 +1785,19 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 		}
 
 		// there might be StatefulSet events
-		statefulSetEvents := &corev1.EventList{}
-		listOpts := &client.ListOptions{
-			FieldSelector: fields.OneTermEqualSelector(helper.IndexEventInvolvedObjectUidField, string(statefulSet.UID)),
-			Namespace:     statefulSet.Namespace,
-		}
-		if err := r.List(ctx, statefulSetEvents, listOpts); err != nil {
-			log.Error(err, "unable to list StatefulSet events")
-			return state, stateMessage, ctrl.Result{}, err
-		}
-
-		// find the last StatefulSet warning event
-		var lastStsWarningEvent *corev1.Event
-		if len(statefulSetEvents.Items) > 0 {
-			for i, event := range statefulSetEvents.Items {
-				if event.Type == corev1.EventTypeWarning {
-					//
-					// TODO: ensure this actually works when there are multiple Warning events for this object
-					//
-					if lastStsWarningEvent == nil || lastStsWarningEvent.LastTimestamp.Time.Before(event.LastTimestamp.Time) {
-						lastStsWarningEvent = &statefulSetEvents.Items[i]
-					}
-				}
+		if statefulSet != nil {
+			lastStsWarningEvent, err := r.getLastWarningEvent(ctx, statefulSet.Namespace, statefulSet.UID)
+			if err != nil {
+				log.Error(err, "unable to list StatefulSet events")
+				return state, stateMessage, ctrl.Result{}, err
 			}
-		}
 
-		// STATUS: Error (StatefulSet warning event)
-		if lastStsWarningEvent != nil {
-			state = kubefloworgv1beta1.WorkspaceStateError
-			stateMessage = fmt.Sprintf(stateMsgErrorStatefulSetWarningEvent, lastStsWarningEvent.Message)
-			return state, stateMessage, ctrl.Result{}, nil
+			// STATUS: Error (StatefulSet warning event)
+			if lastStsWarningEvent != nil {
+				state = kubefloworgv1beta1.WorkspaceStateError
+				stateMessage = fmt.Sprintf(stateMsgErrorStatefulSetWarningEvent, lastStsWarningEvent.Message)
+				return state, stateMessage, ctrl.Result{}, nil
+			}
 		}
 	}
 
@@ -1675,7 +1811,8 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 		}
 
 		// STATUS: Pending (StatefulSet might not have rolled out new Pod)
-		if pod.Labels[appsv1.StatefulSetRevisionLabel] != statefulSet.Status.UpdateRevision {
+		// NOTE: `statefulSet` may be nil, e.g. when the StatefulSet has not been created yet
+		if statefulSet != nil && pod.Labels[appsv1.StatefulSetRevisionLabel] != statefulSet.Status.UpdateRevision {
 			return kubefloworgv1beta1.WorkspaceStatePending,
 				stateMsgWaitingPodUpdate,
 				ctrl.Result{},
@@ -1756,29 +1893,10 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 		}
 
 		// there might be Pod events (e.g. for missing volumes)
-		podEvents := &corev1.EventList{}
-		listOpts := &client.ListOptions{
-			FieldSelector: fields.OneTermEqualSelector(helper.IndexEventInvolvedObjectUidField, string(pod.UID)),
-			Namespace:     pod.Namespace,
-		}
-		if err := r.List(ctx, podEvents, listOpts); err != nil {
+		lastPodWarningEvent, err := r.getLastWarningEvent(ctx, pod.Namespace, pod.UID)
+		if err != nil {
 			log.Error(err, "unable to list Pod events")
 			return state, stateMessage, ctrl.Result{}, err
-		}
-
-		// find the last Pod warning event
-		var lastPodWarningEvent *corev1.Event
-		if len(podEvents.Items) > 0 {
-			for i, event := range podEvents.Items {
-				if event.Type == corev1.EventTypeWarning {
-					//
-					// TODO: ensure this actually works when there are multiple Warning events for this object
-					//
-					if lastPodWarningEvent == nil || lastPodWarningEvent.LastTimestamp.Time.Before(event.LastTimestamp.Time) {
-						lastPodWarningEvent = &podEvents.Items[i]
-					}
-				}
-			}
 		}
 
 		// STATUS: Error (Pod warning event)
