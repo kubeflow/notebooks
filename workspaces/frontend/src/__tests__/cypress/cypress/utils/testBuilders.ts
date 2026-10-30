@@ -1,4 +1,5 @@
 import {
+  buildMockListValuesData,
   buildMockOptionInfo,
   buildMockPodConfig,
   buildMockPodTemplate,
@@ -11,6 +12,7 @@ import {
   V1Beta1WorkspaceState,
   type OptionsImageConfigValue,
   type OptionsPodConfigValue,
+  type OptionsPodTemplateOptions,
   type WorkspacekindsWorkspaceKindListItem,
 } from '~/generated/data-contracts';
 
@@ -158,6 +160,7 @@ export const buildMockPodConfigWithLabels = (
 });
 
 type InterceptListValuesOptions = {
+  listValues?: OptionsPodTemplateOptions;
   podConfigsByImage?: Record<string, OptionsPodConfigValue[]>;
 };
 
@@ -165,8 +168,9 @@ export const interceptListValues = (
   kind: WorkspacekindsWorkspaceKindListItem,
   options: InterceptListValuesOptions = {},
 ): Cypress.Chainable<null> => {
-  const allImages = kind.podTemplate.options.imageConfig.values ?? [];
-  const allPodConfigs = kind.podTemplate.options.podConfig.values ?? [];
+  const listValues = options.listValues ?? buildMockListValuesData();
+  const allImages = listValues.imageConfig.values ?? [];
+  const allPodConfigs = listValues.podConfig.values ?? [];
 
   return cy
     .intercept('POST', `**/workspacekinds/${kind.name}/podtemplate/options/listvalues`, (req) => {
@@ -180,11 +184,11 @@ export const interceptListValues = (
       req.reply({
         data: {
           imageConfig: {
-            default: kind.podTemplate.options.imageConfig.default,
+            default: listValues.imageConfig.default,
             values: images,
           },
           podConfig: {
-            default: kind.podTemplate.options.podConfig.default,
+            default: listValues.podConfig.default,
             values: podConfigs,
           },
         },

@@ -14,6 +14,8 @@ import {
   TabContent,
 } from '@patternfly/react-core/dist/esm/components/Tabs';
 import { Title } from '@patternfly/react-core/dist/esm/components/Title';
+import { DetailsLoadingState } from '~/app/components/DetailsLoadingState';
+import usePodTemplateOptionsListValues from '~/app/hooks/usePodTemplateOptionsListValues';
 import { WorkspaceCountResult } from '~/app/hooks/useWorkspaceCountPerKind';
 import { WorkspaceKindDetailsNamespaces } from '~/app/pages/WorkspaceKinds/details/WorkspaceKindDetailsNamespaces';
 import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
@@ -38,6 +40,12 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
   const namespacesTabKey = 3;
 
   const [activeTabKey, setActiveTabKey] = useState<string | number>(overviewTabKey);
+
+  const [listValues, listValuesLoaded, listValuesError] = usePodTemplateOptionsListValues({
+    kindName: workspaceKind.name,
+    namespace: undefined,
+    imageId: undefined,
+  });
 
   const handleTabClick = (
     event: React.MouseEvent | React.KeyboardEvent | MouseEvent,
@@ -110,10 +118,12 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           hidden={activeTabKey !== imagesTabKey}
         >
           <TabContentBody hasPadding>
-            <WorkspaceKindDetailsImages
-              workspaceKind={workspaceKind}
-              workspaceCountResult={workspaceCountResult}
-            />
+            <DetailsLoadingState loaded={listValuesLoaded} error={listValuesError}>
+              <WorkspaceKindDetailsImages
+                workspaceKind={workspaceKind}
+                images={listValues?.imageConfig.values ?? []}
+              />
+            </DetailsLoadingState>
           </TabContentBody>
         </TabContent>
         <TabContent
@@ -124,10 +134,12 @@ export const WorkspaceKindDetails: React.FunctionComponent<WorkspaceKindDetailsP
           hidden={activeTabKey !== podConfigsTabKey}
         >
           <TabContentBody hasPadding>
-            <WorkspaceKindDetailsPodConfigs
-              workspaceKind={workspaceKind}
-              workspaceCountResult={workspaceCountResult}
-            />
+            <DetailsLoadingState loaded={listValuesLoaded} error={listValuesError}>
+              <WorkspaceKindDetailsPodConfigs
+                workspaceKind={workspaceKind}
+                podConfigs={listValues?.podConfig.values ?? []}
+              />
+            </DetailsLoadingState>
           </TabContentBody>
         </TabContent>
         <TabContent
