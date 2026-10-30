@@ -37,9 +37,13 @@ type EditWorkspaceSetup = {
   mockNamespace: ReturnType<typeof buildMockNamespace>;
   mockWorkspace: ReturnType<typeof buildMockWorkspace>;
   mockWorkspaceKind: ReturnType<typeof buildMockWorkspaceKind>;
+  mockWorkspaceUpdateResponse: ReturnType<typeof buildMockWorkspaceUpdate>;
 };
 
 type EditWorkspaceOptions = {
+  displayName?: string;
+  revision?: string;
+  paused?: boolean;
   globalNamespace?: string;
   workspaceNamespace?: string;
   initialVolumes?: WorkspacesPodVolumesMutate['data'];
@@ -47,6 +51,9 @@ type EditWorkspaceOptions = {
 };
 
 const setupEditWorkspace = ({
+  displayName = TEST_WORKSPACE_NAME,
+  revision = 'opaque/revision:17',
+  paused = false,
   globalNamespace = DEFAULT_NAMESPACE,
   workspaceNamespace = globalNamespace,
   initialVolumes = [
@@ -85,6 +92,9 @@ const setupEditWorkspace = ({
   });
 
   const mockWorkspaceUpdateResponse = buildMockWorkspaceUpdate({
+    displayName,
+    revision,
+    paused,
     podTemplate: {
       options: {
         imageConfig: IMAGE_CONFIG_ID,
@@ -94,7 +104,7 @@ const setupEditWorkspace = ({
         labels: { testLabel: 'testValue' },
         annotations: { testAnnotation: 'testAnnotationValue' },
       },
-      volumes: { home: '/home', data: initialVolumes, secrets: initialSecrets },
+      volumes: { home: 'home-pvc', data: initialVolumes, secrets: initialSecrets },
     },
   });
 
@@ -129,7 +139,7 @@ const setupEditWorkspace = ({
   ).as('getWorkspaceKinds');
   interceptListValues(mockWorkspaceKind);
 
-  return { mockNamespace, mockWorkspace, mockWorkspaceKind };
+  return { mockNamespace, mockWorkspace, mockWorkspaceKind, mockWorkspaceUpdateResponse };
 };
 
 const visitEditWorkspace = () => {
@@ -189,8 +199,11 @@ describe('Edit workspace', () => {
       workspaces.verifyPageURL();
     });
 
-    it('should update workspace when clicking Save button', () => {
-      const { mockNamespace } = setupEditWorkspace();
+    it('preserves existing configuration and resumes a paused workspace when saving', () => {
+      const { mockNamespace, mockWorkspaceUpdateResponse } = setupEditWorkspace({
+        displayName: 'Research notebook',
+        paused: true,
+      });
 
       cy.interceptApi(
         'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',
@@ -216,13 +229,54 @@ describe('Edit workspace', () => {
 
       cy.wait('@updateWorkspace').then((interception) => {
         expect(interception.request.method).to.equal('PUT');
+        expect(interception.request.body).to.deep.equal({
+          data: { ...mockWorkspaceUpdateResponse, paused: false },
+        });
       });
 
       workspaces.verifyPageURL();
       toastNotification.assertSuccessAlertExists();
       toastNotification.assertSuccessAlertContainsMessage(
-        `Workspace '${TEST_WORKSPACE_NAME}' updated successfully`,
+        `Workspace '${mockWorkspaceUpdateResponse.displayName}' updated successfully`,
       );
+    });
+
+    it('keeps stale revision errors visible and preserves configuration in the rejected request', () => {
+      const { mockWorkspaceUpdateResponse } = setupEditWorkspace({
+        displayName: 'Research notebook',
+        revision: 'opaque/stale:17',
+      });
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspaces/:namespace/:workspaceName',
+        {
+          path: {
+            apiVersion: NOTEBOOKS_API_VERSION,
+            namespace: DEFAULT_NAMESPACE,
+            workspaceName: TEST_WORKSPACE_NAME,
+          },
+        },
+        { error: { code: '409', message: 'Workspace revision is stale. Reload before saving.' } },
+      ).as('staleUpdate');
+
+      visitEditWorkspace();
+      cy.wait('@getWorkspace');
+      cy.wait('@getWorkspaceKinds');
+      editWorkspace.clickNext();
+      editWorkspace.advancePastRedirectModal();
+      editWorkspace.advancePastRedirectModal();
+      editWorkspace.assertDisplayName('Research notebook');
+      editWorkspace.clickNext();
+      editWorkspace.clickSave();
+
+      cy.wait('@staleUpdate').then(({ request, response }) => {
+        expect(request.body).to.deep.equal({ data: mockWorkspaceUpdateResponse });
+        expect(response?.statusCode).to.equal(409);
+      });
+      editWorkspace.assertSubmissionError('Workspace revision is stale. Reload before saving.');
+      editWorkspace.assertSaveButtonEnabled();
+      editWorkspace.verifyPageURL();
+      cy.get('@staleUpdate.all').should('have.length', 1);
+      cy.get('@getWorkspace.all').should('have.length', 1);
     });
 
     it('should send updated values in the request payload', () => {
@@ -592,9 +646,7 @@ describe('Edit workspace — volume detach behavior', () => {
 });
 
 describe('Edit workspace — home volume mount path', () => {
-  // setupEditWorkspace uses '/home' as the home PVC name, while the workspace kind
-  // defines '/home/jovyan' as the home mount path.
-  const HOME_PVC_NAME = '/home';
+  const HOME_PVC_NAME = 'home-pvc';
   const HOME_MOUNT_PATH = '/home/jovyan';
 
   beforeEach(() => {
