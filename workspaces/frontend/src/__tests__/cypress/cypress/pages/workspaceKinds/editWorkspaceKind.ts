@@ -438,6 +438,75 @@ class EditWorkspaceKind {
     return cy.findByTestId('pod-config-modal');
   }
 
+  expandResources() {
+    cy.findByTestId('pod-config-resources')
+      .findByRole('button', { name: /Resources/ })
+      .click();
+  }
+
+  toggleResource(field: 'cpu-request' | 'cpu-limit' | 'memory-request' | 'memory-limit') {
+    cy.findByTestId(`${field}-checkbox`).click();
+  }
+
+  assertResourceToggle(field: string, checked: boolean) {
+    cy.findByTestId(`${field}-checkbox`).should(checked ? 'be.checked' : 'not.be.checked');
+  }
+
+  setResourceValue(label: string, value: string) {
+    cy.findByTestId(`${label}-input`).findByLabelText(label).clear();
+    if (value) {
+      cy.findByTestId(`${label}-input`).findByLabelText(label).type(value);
+    }
+  }
+
+  assertResourceValue(label: string, value: string) {
+    cy.findByTestId(`${label}-input`).findByLabelText(label).should('have.value', value);
+  }
+
+  addCustomResource() {
+    cy.findByTestId('add-custom-resource').click();
+  }
+
+  setCustomResourceName(name: string) {
+    cy.findByTestId('custom-resource-type').clear();
+    if (name) {
+      cy.findByTestId('custom-resource-type').type(name);
+    }
+  }
+
+  addGpuResource() {
+    this.addCustomResource();
+    this.setCustomResourceName('nvidia.com/gpu');
+  }
+
+  assertCustomRequestVisible() {
+    cy.findByTestId('Custom resource request-input').scrollIntoView();
+    cy.findByTestId('Custom resource request-input').should('be.visible');
+  }
+
+  assertCustomLimitOnly() {
+    cy.findByTestId('Custom resource request-input').should('not.exist');
+    cy.findByTestId('custom-resource-limit-checkbox').should('not.exist');
+    cy.findByTestId('custom-resource-mode').should('not.exist');
+    this.findPodConfigModal().should(
+      'contain.text',
+      'Extended resources and huge pages use the limit as the request.',
+    );
+  }
+
+  assertGpuLimitOnly() {
+    this.assertCustomLimitOnly();
+    this.findPodConfigModal().should('not.contain.text', 'request must equal');
+  }
+
+  assertResourceError(message: string) {
+    this.findPodConfigModal().should('contain.text', message);
+  }
+
+  assertPodConfigSaveEnabled(enabled: boolean) {
+    this.findPodConfigModalSubmitButton().should(enabled ? 'not.be.disabled' : 'be.disabled');
+  }
+
   findPodConfigModalTitle() {
     return cy.findByTestId('pod-config-modal-title');
   }
