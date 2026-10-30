@@ -24,6 +24,9 @@ interface ResourceInputWrapperProps {
   placeholder?: string;
   'aria-label'?: string;
   isDisabled?: boolean;
+  allowEmpty?: boolean;
+  inputId?: string;
+  'aria-describedby'?: string;
 }
 
 const unitMap: {
@@ -52,6 +55,9 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
   placeholder,
   'aria-label': ariaLabel,
   isDisabled = false,
+  allowEmpty = false,
+  inputId,
+  'aria-describedby': ariaDescribedBy,
 }) => {
   const [inputValue, setInputValue] = useState(value);
   const [unit, setUnit] = useState<string>('');
@@ -91,8 +97,13 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
         setInputValue(value);
         return;
       }
+      if (value === '') {
+        setInputValue('');
+        setUnit((current) => current || DEFAULT_UNITS[type]);
+        return;
+      }
       const [numericValue, extractedUnit] = parseResourceValue(value, type);
-      setInputValue(String(numericValue || ''));
+      setInputValue(String(numericValue ?? ''));
       setUnit(extractedUnit?.unit || DEFAULT_UNITS[type]);
     }
   }, [type, value, unit]);
@@ -149,10 +160,16 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
 
   const handleNumberInputChange = useCallback(
     (event: React.FormEvent<HTMLInputElement>) => {
-      const newValue = (event.target as HTMLInputElement).value;
-      handleInputChange(newValue);
+      const input = event.target as HTMLInputElement;
+      // NumberInput normalizes an empty field to zero before forwarding blur events.
+      if (allowEmpty && event.type === 'blur' && inputValue === '') {
+        input.value = '';
+        handleInputChange('');
+        return;
+      }
+      handleInputChange(input.value);
     },
-    [handleInputChange],
+    [allowEmpty, handleInputChange, inputValue],
   );
 
   const unitOptions = useMemo(
@@ -181,6 +198,7 @@ export const ResourceInputWrapper: React.FC<ResourceInputWrapperProps> = ({
     <Split className="workspacekind-form-resource-input">
       <SplitItem>
         <NumberInput
+          inputProps={{ id: inputId, 'aria-describedby': ariaDescribedBy }}
           value={displayValue}
           placeholder={placeholder}
           onMinus={handleDecrement}

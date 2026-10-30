@@ -16,6 +16,14 @@ import { getResources } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { OptionsOptionLabel } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
+import { getResourceErrors, requiresMatchingResources } from './resourceValidation';
+
+const getEditableResources = (config: WorkspaceKindPodConfigValue): PodResourceEntry[] =>
+  getResources(config).map((resource) =>
+    requiresMatchingResources(resource.type)
+      ? { ...resource, request: '', limit: resource.limit || resource.request }
+      : resource,
+  );
 
 interface WorkspaceKindFormPodConfigModalProps {
   isOpen: boolean;
@@ -26,7 +34,16 @@ interface WorkspaceKindFormPodConfigModalProps {
   setCurrConfig: (currConfig: WorkspaceKindPodConfigValue) => void;
 }
 
-export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfigModalProps> = ({
+export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfigModalProps> = (
+  props,
+) => (
+  <WorkspaceKindFormPodConfigModalContent
+    key={`${props.isOpen}-${props.editIndex}-${props.currConfig.id}`}
+    {...props}
+  />
+);
+
+const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfigModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
@@ -34,7 +51,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
   currConfig,
   setCurrConfig,
 }) => {
-  const initialResources = useMemo(() => getResources(currConfig), [currConfig]);
+  const initialResources = useMemo(() => getEditableResources(currConfig), [currConfig]);
 
   const [resources, setResources] = useState<PodResourceEntry[]>(initialResources);
   const [labels, setLabels] = useState<OptionsOptionLabel[]>(currConfig.labels ?? []);
@@ -47,7 +64,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
   const [hidden, setHidden] = useState<boolean>(currConfig.hidden || false);
 
   useEffect(() => {
-    setResources(getResources(currConfig));
+    setResources(getEditableResources(currConfig));
     setId(currConfig.id);
     setDisplayName(currConfig.displayName);
     setDescription(currConfig.description);
@@ -67,7 +84,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
           if (r.limit.length) {
             acc.limits[r.type] = r.limit;
           }
-          if (r.request.length) {
+          if (r.request.length && !requiresMatchingResources(r.type)) {
             acc.requests[r.type] = r.request;
           }
         }
@@ -81,7 +98,12 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
     return parsedResources;
   }, []);
 
+  const hasResourceErrors = resources.some((resource) => getResourceErrors(resource).length > 0);
+
   const handleSubmit = useCallback(() => {
+    if (hasResourceErrors) {
+      return;
+    }
     const updatedConfig = {
       ...currConfig,
       id,
@@ -98,6 +120,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
     onSubmit(updatedConfig);
   }, [
     currConfig,
+    hasResourceErrors,
     description,
     displayName,
     hidden,
@@ -226,6 +249,7 @@ export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfi
           key="confirm"
           variant="primary"
           onClick={handleSubmit}
+          isDisabled={hasResourceErrors}
           data-testid="pod-config-modal-submit-button"
         >
           {editIndex !== null ? 'Save' : 'Create'}
