@@ -102,8 +102,11 @@ class SecretsModal {
     return cy.findByTestId('secret-immutable-switch');
   }
 
-  toggleImmutable() {
-    this.findImmutableSwitch().click({ force: true });
+  enableImmutable() {
+    return this.findImmutableSwitch()
+      .should('be.enabled')
+      .check({ force: true })
+      .should('be.checked');
   }
 
   findSubmitButton() {
@@ -144,6 +147,35 @@ class SecretsModal {
 
   keepValue(index: number) {
     return this.findRow(index).findByTestId('keep-secret-value').click();
+  }
+
+  resizeViewport(width: number) {
+    return cy.viewport(width, 1080);
+  }
+
+  assertReplacementControlsAligned(index: number) {
+    this.findRow(index)
+      .findByTestId('key-input')
+      .then(($key) => {
+        const key = $key[0].getBoundingClientRect();
+        const keyCenter = key.top + key.height / 2;
+        ['value-input', 'keep-secret-value', 'remove-key-value-pair'].forEach((testId) => {
+          this.findRow(index)
+            .findByTestId(testId)
+            .should(($control) => {
+              const control = $control[0].getBoundingClientRect();
+              expect(
+                control.top + control.height / 2,
+                `${testId} vertical alignment`,
+              ).to.be.closeTo(keyCenter, 1);
+            });
+        });
+      });
+    this.findRow(index).findByTestId('value-input').should('have.attr', 'type', 'password');
+    this.findRow(index)
+      .findByTestId('keep-secret-value')
+      .should('have.attr', 'aria-label')
+      .and('match', /^Keep existing value for /);
   }
 
   deleteKey(index: number) {

@@ -163,23 +163,27 @@ describe('Edit Secret Modal', () => {
     secretsModal.assertClosed();
   });
 
-  it('replaces one key and preserves the other undisclosed key', () => {
-    openEditor();
-    secretsModal.replaceValue({ index: 0, value: 'synthetic-replacement' });
-    secretsModal.capture('secret-editor-replacement');
-    secretsModal.save();
-    cy.wait('@updateSecret').then(({ request }) => {
-      expect(request.body.data.contents).to.deep.equal({
-        apiKey: { base64: btoa('synthetic-replacement') },
-        username: {},
+  [1920, 1024, 768].forEach((width) => {
+    it(`aligns replacement controls at ${width}px and preserves the other undisclosed key`, () => {
+      secretsModal.resizeViewport(width);
+      openEditor();
+      secretsModal.replaceValue({ index: 0, value: 'synthetic-replacement' });
+      secretsModal.assertReplacementControlsAligned(0);
+      secretsModal.capture(`secret-editor-replacement-${width}`);
+      secretsModal.save();
+      cy.wait('@updateSecret').then(({ request }) => {
+        expect(request.body.data.contents).to.deep.equal({
+          apiKey: { base64: btoa('synthetic-replacement') },
+          username: {},
+        });
       });
+      secretsModal.assertClosed();
     });
-    secretsModal.assertClosed();
   });
 
   it('can mark a mutable secret immutable without replacing undisclosed values', () => {
     openEditor();
-    secretsModal.toggleImmutable();
+    secretsModal.enableImmutable();
     secretsModal.save();
     cy.wait('@updateSecret').then(({ request }) => {
       expect(request.body.data).to.deep.equal({

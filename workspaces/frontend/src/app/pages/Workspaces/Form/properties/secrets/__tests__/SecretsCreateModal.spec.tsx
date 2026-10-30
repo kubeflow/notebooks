@@ -227,12 +227,12 @@ describe('editing undisclosed secret data', () => {
     },
   );
 
-  it('discards replacement text when Keep existing value is selected', async () => {
+  it('uses accessible inline controls to replace a value and keep the existing value', async () => {
     const user = userEvent.setup();
     renderEditor();
-    await user.click(screen.getAllByTestId('replace-secret-value')[0]);
+    await user.click(screen.getByRole('button', { name: 'Replace value for username' }));
     await user.type(screen.getByTestId('value-input'), 'discarded-text');
-    await user.click(screen.getByTestId('keep-secret-value'));
+    await user.click(screen.getByRole('button', { name: 'Keep existing value for username' }));
     expect(screen.queryByTestId('value-input')).not.toBeInTheDocument();
     await user.click(screen.getByTestId('secret-modal-submit-button'));
     expectUpdate({ username: {}, password: {} });
