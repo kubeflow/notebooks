@@ -381,8 +381,15 @@ describe('Create workspace', () => {
         createWorkspace.assertNextButtonDisabled();
       });
 
-      it('should enable Next with a valid resource name', () => {
+      it('should disable Next when resource name contains a dot', () => {
         createWorkspace.typeResourceName('my-workspace.v1');
+        createWorkspace.assertResourceNameInputInvalid();
+        createWorkspace.assertResourceNameCriterionInvalid('chars');
+        createWorkspace.assertNextButtonDisabled();
+      });
+
+      it('should enable Next with a valid resource name', () => {
+        createWorkspace.typeResourceName('my-workspace-v1');
         createWorkspace.assertResourceNameInputValid();
         createWorkspace.assertNextButtonEnabled();
       });
