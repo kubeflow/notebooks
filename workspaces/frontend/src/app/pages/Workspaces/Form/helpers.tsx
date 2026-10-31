@@ -213,7 +213,7 @@ export const getRWOInUseWarning = (
   if (!findOtherMountConflict(pvc, currentWorkspaceName)) {
     return null;
   }
-  return 'ReadWriteOnce (RWO) volumes allow read-write access from a single node at a time. Multiple Pods on the same node may share this volume, but Pods on different nodes may not be able to mount it read-write simultaneously.';
+  return 'ReadWriteOnce (RWO) volumes support read-write access from one node at a time. Multiple Pods on that node can share this volume. Using it from workspaces scheduled on different nodes may cause mount failures.';
 };
 
 export const buildPVCOptionDescription = (
