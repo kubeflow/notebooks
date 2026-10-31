@@ -24,11 +24,11 @@ import (
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/internal/config"
+	modelsCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/models/common"
 	models "github.com/kubeflow/notebooks/workspaces/backend/internal/models/workspaces/podtemplate/logs"
 	repoCommon "github.com/kubeflow/notebooks/workspaces/backend/internal/repositories/common"
 )
@@ -42,7 +42,7 @@ var (
 // Format-string templates for wrapped errors.
 const (
 	fmtOpenLogStreamFailed = "failed to open log stream for pod %s, container %s: %w"
-	fmtGetPodFailed        = "failed to get pod %s: %w"
+	fmtListPodsFailed      = "failed to list pods for workspace %s: %w"
 )
 
 var (
@@ -103,16 +103,19 @@ func (r *PodLogsRepository) OpenLogStream(ctx context.Context, namespace, worksp
 	return stream, nil
 }
 
-// containerExists reports whether a container with the given name exists among the
-// pod's regular or init containers. Both are valid log sources (e.g. an istio-proxy
-// native sidecar is an init container).
-func containerExists(name string, containers, initContainers []kubefloworgv1beta1.WorkspacePodContainer) bool {
-	for _, c := range containers {
+// podSpecContainerExists reports whether a container with the given name
+// exists among the pod's regular or init containers. Both are valid log
+// sources (e.g. an istio-proxy native sidecar is an init container).
+//
+// The pod spec is authoritative and controller-managed, unlike
+// workspace.status which is writable by the user.
+func podSpecContainerExists(pod *corev1.Pod, name string) bool {
+	for _, c := range pod.Spec.Containers {
 		if c.Name == name {
 			return true
 		}
 	}
-	for _, c := range initContainers {
+	for _, c := range pod.Spec.InitContainers {
 		if c.Name == name {
 			return true
 		}
@@ -121,6 +124,10 @@ func containerExists(name string, containers, initContainers []kubefloworgv1beta
 }
 
 func (r *PodLogsRepository) resolvePodAndContainer(ctx context.Context, namespace, workspaceName string, opts *models.LogOptions) (string, string, error) {
+	// Confirm the workspace exists. The pod is resolved by label below, so
+	// without this a workspace that never existed would be indistinguishable
+	// from one that is merely paused, and both would report
+	// WORKSPACE_POD_NOT_RUNNING. This read is served from the cache.
 	workspace := &kubefloworgv1beta1.Workspace{}
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workspaceName}, workspace); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -129,24 +136,34 @@ func (r *PodLogsRepository) resolvePodAndContainer(ctx context.Context, namespac
 		return "", "", err
 	}
 
-	podStatus := workspace.Status.PodTemplatePod
-	podName := podStatus.Name
-	if podName == "" {
+	// Resolve the target pod from the controller-managed "workspace-name"
+	// label and not from workspace.status.podTemplatePod, since the status
+	// field is writable by any user who can patch the Workspace, which means a
+	// user could redirect our request to an arbitrary pod whose logs are
+	// subsequently read via the backend's SA.
+	selector := client.MatchingLabels{modelsCommon.LabelWorkspaceName: workspaceName}
+	podList := &corev1.PodList{}
+	if err := r.client.List(ctx, podList, client.InNamespace(namespace), selector); err != nil {
+		return "", "", fmt.Errorf(fmtListPodsFailed, workspaceName, err)
+	}
+	if len(podList.Items) == 0 {
 		return "", "", repoCommon.ErrWorkspacePodNotRunning
 	}
+	// Workspaces are backed by StatefulSets with replicas=1, so there is at most one pod.
+	pod := &podList.Items[0]
 
-	// Resolve the target container name.
+	// Resolve the target container name against the real pod spec.
 	containerName := opts.Container
 	if containerName != "" {
 		// A requested container must exist among the pod's containers.
-		if !containerExists(containerName, podStatus.Containers, podStatus.InitContainers) {
+		if !podSpecContainerExists(pod, containerName) {
 			return "", "", ErrContainerNotFound
 		}
 	} else {
-		if len(podStatus.Containers) == 0 {
+		if len(pod.Spec.Containers) == 0 {
 			return "", "", ErrContainerNotRunning
 		}
-		if !containerExists(primaryContainerName, podStatus.Containers, nil) {
+		if !podSpecContainerExists(pod, primaryContainerName) {
 			return "", "", ErrContainerNotFound
 		}
 		// None requested: default to the primary container, which the controller
@@ -154,36 +171,23 @@ func (r *PodLogsRepository) resolvePodAndContainer(ctx context.Context, namespac
 		containerName = primaryContainerName
 	}
 
-	// Inspect the live Pod status to make a semantic decision before opening the
-	// stream, so we can return a precise error instead of an opaque one from the
-	// Kubernetes log API.
-	if err := r.ensureLogsAvailable(ctx, namespace, podName, containerName, opts.Previous); err != nil {
+	// Inspect the Pod status so we can return a precise error instead of an
+	// opaque one from the Kubernetes log API.
+	if err := ensureLogsAvailable(pod, containerName, opts.Previous); err != nil {
 		return "", "", err
 	}
 
-	return podName, containerName, nil
+	return pod.Name, containerName, nil
 }
 
-// ensureLogsAvailable checks the live Pod status for the target container and
+// ensureLogsAvailable checks the Pod status for the target container and
 // returns a semantic error when logs cannot be served:
 //   - when previous is false and the container is still Waiting (never started),
 //     it returns ErrContainerNotRunning.
 //   - when previous is true and the container has no recorded previous terminated
 //     instance (LastTerminationState.Terminated is nil), it returns
 //     ErrPreviousLogsNotFound.
-//
-// The checker utilizes the clientset to fetch the live Pod status,
-// which is more accurate than the Workspace's cached status.
-func (r *PodLogsRepository) ensureLogsAvailable(ctx context.Context, namespace, podName, containerName string, previous bool) error {
-	pod, err := r.clientset.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			// The Workspace status references a pod that no longer exists.
-			return repoCommon.ErrWorkspacePodNotRunning
-		}
-		return fmt.Errorf(fmtGetPodFailed, podName, err)
-	}
-
+func ensureLogsAvailable(pod *corev1.Pod, containerName string, previous bool) error {
 	// checkStatus evaluates a single container status for the target container.
 	checkStatus := func(cs corev1.ContainerStatus) error {
 		if previous {

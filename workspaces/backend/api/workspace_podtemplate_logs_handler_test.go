@@ -210,7 +210,7 @@ var _ = Describe("Workspace Logs Handler", func() {
 			By("creating the WorkspaceKind")
 			Expect(k8sClient.Create(ctx, NewExampleWorkspaceKind(workspaceKindName))).To(Succeed())
 
-			By("creating the Workspace (status.podTemplatePod.name is empty)")
+			By("creating the Workspace (no pod is labeled for it, so none can be resolved)")
 			Expect(k8sClient.Create(ctx, NewExampleWorkspace(workspaceName, namespaceName, workspaceKindName))).To(Succeed())
 		})
 
