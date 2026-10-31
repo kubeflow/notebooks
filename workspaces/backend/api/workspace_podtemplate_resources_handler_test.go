@@ -105,6 +105,8 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 				},
 			}
 			Expect(k8sClient.Create(ctx, pod)).To(Succeed())
+			pod.Status.Phase = corev1.PodRunning
+			Expect(k8sClient.Status().Update(ctx, pod)).To(Succeed())
 			defer func() {
 				_ = k8sClient.Delete(ctx, pod)
 			}()
@@ -131,6 +133,51 @@ var _ = Describe("Workspace PodTemplate Resources Handler", func() {
 
 		It("should return 400 Bad Request when workspace pod is not running", func() {
 			By("executing GetWorkspacePodTemplateResourcesHandler when workspace has no pods")
+			rs := doPodTemplateResourcesRequest(namespaceName, workspaceName)
+			defer rs.Body.Close()
+
+			By("verifying status is 400 Bad Request")
+			Expect(rs.StatusCode).To(Equal(http.StatusBadRequest))
+
+			By("verifying the response is wrapped in the error envelope")
+			body, err := io.ReadAll(rs.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			var response ErrorEnvelope
+			Expect(json.Unmarshal(body, &response)).To(Succeed())
+			Expect(response.Error).NotTo(BeNil())
+			Expect(response.Error.Code).To(Equal("400"))
+			Expect(response.Error.Message).To(Equal(repoCommon.ErrWorkspacePodNotRunning.Error()))
+		})
+
+		It("should return 400 Bad Request when workspace pod is pending", func() {
+			By("creating a workspace pod in pending phase")
+			podName := fmt.Sprintf("pod-%s-pending", workspaceName)
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      podName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						commonModels.LabelWorkspaceName: workspaceName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "main",
+							Image: "registry.example.com/image:v1",
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, pod)).To(Succeed())
+			pod.Status.Phase = corev1.PodPending
+			Expect(k8sClient.Status().Update(ctx, pod)).To(Succeed())
+			defer func() {
+				_ = k8sClient.Delete(ctx, pod)
+			}()
+
+			By("executing GetWorkspacePodTemplateResourcesHandler when workspace pod is pending")
 			rs := doPodTemplateResourcesRequest(namespaceName, workspaceName)
 			defer rs.Body.Close()
 

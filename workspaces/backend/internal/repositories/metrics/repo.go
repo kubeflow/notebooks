@@ -133,14 +133,22 @@ func (r *MetricsRepository) GetWorkspaceResourceUsage(ctx context.Context, ns, w
 		return nil, err
 	}
 
-	if len(podList.Items) == 0 {
-		return nil, repoCommon.ErrWorkspacePodNotRunning
+	// Find the active running pod for the workspace. Workspaces are backed by StatefulSets
+	// with replicas=1, so there is at most one active running pod at any given time.
+	// We ignore terminating pods (DeletionTimestamp != nil) and pods not yet in the Running phase
+	// (e.g. Pending, Initializing, Failed, Succeeded).
+	var pod *corev1.Pod
+	for i := range podList.Items {
+		p := &podList.Items[i]
+		if p.DeletionTimestamp == nil && p.Status.Phase == corev1.PodRunning {
+			pod = p
+			break
+		}
 	}
 
-	// Workspaces are backed by StatefulSets with replicas=1. Because StatefulSets provide
-	// strict deployment guarantees, there will only ever be a maximum of one pod running
-	// at any given time. Therefore, we can safely just grab the first item in the list.
-	pod := &podList.Items[0]
+	if pod == nil {
+		return nil, repoCommon.ErrWorkspacePodNotRunning
+	}
 
 	cacheKey := fmt.Sprintf("%s/%s/%s", ns, workspace, pod.UID)
 	if r.usageCache != nil {
