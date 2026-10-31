@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { mockModArchResponse } from 'mod-arch-core';
 import { editWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspaceKinds/editWorkspaceKind';
 import { workspaceKinds } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
@@ -9,9 +10,10 @@ import {
   buildMockWorkspaceKind,
   buildMockWorkspaceKindUpdate,
 } from '~/shared/mock/mockBuilder';
-import type {
-  WorkspacekindsWorkspaceKindListItem,
-  WorkspacekindsWorkspaceKindUpdate,
+import {
+  FieldErrorType,
+  type WorkspacekindsWorkspaceKindListItem,
+  type WorkspacekindsWorkspaceKindUpdate,
 } from '~/generated/data-contracts';
 
 const DEFAULT_NAMESPACE = 'default';
@@ -1475,7 +1477,6 @@ describe('Edit workspace kind', () => {
 
     it('should display error when update API fails', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
-
       cy.interceptApi(
         'PUT /api/:apiVersion/workspacekinds/:kind',
         { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
@@ -1486,18 +1487,47 @@ describe('Edit workspace kind', () => {
           },
         },
       ).as('updateWorkspaceKindError');
-
       visitEditWorkspaceKind(mockWorkspaceKind.name);
-
       editWorkspaceKind.expandPropertiesSection();
       editWorkspaceKind.typeDescription('Updated description');
-
       editWorkspaceKind.clickSubmit();
-
       cy.wait('@updateWorkspaceKindError');
-
       editWorkspaceKind.assertErrorToastVisible();
       editWorkspaceKind.verifyPageURL(mockWorkspaceKind.name);
+    });
+    it('should display structured 422 validation errors as a list in the error toast on edit', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        {
+          error: {
+            code: '422',
+            message: 'request body was invalid',
+            cause: {
+              validation_errors: [
+                {
+                  field: 'spec.spawner.displayName',
+                  message: "Invalid value: 'displayName' contains invalid pattern",
+                  type: FieldErrorType.ErrorTypeInvalid,
+                },
+              ],
+            },
+          },
+        },
+      ).as('updateWorkspaceKind422Error');
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Updated description');
+      editWorkspaceKind.clickSubmit();
+      cy.wait('@updateWorkspaceKind422Error');
+      editWorkspaceKind.assertErrorToastVisible();
+      cy.findByTestId('toast-notification-group')
+        .findByTestId('toast-notification-danger')
+        .should(
+          'contain.text',
+          "spec.spawner.displayName: Invalid value: 'displayName' contains invalid pattern",
+        );
     });
   });
 
