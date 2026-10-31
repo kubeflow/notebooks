@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 type EnvConfig struct {
+	DebugMode bool
+
 	Port int
 
 	ClientQPS   float64

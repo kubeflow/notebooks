@@ -84,18 +84,33 @@ const (
 	stateMsgErrorUnknownWorkspaceKind      = "Workspace references unknown WorkspaceKind: %s"
 	stateMsgErrorInvalidImageConfig        = "Workspace has invalid imageConfig: %s"
 	stateMsgErrorInvalidPodConfig          = "Workspace has invalid podConfig: %s"
-	stateMsgErrorGenFailureStatefulSet     = "Workspace failed to generate StatefulSet with error: %s"
-	stateMsgErrorGenFailureService         = "Workspace failed to generate Service with error: %s"
-	stateMsgErrorGenFailureVirtualService  = "Workspace failed to generate VirtualService with error: %s"
+	stateMsgErrorGenFailureWorkspaceStatus = "Failed to generate Workspace status with error: %s"
+	stateMsgErrorGenFailureStatefulSet     = "Failed to generate StatefulSet with error: %s"
+	stateMsgErrorGenFailureService         = "Failed to generate Service with error: %s"
+	stateMsgErrorGenFailureVirtualService  = "Failed to generate VirtualService with error: %s"
+	stateMsgErrorCreateServiceAccount      = "Failed to create ServiceAccount: %s"
+	stateMsgErrorUpdateServiceAccount      = "Failed to update ServiceAccount %s: %s"
+	stateMsgErrorCreateRoleBinding         = "Failed to create RoleBinding: %s"
+	stateMsgErrorUpdateRoleBinding         = "Failed to update RoleBinding %s: %s"
+	stateMsgErrorDeleteRoleBinding         = "Failed to delete RoleBinding %s: %s"
+	stateMsgErrorCreateService             = "Failed to create Service: %s"
+	stateMsgErrorUpdateService             = "Failed to update Service %s: %s"
+	stateMsgErrorCreateStatefulSet         = "Failed to create StatefulSet: %s"
+	stateMsgErrorUpdateStatefulSet         = "Failed to update StatefulSet %s: %s"
+	stateMsgErrorDeletePod                 = "Failed to delete Pod %s: %s"
+	stateMsgErrorCreateVirtualService      = "Failed to create VirtualService: %s"
+	stateMsgErrorUpdateVirtualService      = "Failed to update VirtualService %s: %s"
 	stateMsgErrorMultipleStatefulSets      = "Workspace owns multiple StatefulSets: %s"
 	stateMsgErrorMultipleServices          = "Workspace owns multiple Services: %s"
 	stateMsgErrorMultipleServiceAccounts   = "Workspace owns multiple ServiceAccounts: %s"
 	stateMsgErrorMultipleVirtualServices   = "Workspace owns multiple VirtualServices: %s"
 	stateMsgErrorStatefulSetWarningEvent   = "Workspace StatefulSet has warning event: %s"
+	stateMsgErrorPodFailedPhase            = "Workspace Pod %s in failed phase"
 	stateMsgErrorPodUnschedulable          = "Workspace Pod is unschedulable: %s"
 	stateMsgErrorPodSchedulingGate         = "Workspace Pod is waiting for scheduling gate: %s"
 	stateMsgErrorPodSchedulerError         = "Workspace Pod has scheduler error: %s"
 	stateMsgErrorPodWarningEvent           = "Workspace Pod has warning event: %s"
+	stateMsgErrorPodNotOwnedByStatefulSet  = "Workspace Pod %s is not owned by the Workspace StatefulSet %s"
 	stateMsgErrorContainerCrashLoopBackOff = "Workspace Container is not running (CrashLoopBackOff)"
 	stateMsgErrorContainerImagePullBackOff = "Workspace Container is not running (ImagePullBackOff)"
 	stateMsgPaused                         = "Workspace is paused"
@@ -104,7 +119,7 @@ const (
 	stateMsgTerminating                    = "Workspace is terminating"
 	stateMsgUnknown                        = "Workspace is in an unknown state"
 	stateMsgWaitingStatefulSetReconcile    = "Waiting for Kubernetes to reconcile StatefulSet"
-	stateMsgWaitingPodUpdate               = "Waiting for Pod update"
+	stateMsgWaitingStatefulSetPodCreate    = "Waiting for StatefulSet to create Pod"
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -127,7 +142,7 @@ type WorkspaceReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
-// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=pods,verbs=delete;get;list;watch
 // +kubebuilder:rbac:groups=core,resources=pods/exec,verbs=create
 // +kubebuilder:rbac:groups=core,resources=services,verbs=create;delete;get;list;patch;update;watch
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=create;delete;get;list;patch;update;watch
@@ -155,7 +170,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			// Return and don't requeue.
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "unable to fetch Workspace")
+		log.Error(err, "unable to get Workspace", "workspace", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
 	if !workspace.GetDeletionTimestamp().IsZero() {
@@ -184,7 +199,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				fmt.Sprintf(stateMsgErrorUnknownWorkspaceKind, workspaceKindName),
 			)
 		}
-		log.Error(err, "unable to fetch WorkspaceKind for Workspace")
+		log.Error(err, "unable to get WorkspaceKind for Workspace", "workspaceKind", workspaceKindName)
 		return ctrl.Result{}, err
 	}
 
@@ -195,8 +210,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			controllerutil.AddFinalizer(workspaceKind, WorkspaceKindFinalizer)
 			if err := r.Update(ctx, workspaceKind); err != nil {
 				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while adding finalizer to WorkspaceKind, will requeue")
-					return ctrl.Result{}, err
+					log.V(2).Info("update conflict while adding finalizer to WorkspaceKind, will requeue", "workspaceKind", workspaceKind.Name)
+					return ctrl.Result{RequeueAfter: 1}, nil
 				}
 				log.Error(err, "unable to add finalizer to WorkspaceKind")
 				return ctrl.Result{}, err
@@ -289,7 +304,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	case numServiceAccounts == 0:
 		if err := r.Create(ctx, serviceAccount); err != nil {
 			log.Error(err, "unable to create ServiceAccount")
-			return ctrl.Result{}, err
+			return r.updateWorkspaceStateThenError(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf(stateMsgErrorCreateServiceAccount, err.Error()),
+				err,
+			)
 		}
 		serviceAccountName = serviceAccount.Name
 		log.V(2).Info("ServiceAccount created", "serviceAccount", serviceAccountName)
@@ -315,11 +334,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if serviceAccountFieldsUpdated || controllerRefUpdated {
 			if err := r.Update(ctx, foundServiceAccount); err != nil {
 				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while updating ServiceAccount, will requeue")
-					return ctrl.Result{}, err
+					log.V(2).Info("update conflict while updating ServiceAccount, will requeue", "serviceAccount", serviceAccountName)
+					return ctrl.Result{RequeueAfter: 1}, nil
 				}
-				log.Error(err, "unable to update ServiceAccount")
-				return ctrl.Result{}, err
+				log.Error(err, "unable to update ServiceAccount", "serviceAccount", serviceAccountName)
+				return r.updateWorkspaceStateThenError(ctx, log, workspace,
+					kubefloworgv1beta1.WorkspaceStateError,
+					fmt.Sprintf(stateMsgErrorUpdateServiceAccount, serviceAccountName, err.Error()),
+					err,
+				)
 			}
 			log.V(2).Info("ServiceAccount updated", "serviceAccount", serviceAccountName)
 		}
@@ -369,7 +392,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	case numSts == 0:
 		if err := r.Create(ctx, statefulSet); err != nil {
 			log.Error(err, "unable to create StatefulSet")
-			return ctrl.Result{}, err
+			return r.updateWorkspaceStateThenError(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf(stateMsgErrorCreateStatefulSet, err.Error()),
+				err,
+			)
 		}
 		statefulSetName = statefulSet.Name
 		log.V(2).Info("StatefulSet created", "statefulSet", statefulSetName)
@@ -390,11 +417,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if helper.CopyStatefulSetFields(statefulSet, foundStatefulSet) || controllerRefUpdated {
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
 				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while updating StatefulSet, will requeue")
-					return ctrl.Result{}, err
+					log.V(2).Info("update conflict while updating StatefulSet, will requeue", "statefulSet", statefulSetName)
+					return ctrl.Result{RequeueAfter: 1}, nil
 				}
-				log.Error(err, "unable to update StatefulSet")
-				return ctrl.Result{}, err
+				log.Error(err, "unable to update StatefulSet", "statefulSet", statefulSetName)
+				return r.updateWorkspaceStateThenError(ctx, log, workspace,
+					kubefloworgv1beta1.WorkspaceStateError,
+					fmt.Sprintf(stateMsgErrorUpdateStatefulSet, statefulSetName, err.Error()),
+					err,
+				)
 			}
 			log.V(2).Info("StatefulSet updated", "statefulSet", statefulSetName)
 		}
@@ -402,7 +433,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// generate Service
-	service, err := generateService(workspace, currentImageConfig.Spec)
+	service, err := generateService(workspace, workspaceKind, currentImageConfig.Spec)
 	if err != nil {
 		log.V(0).Info("failed to generate Service for Workspace", "error", err.Error())
 		return r.updateWorkspaceState(ctx, log, workspace,
@@ -445,7 +476,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	case numServices == 0:
 		if err := r.Create(ctx, service); err != nil {
 			log.Error(err, "unable to create Service")
-			return ctrl.Result{}, err
+			return r.updateWorkspaceStateThenError(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf(stateMsgErrorCreateService, err.Error()),
+				err,
+			)
 		}
 		serviceName = service.Name
 		log.V(2).Info("Service created", "service", serviceName)
@@ -462,11 +497,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if helper.CopyServiceFields(service, foundService) || controllerRefUpdated {
 			if err := r.Update(ctx, foundService); err != nil {
 				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while updating Service, will requeue")
-					return ctrl.Result{}, err
+					log.V(2).Info("update conflict while updating Service, will requeue", "service", serviceName)
+					return ctrl.Result{RequeueAfter: 1}, nil
 				}
-				log.Error(err, "unable to update Service")
-				return ctrl.Result{}, err
+				log.Error(err, "unable to update Service", "service", serviceName)
+				return r.updateWorkspaceStateThenError(ctx, log, workspace,
+					kubefloworgv1beta1.WorkspaceStateError,
+					fmt.Sprintf(stateMsgErrorUpdateService, serviceName, err.Error()),
+					err,
+				)
 			}
 			log.V(2).Info("Service updated", "service", serviceName)
 		}
@@ -517,7 +556,11 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		case numVirtualServices == 0:
 			if err := r.Create(ctx, virtualsvc); err != nil {
 				log.Error(err, "unable to create VirtualService")
-				return ctrl.Result{}, err
+				return r.updateWorkspaceStateThenError(ctx, log, workspace,
+					kubefloworgv1beta1.WorkspaceStateError,
+					fmt.Sprintf(stateMsgErrorCreateVirtualService, err.Error()),
+					err,
+				)
 			}
 			virtualServiceName = virtualsvc.Name
 			log.V(2).Info("VirtualService created", "virtualService", virtualServiceName)
@@ -534,11 +577,15 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if helper.CopyVirtualServiceFields(virtualsvc, foundVirtualService) || controllerRefUpdated {
 				if err := r.Update(ctx, foundVirtualService); err != nil {
 					if apierrors.IsConflict(err) {
-						log.V(2).Info("update conflict while updating VirtualService, will requeue")
-						return ctrl.Result{}, err
+						log.V(2).Info("update conflict while updating VirtualService, will requeue", "virtualService", virtualServiceName)
+						return ctrl.Result{RequeueAfter: 1}, nil
 					}
-					log.Error(err, "unable to update VirtualService")
-					return ctrl.Result{}, err
+					log.Error(err, "unable to update VirtualService", "virtualService", virtualServiceName)
+					return r.updateWorkspaceStateThenError(ctx, log, workspace,
+						kubefloworgv1beta1.WorkspaceStateError,
+						fmt.Sprintf(stateMsgErrorUpdateVirtualService, virtualServiceName, err.Error()),
+						err,
+					)
 				}
 				log.V(2).Info("VirtualService updated", "virtualService", virtualServiceName)
 			}
@@ -546,9 +593,13 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	// reconcile RoleBindings
-	if err := r.reconcileRoleBindings(ctx, log, workspace, workspaceKind, serviceAccountName); err != nil {
-		// NOTE: `reconcileRoleBindings()` has already logged the cause, including the conflict case
+	result, err := r.reconcileRoleBindings(ctx, log, workspace, workspaceKind, serviceAccountName)
+	if err != nil {
 		return ctrl.Result{}, err
+	}
+	if result.RequeueAfter > 0 {
+		// reconcileRoleBindings sometimes needs to requeue immediately with no error (in case of update conflict)
+		return result, nil
 	}
 
 	// fetch Pod
@@ -559,15 +610,61 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if apierrors.IsNotFound(err) {
 			pod = nil
 		} else {
-			log.Error(err, "unable to fetch Pod")
+			log.Error(err, "unable to get Pod", "pod", podName)
 			return ctrl.Result{}, err
+		}
+	}
+
+	if pod != nil {
+		// ensure the pod is owned by the StatefulSet,
+		// NOTE: this ensures we don't delete a pod that is not managed by the StatefulSet
+		podOwner := metav1.GetControllerOf(pod)
+		if podOwner == nil || podOwner.UID != statefulSet.UID {
+			return r.updateWorkspaceState(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf(stateMsgErrorPodNotOwnedByStatefulSet, pod.Name, statefulSet.Name),
+			)
+		}
+
+		// check if the StatefulSet has a pending revision for the Pod
+		if statefulSet.Status.UpdateRevision != "" && pod.Labels[appsv1.StatefulSetRevisionLabel] != statefulSet.Status.UpdateRevision {
+
+			// delete the pod to trigger a new rollout
+			// NOTE: we use the "OnDelete" update strategy, so the StatefulSet will never roll out pod
+			//       updates automatically, and we must delete the pod to trigger a new rollout
+			err := r.Delete(ctx, pod)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					// pod was already deleted, we need to requeue to check if a new pod is created
+					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+				}
+				if apierrors.IsConflict(err) {
+					// we tried to delete the pod, but it was not in the same state as our cache,
+					// we need to requeue so our cache is updated and we can try again
+					log.V(2).Info("update conflict while deleting pod, will requeue", "pod", pod.Name)
+					return ctrl.Result{RequeueAfter: 1}, nil
+				}
+				log.Error(err, "unable to delete Pod", "pod", pod.Name)
+				return r.updateWorkspaceStateThenError(ctx, log, workspace,
+					kubefloworgv1beta1.WorkspaceStateError,
+					fmt.Sprintf(stateMsgErrorDeletePod, pod.Name, err.Error()),
+					err,
+				)
+			}
+
+			// we deleted the pod, we need to requeue to check if a new pod is created
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 	}
 
 	// populate the Workspace status
 	workspaceStatus, result, err := r.generateWorkspaceStatus(ctx, log, workspace, pod, statefulSet, serviceAccountName)
 	if err != nil {
-		return ctrl.Result{}, err
+		return r.updateWorkspaceStateThenError(ctx, log, workspace,
+			kubefloworgv1beta1.WorkspaceStateError,
+			fmt.Sprintf(stateMsgErrorGenFailureWorkspaceStatus, err.Error()),
+			err,
+		)
 	}
 	workspace.Status = workspaceStatus
 
@@ -585,8 +682,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if !equality.Semantic.DeepEqual(currentStatus, workspace.Status) {
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			if apierrors.IsConflict(err) {
-				log.V(2).Info("update conflict while updating Workspace status, will requeue")
-				return ctrl.Result{}, err
+				log.V(2).Info("update conflict while updating Workspace status, will requeue", "workspace", workspace.Name)
+				return ctrl.Result{RequeueAfter: 1}, nil
 			}
 			log.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
@@ -604,8 +701,8 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		workspace.Spec.Paused = true
 		if err := r.Patch(ctx, workspace, client.MergeFrom(originalWorkspace)); err != nil {
 			if apierrors.IsConflict(err) {
-				log.V(2).Info("update conflict while pausing Workspace, will requeue")
-				return ctrl.Result{}, err
+				log.V(2).Info("update conflict while pausing Workspace, will requeue", "workspace", workspace.Name)
+				return ctrl.Result{RequeueAfter: 1}, nil
 			}
 			log.Error(err, "unable to pause Workspace")
 			return ctrl.Result{}, err
@@ -700,8 +797,21 @@ func (r *WorkspaceReconciler) SetupWithManager(mgr ctrl.Manager, opts *controlle
 	return controllerBuilder.Complete(r)
 }
 
+// updateWorkspaceStateThenError attempts to immediately update the Workspace status with the provided state and message, then returns the provided error
+func (r *WorkspaceReconciler) updateWorkspaceStateThenError(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, state kubefloworgv1beta1.WorkspaceState, message string, thenError error) (ctrl.Result, error) { //nolint:unparam
+	result, err := r.updateWorkspaceState(ctx, log, workspace, state, message)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if result.RequeueAfter > 0 {
+		// updateWorkspaceState sometimes needs to requeue immediately with no error (in case of update conflict)
+		return result, nil
+	}
+	return result, thenError
+}
+
 // updateWorkspaceState attempts to immediately update the Workspace status with the provided state and message
-func (r *WorkspaceReconciler) updateWorkspaceState(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, state kubefloworgv1beta1.WorkspaceState, message string) (ctrl.Result, error) { //nolint:unparam
+func (r *WorkspaceReconciler) updateWorkspaceState(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, state kubefloworgv1beta1.WorkspaceState, message string) (ctrl.Result, error) {
 	if workspace == nil {
 		return ctrl.Result{}, fmt.Errorf("provided Workspace was nil")
 	}
@@ -710,8 +820,8 @@ func (r *WorkspaceReconciler) updateWorkspaceState(ctx context.Context, log logr
 		workspace.Status.StateMessage = message
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			if apierrors.IsConflict(err) {
-				log.V(2).Info("update conflict while updating Workspace status, will requeue")
-				return ctrl.Result{}, err
+				log.V(2).Info("update conflict while updating Workspace status, will requeue", "workspace", workspace.Name)
+				return ctrl.Result{RequeueAfter: 1}, nil
 			}
 			log.Error(err, "unable to update Workspace status")
 			return ctrl.Result{}, err
@@ -987,6 +1097,9 @@ func generateRoleBinding(workspace *kubefloworgv1beta1.Workspace, serviceAccount
 	//
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
+			//
+			// TODO: use `GenerateName` instead of `Name` to avoid collisions, like all other owned resources
+			//
 			Name:      generateRoleBindingName(workspace.Name, clusterRoleName),
 			Namespace: workspace.Namespace,
 			Labels: map[string]string{
@@ -1010,14 +1123,14 @@ func generateRoleBinding(workspace *kubefloworgv1beta1.Workspace, serviceAccount
 
 // reconcileRoleBindings ensures the Workspace owns exactly one RoleBinding for each ClusterRole in the
 // WorkspaceKind `spec.podTemplate.serviceAccount.clusterRoles`, and no others
-func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, serviceAccountName string) error {
+func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log logr.Logger, workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, serviceAccountName string) (reconcile.Result, error) {
 	desiredRoleBindings := make(map[string]*rbacv1.RoleBinding)
 	if workspaceKind.Spec.PodTemplate.ServiceAccount != nil {
 		for _, clusterRole := range workspaceKind.Spec.PodTemplate.ServiceAccount.ClusterRoles {
 			roleBinding := generateRoleBinding(workspace, serviceAccountName, clusterRole.Name)
 			if err := ctrl.SetControllerReference(workspace, roleBinding, r.Scheme); err != nil {
 				log.Error(err, "unable to set controller reference on RoleBinding")
-				return err
+				return ctrl.Result{}, err
 			}
 			desiredRoleBindings[roleBinding.Name] = roleBinding
 		}
@@ -1030,48 +1143,72 @@ func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log log
 	}
 	if err := r.List(ctx, ownedRoleBindings, listOpts); err != nil {
 		log.Error(err, "unable to list RoleBindings")
-		return err
+		return ctrl.Result{}, err
 	}
-
-	// NOTE: `roleRef` is immutable, so a RoleBinding whose roleRef no longer matches is deleted
-	//       here and recreated below, rather than updated
 	for i := range ownedRoleBindings.Items {
 		foundRoleBinding := &ownedRoleBindings.Items[i]
 		desiredRoleBinding, isDesired := desiredRoleBindings[foundRoleBinding.Name]
+		// NOTE: the `roleRef` is immutable, and is also how we identify the desired RoleBindings,
+		//       so if we find one that does not match our desired list, it must be extraneous.
 		if isDesired && equality.Semantic.DeepEqual(foundRoleBinding.RoleRef, desiredRoleBinding.RoleRef) {
+			// remove the RoleBinding from the desired map, as we have now "reconciled" this desired RoleBinding.
+			// removing it from the map means it will no longer be "desired" for future iterations of this loop,
+			// and so any extraneous RoleBindings for this role will be deleted.
 			delete(desiredRoleBindings, foundRoleBinding.Name)
 			if helper.CopyRoleBindingFields(desiredRoleBinding, foundRoleBinding) {
 				if err := r.Update(ctx, foundRoleBinding); err != nil {
 					if apierrors.IsConflict(err) {
 						log.V(2).Info("update conflict while updating RoleBinding, will requeue", "roleBinding", foundRoleBinding.Name)
-						return err
+						return ctrl.Result{RequeueAfter: 1}, nil
 					}
 					log.Error(err, "unable to update RoleBinding", "roleBinding", foundRoleBinding.Name)
-					return err
+					return r.updateWorkspaceStateThenError(ctx, log, workspace,
+						kubefloworgv1beta1.WorkspaceStateError,
+						fmt.Sprintf(stateMsgErrorUpdateRoleBinding, foundRoleBinding.Name, err.Error()),
+						err,
+					)
 				}
 				log.V(2).Info("RoleBinding updated", "roleBinding", foundRoleBinding.Name)
 			}
 			continue
 		}
-		if err := r.Delete(ctx, foundRoleBinding); err != nil && !apierrors.IsNotFound(err) {
+
+		// if the RoleBinding is not desired (not in the desired list or roleRef does not match), delete it
+		err := r.Delete(ctx, foundRoleBinding)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// no action is needed
+				continue
+			}
+			if apierrors.IsConflict(err) {
+				log.V(2).Info("update conflict while deleting RoleBinding, will requeue", "roleBinding", foundRoleBinding.Name)
+				return ctrl.Result{RequeueAfter: 1}, nil
+			}
+
 			log.Error(err, "unable to delete RoleBinding", "roleBinding", foundRoleBinding.Name)
-			return err
+			return r.updateWorkspaceStateThenError(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf(stateMsgErrorDeleteRoleBinding, foundRoleBinding.Name, err.Error()),
+				err,
+			)
 		}
+
 		log.V(2).Info("RoleBinding deleted", "roleBinding", foundRoleBinding.Name)
 	}
 
 	for _, roleBinding := range desiredRoleBindings {
 		if err := r.Create(ctx, roleBinding); err != nil {
-			// NOTE: `AlreadyExists` is deliberately not swallowed, because a RoleBinding we do not
-			//       own is invisible to both the owner index and the watch, so nothing else would
-			//       ever surface it
-			log.Error(err, "unable to create RoleBinding", "roleBinding", roleBinding.Name)
-			return err
+			log.Error(err, "unable to create RoleBinding")
+			return r.updateWorkspaceStateThenError(ctx, log, workspace,
+				kubefloworgv1beta1.WorkspaceStateError,
+				fmt.Sprintf(stateMsgErrorCreateRoleBinding, err.Error()),
+				err,
+			)
 		}
 		log.V(2).Info("RoleBinding created", "roleBinding", roleBinding.Name)
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // generateStatefulSet generates a StatefulSet for a Workspace
@@ -1147,7 +1284,7 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 			return nil, fmt.Errorf("duplicate port number %d in imageConfig", port.Port)
 		}
 		containerPorts[i] = corev1.ContainerPort{
-			Name:          fmt.Sprintf("http-%d", port.Port),
+			Name:          string(port.Id),
 			ContainerPort: port.Port,
 			Protocol:      corev1.ProtocolTCP,
 		}
@@ -1362,6 +1499,12 @@ func generateStatefulSet(workspace *kubefloworgv1beta1.Workspace, workspaceKind 
 					Volumes:            volumes,
 				},
 			},
+			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
+				// NOTE: we use the legacy "OnDelete" update strategy so that the StatefulSet will never delete a pod
+				//       during a template update. this behavior is important so that we manage the update lifecycle of the Pod,
+				//       to support features like pausing and resuming and pre-stop actions.
+				Type: appsv1.OnDeleteStatefulSetStrategyType,
+			},
 		},
 	}
 
@@ -1416,9 +1559,15 @@ func generateContainerEnv(
 }
 
 // generateService generates a Service for a Workspace
-func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*corev1.Service, error) {
+func generateService(workspace *kubefloworgv1beta1.Workspace, workspaceKind *kubefloworgv1beta1.WorkspaceKind, imageConfigSpec kubefloworgv1beta1.ImageConfigSpec) (*corev1.Service, error) {
 	// generate name prefix
 	namePrefix := generateNamePrefix(workspace.Name, maxServiceNameLength)
+
+	// generate helper maps for podtemplate ports
+	podTemplatePortsIdMap := make(map[kubefloworgv1beta1.PortId]kubefloworgv1beta1.WorkspaceKindPort)
+	for _, port := range workspaceKind.Spec.PodTemplate.Ports {
+		podTemplatePortsIdMap[port.Id] = port
+	}
 
 	// generate service ports
 	servicePorts := make([]corev1.ServicePort, len(imageConfigSpec.Ports))
@@ -1427,11 +1576,21 @@ func generateService(workspace *kubefloworgv1beta1.Workspace, imageConfigSpec ku
 		if seenPorts[port.Port] {
 			return nil, fmt.Errorf("duplicate port number %d in imageConfig", port.Port)
 		}
-		servicePorts[i] = corev1.ServicePort{
-			Name:       fmt.Sprintf("http-%d", port.Port),
-			TargetPort: intstr.FromInt32(port.Port),
-			Port:       port.Port,
-			Protocol:   corev1.ProtocolTCP,
+		wskPort, ok := podTemplatePortsIdMap[port.Id]
+		if !ok {
+			return nil, fmt.Errorf("port with id %q not found in workspaceKind", port.Id)
+		}
+		switch wskPort.Protocol {
+		case kubefloworgv1beta1.ImagePortProtocolHTTP:
+			servicePorts[i] = corev1.ServicePort{
+				Name:        string(port.Id),
+				TargetPort:  intstr.FromInt32(port.Port),
+				Port:        port.Port,
+				Protocol:    corev1.ProtocolTCP,
+				AppProtocol: new("http"),
+			}
+		default:
+			return nil, fmt.Errorf("unsupported protocol %q for port with id %q", wskPort.Protocol, port.Id)
 		}
 		seenPorts[port.Port] = true
 	}
@@ -1637,6 +1796,8 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 	status.PodTemplateStatefulSet = generateWorkspaceStatefulSetStatus(statefulSet)
 
 	// populate the workspace state and state message
+	// NOTE: sometimes the result will indicate that the reconciliation should be re-queued,
+	//       like for conflicts, or when we need to wait for something to happen (STS generation observed by Kubernetes, pod creation, etc.)
 	workspaceState, workspaceStateMessage, result, err := r.generateWorkspaceState(ctx, log, workspacePaused, statefulSet, pod)
 	if err != nil {
 		return status, ctrl.Result{}, err
@@ -1766,12 +1927,17 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 	state := kubefloworgv1beta1.WorkspaceStateUnknown
 	stateMessage := stateMsgUnknown
 
+	if statefulSet == nil {
+		// STATUS: Unknown
+		// NOTE: this should not be possible because we create the StatefulSet before calling this function
+		return state, stateMessage, ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
+	}
+
 	// STATUS: Pending (kubernetes might not have processed StatefulSet)
-	// NOTE: `statefulSet` may be nil, e.g. when the StatefulSet has not been created yet
-	if statefulSet != nil && statefulSet.GetGeneration() != statefulSet.Status.ObservedGeneration {
+	if statefulSet.Generation != statefulSet.Status.ObservedGeneration {
 		return kubefloworgv1beta1.WorkspaceStatePending,
 			stateMsgWaitingStatefulSetReconcile,
-			ctrl.Result{},
+			ctrl.Result{RequeueAfter: 5 * time.Second},
 			nil
 	}
 
@@ -1785,138 +1951,147 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 		}
 
 		// there might be StatefulSet events
-		if statefulSet != nil {
-			lastStsWarningEvent, err := r.getLastWarningEvent(ctx, statefulSet.Namespace, statefulSet.UID)
-			if err != nil {
-				log.Error(err, "unable to list StatefulSet events")
-				return state, stateMessage, ctrl.Result{}, err
-			}
-
-			// STATUS: Error (StatefulSet warning event)
-			if lastStsWarningEvent != nil {
-				state = kubefloworgv1beta1.WorkspaceStateError
-				stateMessage = fmt.Sprintf(stateMsgErrorStatefulSetWarningEvent, lastStsWarningEvent.Message)
-				return state, stateMessage, ctrl.Result{}, nil
-			}
-		}
-	}
-
-	// cases where the Pod exists
-	if pod != nil {
-		// STATUS: Terminating
-		if pod.GetDeletionTimestamp() != nil {
-			state = kubefloworgv1beta1.WorkspaceStateTerminating
-			stateMessage = stateMsgTerminating
-			return state, stateMessage, ctrl.Result{}, nil
-		}
-
-		// STATUS: Pending (StatefulSet might not have rolled out new Pod)
-		// NOTE: `statefulSet` may be nil, e.g. when the StatefulSet has not been created yet
-		if statefulSet != nil && pod.Labels[appsv1.StatefulSetRevisionLabel] != statefulSet.Status.UpdateRevision {
-			return kubefloworgv1beta1.WorkspaceStatePending,
-				stateMsgWaitingPodUpdate,
-				ctrl.Result{},
-				nil
-		}
-
-		// get the pod phase
-		// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
-		podPhase := pod.Status.Phase
-
-		// get the pod conditions
-		// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-conditions
-		var podScheduledCondition corev1.PodCondition
-		var podReadyCondition corev1.PodCondition
-		for _, condition := range pod.Status.Conditions {
-			switch condition.Type { //nolint:exhaustive
-			case corev1.PodScheduled:
-				podScheduledCondition = condition
-			case corev1.PodReady:
-				podReadyCondition = condition
-			}
-		}
-
-		// unpack the pod conditions
-		podScheduled := podScheduledCondition.Status == corev1.ConditionTrue
-		podReady := podReadyCondition.Status == corev1.ConditionTrue
-
-		// STATUS: Error (pod conditions)
-		if !podScheduled {
-			switch podScheduledCondition.Reason {
-			case corev1.PodReasonUnschedulable:
-				state = kubefloworgv1beta1.WorkspaceStateError
-				stateMessage = fmt.Sprintf(stateMsgErrorPodUnschedulable, podScheduledCondition.Message)
-				return state, stateMessage, ctrl.Result{}, nil
-			case corev1.PodReasonSchedulingGated:
-				state = kubefloworgv1beta1.WorkspaceStateError
-				stateMessage = fmt.Sprintf(stateMsgErrorPodSchedulingGate, podScheduledCondition.Message)
-				return state, stateMessage, ctrl.Result{}, nil
-			case corev1.PodReasonSchedulerError:
-				state = kubefloworgv1beta1.WorkspaceStateError
-				stateMessage = fmt.Sprintf(stateMsgErrorPodSchedulerError, podScheduledCondition.Message)
-				return state, stateMessage, ctrl.Result{}, nil
-			}
-		}
-
-		// STATUS: Running
-		if podPhase == corev1.PodRunning && podReady {
-			state = kubefloworgv1beta1.WorkspaceStateRunning
-			stateMessage = stateMsgRunning
-			return state, stateMessage, ctrl.Result{}, nil
-		}
-
-		// get container status
-		// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-states
-		var containerStatus corev1.ContainerStatus
-		for _, container := range pod.Status.ContainerStatuses {
-			if container.Name == workspacePodTemplateContainerName {
-				containerStatus = container
-				break
-			}
-		}
-
-		// get the container state
-		containerState := containerStatus.State
-
-		// STATUS: Error (container state)
-		if containerState.Waiting != nil {
-			if containerState.Waiting.Reason == "CrashLoopBackOff" {
-				state = kubefloworgv1beta1.WorkspaceStateError
-				stateMessage = stateMsgErrorContainerCrashLoopBackOff
-				return state, stateMessage, ctrl.Result{}, nil
-			}
-			if containerState.Waiting.Reason == "ImagePullBackOff" {
-				state = kubefloworgv1beta1.WorkspaceStateError
-				stateMessage = stateMsgErrorContainerImagePullBackOff
-				return state, stateMessage, ctrl.Result{}, nil
-			}
-		}
-
-		// there might be Pod events (e.g. for missing volumes)
-		lastPodWarningEvent, err := r.getLastWarningEvent(ctx, pod.Namespace, pod.UID)
+		lastStsWarningEvent, err := r.getLastWarningEvent(ctx, statefulSet.Namespace, statefulSet.UID)
 		if err != nil {
-			log.Error(err, "unable to list Pod events")
+			log.Error(err, "failed to get last StatefulSet warning event", "statefulSet", statefulSet.Name)
 			return state, stateMessage, ctrl.Result{}, err
 		}
 
-		// STATUS: Error (Pod warning event)
-		if lastPodWarningEvent != nil {
+		// STATUS: Error (StatefulSet warning event)
+		if lastStsWarningEvent != nil {
 			state = kubefloworgv1beta1.WorkspaceStateError
-			stateMessage = fmt.Sprintf(stateMsgErrorPodWarningEvent, lastPodWarningEvent.Message)
+			stateMessage = fmt.Sprintf(stateMsgErrorStatefulSetWarningEvent, lastStsWarningEvent.Message)
 			return state, stateMessage, ctrl.Result{}, nil
 		}
 
 		// STATUS: Pending
-		// NOTE: when the Pod is pending and does not have any warning Events, we requeue after a short delay.
-		//       typically, if a Pod is stuck in Pending, the only indication of why is in the Events,
-		//       but they may not exist at the time of the first reconcile.
-		if podPhase == corev1.PodPending {
-			state = kubefloworgv1beta1.WorkspaceStatePending
-			stateMessage = stateMsgPending
-			return state, stateMessage, ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+		// NOTE: this is to avoid a race condition where the STS Event that indicates why the Pod
+		//       has not been created does not exist yet, or is not in our cache.
+		state = kubefloworgv1beta1.WorkspaceStatePending
+		stateMessage = stateMsgPending
+		return state, stateMessage, ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	}
+
+	// STATUS: Terminating
+	if pod.GetDeletionTimestamp() != nil {
+		state = kubefloworgv1beta1.WorkspaceStateTerminating
+		stateMessage = stateMsgTerminating
+		return state, stateMessage, ctrl.Result{}, nil
+	}
+
+	// check if the StatefulSet has a pending revision for the Pod
+	if pod.Labels[appsv1.StatefulSetRevisionLabel] != statefulSet.Status.UpdateRevision {
+
+		// STATUS: Pending (waiting for StatefulSet to create a new Pod)
+		state = kubefloworgv1beta1.WorkspaceStatePending
+		stateMessage = stateMsgWaitingStatefulSetPodCreate
+		return state, stateMessage, ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	// get the pod phase
+	// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
+	podPhase := pod.Status.Phase
+
+	// get the pod conditions
+	// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-conditions
+	var podScheduledCondition corev1.PodCondition
+	var podReadyCondition corev1.PodCondition
+	for _, condition := range pod.Status.Conditions {
+		switch condition.Type { //nolint:exhaustive
+		case corev1.PodScheduled:
+			podScheduledCondition = condition
+		case corev1.PodReady:
+			podReadyCondition = condition
 		}
 	}
 
+	// unpack the pod conditions
+	podScheduled := podScheduledCondition.Status == corev1.ConditionTrue
+	podReady := podReadyCondition.Status == corev1.ConditionTrue
+
+	// STATUS: Error (pod conditions)
+	if !podScheduled {
+		switch podScheduledCondition.Reason {
+		case corev1.PodReasonUnschedulable:
+			state = kubefloworgv1beta1.WorkspaceStateError
+			stateMessage = fmt.Sprintf(stateMsgErrorPodUnschedulable, podScheduledCondition.Message)
+			return state, stateMessage, ctrl.Result{}, nil
+		case corev1.PodReasonSchedulingGated:
+			state = kubefloworgv1beta1.WorkspaceStateError
+			stateMessage = fmt.Sprintf(stateMsgErrorPodSchedulingGate, podScheduledCondition.Message)
+			return state, stateMessage, ctrl.Result{}, nil
+		case corev1.PodReasonSchedulerError:
+			state = kubefloworgv1beta1.WorkspaceStateError
+			stateMessage = fmt.Sprintf(stateMsgErrorPodSchedulerError, podScheduledCondition.Message)
+			return state, stateMessage, ctrl.Result{}, nil
+		}
+	}
+
+	// STATUS: Running
+	if podPhase == corev1.PodRunning && podReady {
+		state = kubefloworgv1beta1.WorkspaceStateRunning
+		stateMessage = stateMsgRunning
+		return state, stateMessage, ctrl.Result{}, nil
+	}
+
+	// get container status
+	// https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-states
+	var containerStatus corev1.ContainerStatus
+	for _, container := range pod.Status.ContainerStatuses {
+		if container.Name == workspacePodTemplateContainerName {
+			containerStatus = container
+			break
+		}
+	}
+
+	// get the container state
+	containerState := containerStatus.State
+
+	// STATUS: Error (container state)
+	if containerState.Waiting != nil {
+		if containerState.Waiting.Reason == "CrashLoopBackOff" {
+			state = kubefloworgv1beta1.WorkspaceStateError
+			stateMessage = stateMsgErrorContainerCrashLoopBackOff
+			return state, stateMessage, ctrl.Result{}, nil
+		}
+		if containerState.Waiting.Reason == "ImagePullBackOff" {
+			state = kubefloworgv1beta1.WorkspaceStateError
+			stateMessage = stateMsgErrorContainerImagePullBackOff
+			return state, stateMessage, ctrl.Result{}, nil
+		}
+	}
+
+	// there might be Pod events (e.g. for missing volumes)
+	lastPodWarningEvent, err := r.getLastWarningEvent(ctx, pod.Namespace, pod.UID)
+	if err != nil {
+		log.Error(err, "failed to get last Pod warning event", "pod", pod.Name)
+		return state, stateMessage, ctrl.Result{}, err
+	}
+
+	// STATUS: Error (Pod warning event)
+	if lastPodWarningEvent != nil {
+		state = kubefloworgv1beta1.WorkspaceStateError
+		stateMessage = fmt.Sprintf(stateMsgErrorPodWarningEvent, lastPodWarningEvent.Message)
+		return state, stateMessage, ctrl.Result{}, nil
+	}
+
+	// STATUS: Error (Pod is Failed)
+	if podPhase == corev1.PodFailed {
+		state = kubefloworgv1beta1.WorkspaceStateError
+		stateMessage = stateMsgErrorPodFailedPhase
+		return state, stateMessage, ctrl.Result{}, nil
+	}
+
+	// STATUS: Pending
+	// NOTE: this is to avoid a race condition where the Event that indicates why the Pod
+	//       is pending has not been created, or is not in our cache.
+	if podPhase == corev1.PodPending {
+		state = kubefloworgv1beta1.WorkspaceStatePending
+		stateMessage = stateMsgPending
+		return state, stateMessage, ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	}
+
 	// STATUS: Unknown
-	return state, stateMessage, ctrl.Result{}, nil
+	// NOTE: we continue to requeue all workspaces in Unknown state to avoid race conditions that get us stuck in Unknown
+	return state, stateMessage, ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
 }

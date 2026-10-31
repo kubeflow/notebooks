@@ -43,11 +43,16 @@ const (
 ===============================================================================
 */
 
-// the id of a port
+// the id of a port. must be a valid kubernetes IANA_SVC_NAME:
+//   - must be 1-15 characters long
+//   - must only contain alpha-numeric characters (a-z, 0-9), and hyphens (-)
+//   - must contain at least one letter (a-z)
+//   - must not contain consecutive hyphens
+//   - must not begin or end with a hyphen
 //
 // +kubebuilder:validation:MinLength:=1
-// +kubebuilder:validation:MaxLength:=32
-// +kubebuilder:validation:Pattern:=^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
+// +kubebuilder:validation:MaxLength:=15
+// +kubebuilder:validation:Pattern:="^(?:[0-9]-?)*[a-z](?:-?[a-z0-9])*$"
 type PortId string
 
 // WorkspaceKindSpec defines the desired state of WorkspaceKind

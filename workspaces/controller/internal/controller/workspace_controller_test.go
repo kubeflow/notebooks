@@ -483,6 +483,7 @@ var _ = Describe("Workspace Controller", func() {
 					Containers: []corev1.Container{{Name: "main", Image: "busybox"}},
 				},
 			}
+			Expect(ctrl.SetControllerReference(statefulSet, pod, k8sManager.GetScheme())).To(Succeed())
 			Expect(k8sClient.Create(ctx, pod)).To(Succeed())
 			pod.Status.Phase = corev1.PodRunning
 			pod.Status.Conditions = []corev1.PodCondition{
@@ -2046,6 +2047,7 @@ var _ = Describe("Workspace Controller", func() {
 					Containers: []corev1.Container{{Name: "main", Image: "busybox"}},
 				},
 			}
+			Expect(ctrl.SetControllerReference(&sts, pod, k8sManager.GetScheme())).To(Succeed())
 			Expect(k8sClient.Create(ctx, pod)).To(Succeed())
 			pod.Status.Phase = corev1.PodPending
 			pod.Status.Conditions = []corev1.PodCondition{
@@ -2063,11 +2065,11 @@ var _ = Describe("Workspace Controller", func() {
 			Eventually(func(g Gomega) {
 				ws := &kubefloworgv1beta1.Workspace{}
 				g.Expect(k8sClient.Get(ctx, workspaceKey, ws)).To(Succeed())
+				g.Expect(ws.Status.State).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
 				g.Expect(ws.Status.PodTemplateStatefulSet.Name).To(Equal(stsName))
 				g.Expect(ws.Status.PodTemplateStatefulSet.UID).To(Equal(stsUID))
 				g.Expect(ws.Status.PodTemplatePod.Name).To(Equal(podName))
 				g.Expect(ws.Status.PodTemplatePod.UID).To(Equal(podUID))
-				g.Expect(ws.Status.State).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
 			}, timeout, interval).Should(Succeed())
 		})
 
@@ -2479,7 +2481,7 @@ var _ = Describe("Workspace Controller", func() {
 			}
 		})
 
-		It("should return Unknown when the Pod is nil and the StatefulSet has no warning events", func() {
+		It("should return Pending when the Pod is nil and the StatefulSet has no warning events", func() {
 			stsWithoutEvents := testSts.DeepCopy()
 			stsWithoutEvents.UID = types.UID(fmt.Sprintf("sts-uid-no-events-%d", time.Now().UnixNano()))
 
@@ -2492,8 +2494,8 @@ var _ = Describe("Workspace Controller", func() {
 					ctx, logf.Log, false, stsWithoutEvents, nil,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateUnknown))
-				Expect(msg).To(Equal(stateMsgUnknown))
+				Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
+				Expect(msg).To(Equal(stateMsgPending))
 			}
 		})
 	})
@@ -2541,9 +2543,9 @@ var _ = Describe("Workspace Controller", func() {
 			)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
 			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 5 * time.Second}))
 		})
 
 		It("should return Pending when the StatefulSet's ObservedGeneration is ahead of its Generation", func() {
@@ -2559,9 +2561,9 @@ var _ = Describe("Workspace Controller", func() {
 			)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
 			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 5 * time.Second}))
 		})
 
 		It("should return Paused when the workspace is paused and the StatefulSet's Generation and ObservedGeneration match", func() {
@@ -2574,9 +2576,9 @@ var _ = Describe("Workspace Controller", func() {
 			)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePaused))
 			Expect(message).To(Equal(stateMsgPaused))
+			Expect(result).To(Equal(ctrl.Result{}))
 		})
 		It("should return Pending when the Pod's revision does not match the StatefulSet's UpdateRevision", func() {
 			pod.Labels[appsv1.StatefulSetRevisionLabel] = "revision-old"
@@ -2589,9 +2591,10 @@ var _ = Describe("Workspace Controller", func() {
 				pod,
 			)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-			Expect(message).To(Equal(stateMsgWaitingPodUpdate))
+			Expect(message).To(Equal(stateMsgWaitingStatefulSetPodCreate))
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 5 * time.Second}))
+
 		})
 		It("should return Terminating for a terminating Pod, even when its revision does not match the StatefulSet's", func() {
 			pod.Labels[appsv1.StatefulSetRevisionLabel] = "revision-old"
@@ -2629,9 +2632,9 @@ var _ = Describe("Workspace Controller", func() {
 			)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
 			Expect(message).To(Equal(stateMsgRunning))
+			Expect(result).To(Equal(ctrl.Result{}))
 		})
 	})
 

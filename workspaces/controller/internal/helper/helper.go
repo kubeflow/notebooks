@@ -118,6 +118,12 @@ func CopyStatefulSetFields(desired *appsv1.StatefulSet, target *appsv1.StatefulS
 		requireUpdate = true
 	}
 
+	// copy `spec.updateStrategy`
+	if !equality.Semantic.DeepEqual(target.Spec.UpdateStrategy, desired.Spec.UpdateStrategy) {
+		target.Spec.UpdateStrategy = desired.Spec.UpdateStrategy
+		requireUpdate = true
+	}
+
 	return requireUpdate
 }
 
