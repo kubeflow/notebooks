@@ -343,6 +343,7 @@ describe('Volumes Management - Attach and Create', () => {
 
       volumesAttachModal.selectPVC('in-use-pvc');
       volumesAttachModal.assertInUseWarningVisible();
+      volumesAttachModal.assertInUseWarningTitle('Node-scoped volume in use');
       volumesAttachModal.findAlert('danger').should('not.exist');
       volumesAttachModal.assertMountPathValue('/data/in-use-pvc');
       volumesAttachModal.assertAttachButtonEnabled();
@@ -416,6 +417,7 @@ describe('Volumes Management - Attach and Create', () => {
       volumesAttachModal.assertEnabledAndSelectPVC('mixed-access-pvc');
 
       volumesAttachModal.assertInUseWarningVisible();
+      volumesAttachModal.assertInUseWarningTitle('Node-scoped volume in use');
       volumesAttachModal.findAlert('danger').should('not.exist');
       volumesAttachModal.assertAttachButtonEnabled();
 

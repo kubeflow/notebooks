@@ -415,7 +415,7 @@ describe('getRWOInUseWarning', () => {
     });
     const warning = getRWOInUseWarning(pvc, CURRENT_WORKSPACE);
     expect(warning).not.toBeNull();
-    expect(warning).toMatch(/single node/i);
+    expect(warning).toMatch(/one node at a time/i);
   });
 
   it('returns a node-scope warning when RWO PVC is mounted by an unrelated pod', () => {
@@ -426,7 +426,7 @@ describe('getRWOInUseWarning', () => {
     });
     const warning = getRWOInUseWarning(pvc, CURRENT_WORKSPACE);
     expect(warning).not.toBeNull();
-    expect(warning).toMatch(/single node/i);
+    expect(warning).toMatch(/one node at a time/i);
   });
 
   it('mentions that Pods on different nodes may not mount it simultaneously', () => {

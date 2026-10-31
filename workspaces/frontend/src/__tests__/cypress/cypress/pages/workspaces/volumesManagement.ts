@@ -233,6 +233,10 @@ class VolumesAttachModal {
     return this.findAlert('warning').should('be.visible');
   }
 
+  assertInUseWarningTitle(text: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAlert('warning').find('.pf-v6-c-alert__title').should('contain', text);
+  }
+
   assertInUseDangerVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findAlert('danger').should('be.visible');
   }
