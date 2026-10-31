@@ -62,7 +62,13 @@ describe('Volumes Management - Attach and Create', () => {
       name: 'shared-pvc',
       canMount: true,
       pods: [],
-      workspaces: [],
+      workspaces: [
+        {
+          name: 'other-workspace',
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+          stateMessage: '',
+        },
+      ],
       pvcSpec: {
         accessModes: [V1PersistentVolumeAccessMode.ReadWriteMany],
         requests: { storage: '50Gi' },
@@ -74,7 +80,13 @@ describe('Volumes Management - Attach and Create', () => {
       name: 'in-use-pvc',
       canMount: true,
       pods: [{ name: 'other-pod', phase: V1PodPhase.PodRunning }],
-      workspaces: [],
+      workspaces: [
+        {
+          name: 'other-workspace',
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+          stateMessage: '',
+        },
+      ],
       pvcSpec: {
         accessModes: [V1PersistentVolumeAccessMode.ReadWriteOnce],
         requests: { storage: '20Gi' },
@@ -91,6 +103,88 @@ describe('Volumes Management - Attach and Create', () => {
         accessModes: [V1PersistentVolumeAccessMode.ReadWriteOnce],
         requests: { storage: '5Gi' },
         storageClassName: 'standard',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
+      },
+    }),
+    buildMockPVC({
+      name: 'self-mounted-pvc',
+      canMount: true,
+      pods: [{ name: 'test-workspace-0', phase: V1PodPhase.PodRunning }],
+      workspaces: [
+        {
+          name: 'test-workspace',
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+          stateMessage: '',
+          podTemplatePod: { name: 'test-workspace-0' },
+        },
+      ],
+      pvcSpec: {
+        accessModes: [V1PersistentVolumeAccessMode.ReadWriteOncePod],
+        requests: { storage: '8Gi' },
+        storageClassName: 'standard',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
+      },
+    }),
+    buildMockPVC({
+      name: 'rwop-conflict-pvc',
+      canMount: true,
+      pods: [{ name: 'other-pod', phase: V1PodPhase.PodRunning }],
+      workspaces: [],
+      pvcSpec: {
+        accessModes: [V1PersistentVolumeAccessMode.ReadWriteOncePod],
+        requests: { storage: '4Gi' },
+        storageClassName: 'standard',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
+      },
+    }),
+    buildMockPVC({
+      name: 'readonly-shared-pvc',
+      canMount: true,
+      pods: [],
+      workspaces: [
+        {
+          name: 'other-workspace',
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+          stateMessage: '',
+        },
+      ],
+      pvcSpec: {
+        accessModes: [V1PersistentVolumeAccessMode.ReadOnlyMany],
+        requests: { storage: '30Gi' },
+        storageClassName: 'nfs',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
+      },
+    }),
+    buildMockPVC({
+      name: 'mixed-access-pvc',
+      canMount: true,
+      pods: [],
+      workspaces: [
+        {
+          name: 'other-workspace',
+          state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+          stateMessage: '',
+        },
+      ],
+      pvcSpec: {
+        accessModes: [
+          V1PersistentVolumeAccessMode.ReadWriteOnce,
+          V1PersistentVolumeAccessMode.ReadWriteMany,
+        ],
+        requests: { storage: '12Gi' },
+        storageClassName: 'nfs',
+        volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
+      },
+    }),
+    buildMockPVC({
+      name: 'pod-shared-pvc',
+      canMount: true,
+      pods: [{ name: 'unrelated-pod', phase: V1PodPhase.PodRunning }],
+      workspaces: [],
+      pvcSpec: {
+        accessModes: [V1PersistentVolumeAccessMode.ReadWriteMany],
+        requests: { storage: '15Gi' },
+        storageClassName: 'nfs',
         volumeMode: V1PersistentVolumeMode.PersistentVolumeFilesystem,
       },
     }),
@@ -239,6 +333,110 @@ describe('Volumes Management - Attach and Create', () => {
     it('should disable attach button when no PVC is selected', () => {
       volumesManagement.clickAttachExistingPVC();
       volumesAttachModal.assertAttachButtonDisabled();
+    });
+  });
+
+  describe('Blocking PVCs already mounted elsewhere (#1472)', () => {
+    it('should allow selecting a ReadWriteOnce PVC already mounted by another workspace, with a node-scope warning', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      volumesAttachModal.selectPVC('in-use-pvc');
+      volumesAttachModal.assertInUseWarningVisible();
+      volumesAttachModal.assertInUseWarningTitle('Node-scoped volume in use');
+      volumesAttachModal.findAlert('danger').should('not.exist');
+      volumesAttachModal.assertMountPathValue('/data/in-use-pvc');
+      volumesAttachModal.assertAttachButtonEnabled();
+
+      volumesAttachModal.clickAttach();
+      volumesAttachModal.assertModalNotExists();
+      volumesManagement.assertVolumeRowExists('in-use-pvc');
+    });
+
+    it('should allow attaching a ReadWriteMany PVC even when mounted by another workspace', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      volumesAttachModal.selectPVC('shared-pvc');
+      volumesAttachModal.assertInUseWarningVisible();
+      volumesAttachModal.assertAttachButtonEnabled();
+
+      volumesAttachModal.clickAttach();
+      volumesAttachModal.assertModalNotExists();
+      volumesManagement.assertVolumeRowExists('shared-pvc');
+    });
+
+    it('should not treat a PVC already mounted by the current (edited) workspace as blocked', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      volumesAttachModal.selectPVC('self-mounted-pvc');
+      volumesAttachModal.assertMountPathValue('/data/self-mounted-pvc');
+      volumesAttachModal.findAlert('warning').should('not.exist');
+      volumesAttachModal.assertAttachButtonEnabled();
+
+      volumesAttachModal.clickAttach();
+      volumesAttachModal.assertModalNotExists();
+      volumesManagement.assertVolumeRowExists('self-mounted-pvc');
+    });
+
+    it('should not allow selecting a ReadWriteOncePod PVC already mounted by another pod', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      volumesAttachModal.assertPVCAriaDisabled('rwop-conflict-pvc');
+      volumesAttachModal.hoverPVCOption('rwop-conflict-pvc');
+      volumesAttachModal.assertPVCTooltipText(
+        'rwop-conflict-pvc',
+        'This volume uses ReadWriteOncePod access and is already mounted by pod "other-pod".',
+      );
+      volumesAttachModal.clickDisabledPVCOption('rwop-conflict-pvc');
+
+      volumesAttachModal.findAlert('danger').should('not.exist');
+      volumesAttachModal.assertMountPathValue('/data/');
+      volumesAttachModal.assertAttachButtonDisabled();
+    });
+
+    it('should allow attaching a ReadOnlyMany PVC even when mounted by another workspace', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      volumesAttachModal.selectPVC('readonly-shared-pvc');
+      volumesAttachModal.assertInUseWarningVisible();
+      volumesAttachModal.assertAttachButtonEnabled();
+
+      volumesAttachModal.clickAttach();
+      volumesAttachModal.assertModalNotExists();
+      volumesManagement.assertVolumeRowExists('readonly-shared-pvc');
+    });
+
+    it('should allow attaching a mixed ReadWriteOnce/ReadWriteMany PVC mounted by another workspace', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      volumesAttachModal.assertEnabledAndSelectPVC('mixed-access-pvc');
+
+      volumesAttachModal.assertInUseWarningVisible();
+      volumesAttachModal.assertInUseWarningTitle('Node-scoped volume in use');
+      volumesAttachModal.findAlert('danger').should('not.exist');
+      volumesAttachModal.assertAttachButtonEnabled();
+
+      volumesAttachModal.clickAttach();
+      volumesAttachModal.assertModalNotExists();
+      volumesManagement.assertVolumeRowExists('mixed-access-pvc');
+    });
+
+    it('should warn but allow attaching a ReadWriteMany PVC already mounted by an unrelated pod', () => {
+      volumesManagement.clickAttachExistingPVC();
+      volumesAttachModal.assertModalVisible();
+
+      volumesAttachModal.selectPVC('pod-shared-pvc');
+      volumesAttachModal.assertInUseWarningVisible();
+      volumesAttachModal.assertAttachButtonEnabled();
+
+      volumesAttachModal.clickAttach();
+      volumesAttachModal.assertModalNotExists();
+      volumesManagement.assertVolumeRowExists('pod-shared-pvc');
     });
   });
 
