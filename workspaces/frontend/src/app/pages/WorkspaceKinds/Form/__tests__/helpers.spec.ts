@@ -9,7 +9,9 @@ import { mockPodConfig } from '~/__mocks__/mockResources';
 import { WorkspaceKindFormData, WorkspaceKindPodConfigValue, ImagePullPolicy } from '~/app/types';
 import {
   WorkspacekindsWorkspaceKindUpdate,
+  OptionsRedirectMessageLevel,
   V1Beta1FilterRuleScope,
+  V1Beta1RedirectMessageLevel,
   V1Beta1WorkspaceKindAssetMediaType,
   V1LabelSelectorOperator,
   V1PullPolicy,
@@ -648,5 +650,75 @@ describe('buildActivityRuleMatch', () => {
     expect(buildActivityRuleMatch({ podConfigLabels: { cpu: '100m' } })).toEqual([
       { matchPodConfig: { selector: { matchLabels: { cpu: '100m' } } } },
     ]);
+  });
+});
+
+describe('convertFormDataToUpdate redirect values', () => {
+  it('serializes image and podConfig redirects when to is present', () => {
+    const formData = buildMockFormData({
+      imageConfig: {
+        default: 'img-1',
+        values: [
+          {
+            id: 'img-1',
+            displayName: 'Image One',
+            description: '',
+            hidden: false,
+            image: 'test:latest',
+            ports: [],
+            restrictions: { deny: false },
+            redirect: {
+              to: 'img-2',
+              message: {
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+                text: 'Redirecting to Image Two',
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.imageConfig.values[0].redirect).toEqual({
+      to: 'img-2',
+      message: {
+        level: V1Beta1RedirectMessageLevel.RedirectMessageLevelInfo,
+        text: 'Redirecting to Image Two',
+      },
+    });
+  });
+
+  it('omits redirect when to is empty or undefined', () => {
+    const formData = buildMockFormData({
+      imageConfig: {
+        default: 'img-1',
+        values: [
+          {
+            id: 'img-1',
+            displayName: 'Image One',
+            description: '',
+            hidden: false,
+            image: 'test:latest',
+            ports: [],
+            restrictions: { deny: false },
+            redirect: {
+              to: '',
+              message: {
+                level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+                text: '',
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.imageConfig.values[0].redirect).toBeUndefined();
   });
 });

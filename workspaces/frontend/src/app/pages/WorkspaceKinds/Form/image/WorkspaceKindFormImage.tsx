@@ -150,6 +150,7 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
           image={image}
           setImage={setImage}
           mode={mode}
+          existingImages={imageConfig.values ?? []}
         />
         <Modal
           isOpen={isDeleteModalOpen}
