@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -81,6 +82,9 @@ func (v *WorkspaceKindValidator) ValidateCreate(ctx context.Context, workspaceKi
 
 	var allErrs field.ErrorList //nolint:prealloc
 	var warnings admission.Warnings
+
+	// validate the WorkspaceKind name
+	allErrs = append(allErrs, v.validateWorkspaceKindName(workspaceKind)...)
 
 	// validate the pod metadata
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspaceKind)...)
@@ -603,6 +607,19 @@ func (v *WorkspaceKindValidator) getOptionsUsageCounts(ctx context.Context, work
 	}
 
 	return imageConfigUsageCount, podConfigUsageCount, nil
+}
+
+// validateWorkspaceKindName validates the name of a WorkspaceKind
+func (v *WorkspaceKindValidator) validateWorkspaceKindName(workspaceKind *kubefloworgv1beta1.WorkspaceKind) []*field.Error {
+	var errs []*field.Error //nolint:prealloc
+
+	workspaceKindNamePath := field.NewPath("metadata", "name")
+	nameErrs := validation.IsDNS1123Label(workspaceKind.Name)
+	for _, nameErr := range nameErrs {
+		errs = append(errs, field.Invalid(workspaceKindNamePath, workspaceKind.Name, nameErr))
+	}
+
+	return errs
 }
 
 // validatePodTemplatePodMetadata validates the podMetadata of a WorkspaceKind's PodTemplate
