@@ -19,6 +19,7 @@ import {
 } from '~/shared/mock/mockNotebookServiceData';
 import { buildAxiosError, isInvalidWorkspace, isInvalidYaml } from '~/shared/mock/mockUtils';
 import {
+  buildMockSecretResponse,
   buildMockWorkspaceDetails,
   buildMockWorkspaceKindUpdate,
   buildMockWorkspaceLogs,
@@ -191,12 +192,11 @@ export const mockNotebookApisImpl = (): NotebookApis => ({
     createSecret: async () => ({
       data: mockSecretCreate,
     }),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    getSecret: async (_, name) => ({
-      data: name === 'secret-3' ? mockSecretCreate3 : mockSecretCreate,
+    getSecret: async (_namespace, name) => ({
+      data: buildMockSecretResponse(name === 'secret-3' ? mockSecretCreate3 : mockSecretCreate),
     }),
-    updateSecret: async () => ({
-      data: mockSecretCreate,
+    updateSecret: async (_namespace, _name, { data }) => ({
+      data: buildMockSecretResponse(data),
     }),
     deleteSecret: async (namespace, name) => {
       // For mock API errors, a secret is considered invalid if the name contains a specific pattern.

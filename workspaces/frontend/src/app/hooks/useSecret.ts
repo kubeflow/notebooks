@@ -1,16 +1,17 @@
 import { useCallback } from 'react';
 import { FetchState, FetchStateCallbackPromise, useFetchState, NotReadyError } from 'mod-arch-core';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { SecretsSecretUpdate, V1SecretType } from '~/generated/data-contracts';
 
-export interface SecretKeyValuePair {
-  key: string;
-  value: string;
-}
+export type SecretKeyValuePair = { key: string } & (
+  | { kind: 'unchanged' }
+  | { kind: 'new' | 'replacement'; value: string }
+);
 
 export interface SecretDetails {
   keyValuePairs: SecretKeyValuePair[];
   immutable: boolean;
-  type: string;
+  type: SecretsSecretUpdate['type'];
 }
 
 interface UseSecretOptions {
@@ -22,7 +23,7 @@ interface UseSecretOptions {
 const DEFAULT_SECRET_DETAILS: SecretDetails = {
   keyValuePairs: [],
   immutable: false,
-  type: 'Opaque',
+  type: V1SecretType.SecretTypeOpaque,
 };
 
 const useSecret = ({
@@ -37,20 +38,18 @@ const useSecret = ({
       return Promise.reject(new NotReadyError('API not yet available'));
     }
 
-    if (!isOpen || !secretName) {
-      return Promise.reject(new NotReadyError('Modal not open or no secret to edit'));
+    if (!isOpen || !secretName || !namespace) {
+      return Promise.reject(new NotReadyError('Modal not open or secret target not ready'));
     }
 
     const response = await api.secrets.getSecret(namespace, secretName);
     const { contents, immutable, type } = response.data;
 
-    const keyValuePairs =
-      Object.keys(contents).length === 0
-        ? []
-        : Object.entries(contents).map(([key, value]) => ({
-            key,
-            value: value.base64 ? atob(value.base64) : '',
-          }));
+    // Existing data stays on the server, including values that are not UTF-8 text.
+    const keyValuePairs: SecretKeyValuePair[] = Object.keys(contents).map((key) => ({
+      key,
+      kind: 'unchanged',
+    }));
 
     return { keyValuePairs, immutable, type };
   }, [api.secrets, apiAvailable, isOpen, secretName, namespace]);
