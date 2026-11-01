@@ -1,3 +1,4 @@
+import yaml from 'js-yaml';
 import {
   buildActivityRuleMatch,
   getResources,
@@ -5,6 +6,11 @@ import {
   formatSeconds,
   getActivityRuleMatchLabels,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { convertToFormData } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
+
+jest.mock('monaco-yaml', () => ({
+  configureMonacoYaml: jest.fn(),
+}));
 import { mockPodConfig } from '~/__mocks__/mockResources';
 import { WorkspaceKindFormData, WorkspaceKindPodConfigValue, ImagePullPolicy } from '~/app/types';
 import {
@@ -15,6 +21,8 @@ import {
   V1PullPolicy,
   V1ResourceList,
   WorkspacekindsActivityRuleMatch,
+  OptionsRedirectMessageLevel,
+  V1Beta1RedirectMessageLevel,
 } from '~/generated/data-contracts';
 
 const buildMockApiUpdate = (
@@ -445,6 +453,125 @@ describe('convertFormDataToUpdate', () => {
     const result = convertFormDataToUpdate(formData, original);
 
     expect(result.podTemplate.volumeMountPaths).toEqual({ home: '/home/jovyan' });
+  });
+
+  it('should convert podConfig redirect to API format when present', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: 'Upgraded to pod-2',
+      },
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.podConfig.values[0].redirect).toEqual({
+      to: 'pod-2',
+      message: {
+        level: 'Info',
+        text: 'Upgraded to pod-2',
+      },
+    });
+  });
+
+  it('should omit podConfig redirect when to is empty or undefined', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: '',
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.podConfig.values[0].redirect).toBeUndefined();
+  });
+
+  it('should omit redirect message when text is empty or whitespace-only', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: '   ',
+      },
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.podConfig.values[0].redirect).toEqual({
+      to: 'pod-2',
+    });
+  });
+
+  it('should preserve podConfig redirect with message through Form -> YAML -> Form round trip', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+        text: 'Deprecation notice: use pod-2 instead',
+      },
+    };
+    const original = buildMockApiUpdate();
+
+    // Form -> YAML
+    const updateObj = convertFormDataToUpdate(formData, original);
+    const yamlStr = yaml.dump(updateObj, { noRefs: true });
+
+    // YAML -> Form
+    const parsed = yaml.load(yamlStr) as WorkspacekindsWorkspaceKindUpdate;
+    const roundTrippedFormData = convertToFormData(parsed);
+
+    expect(roundTrippedFormData.podConfig.values![0].redirect).toEqual({
+      to: 'pod-2',
+      message: {
+        level: 'Warning',
+        text: 'Deprecation notice: use pod-2 instead',
+      },
+    });
+  });
+
+  it('should preserve podConfig target-only redirect through Form -> YAML -> Form round trip', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+    };
+    const original = buildMockApiUpdate();
+
+    // Form -> YAML
+    const updateObj = convertFormDataToUpdate(formData, original);
+    const yamlStr = yaml.dump(updateObj, { noRefs: true });
+
+    // YAML -> Form
+    const parsed = yaml.load(yamlStr) as WorkspacekindsWorkspaceKindUpdate;
+    const roundTrippedFormData = convertToFormData(parsed);
+
+    expect(roundTrippedFormData.podConfig.values![0].redirect).toEqual({
+      to: 'pod-2',
+      message: undefined,
+    });
+  });
+
+  it('should preserve podConfig redirect on initial load and reopen workflow', () => {
+    const apiUpdate = buildMockApiUpdate();
+    apiUpdate.podTemplate.options.podConfig.values[0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: V1Beta1RedirectMessageLevel.RedirectMessageLevelInfo,
+        text: 'Redirected to pod-2',
+      },
+    };
+
+    const formData = convertToFormData(apiUpdate);
+
+    expect(formData.podConfig.values![0].redirect).toEqual({
+      to: 'pod-2',
+      message: {
+        level: 'Info',
+        text: 'Redirected to pod-2',
+      },
+    });
   });
 
   it('should format seconds below 60 as whole seconds', () => {

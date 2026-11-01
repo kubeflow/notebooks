@@ -8,7 +8,9 @@ import {
 } from '~/app/types';
 import {
   OptionsOptionLabel,
+  OptionsOptionRedirect,
   OptionsPodConfigValue,
+  OptionsRedirectMessageLevel,
   V1Beta1OptionRedirect,
   V1Beta1RedirectMessageLevel,
   V1PullPolicy,
@@ -278,6 +280,42 @@ export const formatSeconds = (seconds: number): string => {
   return `${seconds} second${seconds !== 1 ? 's' : ''}`;
 };
 
+export const REDIRECT_MESSAGE_LEVEL_OPTIONS = [
+  { value: 'please choose', label: 'Select one', disabled: true },
+  {
+    value: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+    label: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+    disabled: false,
+  },
+  {
+    value: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+    label: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+    disabled: false,
+  },
+  {
+    value: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
+    label: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
+    disabled: false,
+  },
+];
+
+export const getRedirectMessageError = (redirect?: OptionsOptionRedirect): string | undefined => {
+  if (!redirect?.to || !redirect.message?.text) {
+    return undefined;
+  }
+  const trimmed = redirect.message.text.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+  if (trimmed.length < 2) {
+    return 'Message text must be at least 2 characters.';
+  }
+  if (trimmed.length > 1024) {
+    return 'Message text cannot exceed 1024 characters.';
+  }
+  return undefined;
+};
+
 const convertRedirectToApi = (
   redirect: WorkspaceKindPodConfigValue['redirect'],
 ): V1Beta1OptionRedirect | undefined => {
@@ -286,10 +324,10 @@ const convertRedirectToApi = (
   }
   return {
     to: redirect.to,
-    message: redirect.message
+    message: redirect.message?.text.trim()
       ? {
           level: redirect.message.level as unknown as V1Beta1RedirectMessageLevel,
-          text: redirect.message.text,
+          text: redirect.message.text.trim(),
         }
       : undefined,
   };
