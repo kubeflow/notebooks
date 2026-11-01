@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -29,6 +29,7 @@ interface WorkspaceKindFormImageModalProps {
   editIndex: number | null;
   image: WorkspaceKindImageConfigValue;
   setImage: (image: WorkspaceKindImageConfigValue) => void;
+  existingImages?: WorkspaceKindImageConfigValue[];
 }
 
 export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalProps> = ({
@@ -39,7 +40,25 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
   editIndex,
   image,
   setImage,
+  existingImages = [],
 }) => {
+  const currentOriginalId =
+    editIndex !== null && existingImages[editIndex] ? existingImages[editIndex].id : image.id;
+  const eligibleTargets = useMemo(
+    () =>
+      existingImages
+        .filter((img) => img.id && img.id !== currentOriginalId && img.id !== image.id)
+        .map((img) => ({
+          id: img.id,
+          displayName: img.displayName || img.id,
+        })),
+    [existingImages, currentOriginalId, image.id],
+  );
+
+  const isTargetMissing = Boolean(
+    image.redirect?.to && !eligibleTargets.some((t) => t.id === image.redirect?.to),
+  );
+
   const options = [
     { value: 'please choose', label: 'Select one', disabled: true },
     { value: ImagePullPolicy.IfNotPresent, label: ImagePullPolicy.IfNotPresent, disabled: false },
@@ -165,6 +184,8 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
             <WorkspaceKindFormImageRedirect
               redirect={image.redirect || emptyImage.redirect}
               setRedirect={(redirect) => setImage({ ...image, redirect })}
+              eligibleTargets={eligibleTargets}
+              configurationType="image"
             />
           )}
         </Form>
@@ -174,6 +195,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
           key="confirm"
           variant="primary"
           onClick={() => onSubmit(image)}
+          isDisabled={isTargetMissing}
           data-testid="image-modal-submit-button"
         >
           {editIndex !== null ? 'Save' : 'Add'}
