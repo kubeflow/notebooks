@@ -28,11 +28,13 @@ import { WorkspaceKindFormPodConfigModal } from './WorkspaceKindFormPodConfigMod
 import { WorkspaceKindFormTolerations } from './WorkspaceKindFormTolerations';
 
 interface WorkspaceKindFormPodConfigProps {
+  mode?: string;
   podConfig: WorkspaceKindPodConfigData;
   updatePodConfig: (podConfigs: WorkspaceKindPodConfigData) => void;
 }
 
 export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProps> = ({
+  mode,
   podConfig,
   updatePodConfig,
 }) => {
@@ -265,6 +267,8 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
           editIndex={editIndex}
           currConfig={currConfig}
           setCurrConfig={setCurrConfig}
+          mode={mode}
+          podConfigOptions={podConfig.values ?? []}
         />
         <Modal
           isOpen={isDeleteModalOpen}

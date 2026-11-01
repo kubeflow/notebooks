@@ -74,7 +74,7 @@ const convertRedirect = (
   };
 };
 
-const convertToFormData = (
+export const convertToFormData = (
   initialData: WorkspacekindsWorkspaceKindUpdate,
 ): WorkspaceKindFormData => {
   const { spawner, podTemplate } = initialData;
@@ -469,6 +469,7 @@ export const WorkspaceKindForm: React.FC = () => {
                     </StackItem>
                     <StackItem>
                       <WorkspaceKindFormPodConfig
+                        mode={mode}
                         podConfig={data.podConfig}
                         updatePodConfig={(podConfig) => {
                           setData('podConfig', podConfig);
