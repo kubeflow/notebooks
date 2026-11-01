@@ -30,6 +30,7 @@ import {
 import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
+import { ConfirmModal } from '~/shared/components/ConfirmModal';
 import {
   OptionsOptionRedirect,
   OptionsRedirectMessageLevel,
@@ -186,6 +187,11 @@ export const WorkspaceKindForm: React.FC = () => {
     initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
   );
   const [originalFormData, setOriginalFormData] = useState<WorkspaceKindFormData | null>(null);
+  const [isConfirmDiscardOpen, setIsConfirmDiscardOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const pendingActionRef = useRef<(() => void) | null>(null);
+  const pendingTargetRef = useRef<HTMLAnchorElement | null>(null);
+  const isDiscardingRef = useRef(false);
 
   useEffect(() => {
     if (!initialFormDataLoaded || initialFormData === null || mode === 'create') {
@@ -195,7 +201,8 @@ export const WorkspaceKindForm: React.FC = () => {
     replaceData(converted);
     setOriginalFormData(converted);
     lastApiObjectRef.current = initialFormData;
-    const yamlStr = yaml.dump(initialFormData, { noRefs: true });
+    const initialUpdateObj = convertFormDataToUpdate(converted, initialFormData);
+    const yamlStr = yaml.dump(initialUpdateObj, { noRefs: true });
     setOriginalYaml(yamlStr);
     setEditYamlValue(yamlStr);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
@@ -207,7 +214,6 @@ export const WorkspaceKindForm: React.FC = () => {
         const updateObj = convertFormDataToUpdate(data, lastApiObjectRef.current!);
         const yamlStr = yaml.dump(updateObj, { noRefs: true });
         setEditYamlValue(yamlStr);
-        setOriginalYaml(yamlStr);
         lastApiObjectRef.current = updateObj;
         setYamlParseError(null);
       } else if (newTab === FORM_TAB_KEY && activeTabKey === YAML_TAB_KEY) {
@@ -240,7 +246,8 @@ export const WorkspaceKindForm: React.FC = () => {
       replaceData(converted);
       setOriginalFormData(converted);
       lastApiObjectRef.current = initialFormData;
-      const yamlStr = yaml.dump(initialFormData, { noRefs: true });
+      const initialUpdateObj = convertFormDataToUpdate(converted, initialFormData);
+      const yamlStr = yaml.dump(initialUpdateObj, { noRefs: true });
       setOriginalYaml(yamlStr);
       setEditYamlValue(yamlStr);
       setYamlParseError(null);
@@ -304,6 +311,7 @@ export const WorkspaceKindForm: React.FC = () => {
         }
         notification.success(`Workspace kind '${routeParams?.kind || ''}' updated successfully`);
       }
+      setIsSaved(true);
       navigate('workspaceKinds');
     } catch (err) {
       const extracted = extractErrorMessage(err);
@@ -339,12 +347,25 @@ export const WorkspaceKindForm: React.FC = () => {
     editYamlValue,
   ]);
 
+  const isFormDirty = useMemo(
+    () => originalFormData !== null && !isEqual(data, originalFormData),
+    [data, originalFormData],
+  );
+
+  const isYamlDirty = useMemo(() => editYamlValue !== originalYaml, [editYamlValue, originalYaml]);
+
   const hasChanges = useMemo(() => {
-    if (mode === 'edit' && activeTabKey === YAML_TAB_KEY) {
-      return editYamlValue !== originalYaml;
+    if (isSaved) {
+      return false;
     }
-    return originalFormData !== null && !isEqual(data, originalFormData);
-  }, [mode, activeTabKey, editYamlValue, originalYaml, data, originalFormData]);
+    if (mode === 'create') {
+      return yamlValue.trim() !== '';
+    }
+    if (activeTabKey === YAML_TAB_KEY) {
+      return isYamlDirty;
+    }
+    return isFormDirty || isYamlDirty;
+  }, [isSaved, mode, yamlValue, activeTabKey, isYamlDirty, isFormDirty]);
 
   const canSubmit = useMemo(() => {
     if (isSubmitting) {
@@ -360,8 +381,93 @@ export const WorkspaceKindForm: React.FC = () => {
   }, [isSubmitting, validated, mode, hasChanges, activeTabKey, yamlParseError]);
 
   const cancel = useCallback(() => {
+    if (hasChanges) {
+      pendingActionRef.current = () => navigate('workspaceKinds');
+      setIsConfirmDiscardOpen(true);
+      return;
+    }
     navigate('workspaceKinds');
-  }, [navigate]);
+  }, [hasChanges, navigate]);
+
+  const handleConfirmDiscard = useCallback(async () => {
+    isDiscardingRef.current = true;
+    setIsConfirmDiscardOpen(false);
+    if (pendingActionRef.current) {
+      const action = pendingActionRef.current;
+      pendingActionRef.current = null;
+      action();
+    } else if (pendingTargetRef.current) {
+      const target = pendingTargetRef.current;
+      pendingTargetRef.current = null;
+      target.click();
+    }
+  }, []);
+
+  const handleCloseDiscardModal = useCallback(() => {
+    setIsConfirmDiscardOpen(false);
+    pendingActionRef.current = null;
+    pendingTargetRef.current = null;
+    isDiscardingRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (!hasChanges) {
+      return;
+    }
+
+    const handleClickCapture = (event: MouseEvent) => {
+      if (isDiscardingRef.current) {
+        return;
+      }
+
+      const target = (event.target as HTMLElement).closest('a');
+      if (!target || !target.href || target.target === '_blank') {
+        return;
+      }
+
+      try {
+        const targetUrl = new URL(target.href, window.location.href);
+        if (targetUrl.origin === window.location.origin) {
+          if (
+            targetUrl.pathname === window.location.pathname &&
+            targetUrl.search === window.location.search &&
+            !targetUrl.hash
+          ) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+          pendingActionRef.current = null;
+          pendingTargetRef.current = target;
+          setIsConfirmDiscardOpen(true);
+        }
+      } catch {
+        // Ignore invalid URLs
+      }
+    };
+
+    window.addEventListener('click', handleClickCapture, true);
+    return () => {
+      window.removeEventListener('click', handleClickCapture, true);
+    };
+  }, [hasChanges]);
+
+  useEffect(() => {
+    if (!hasChanges) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      // eslint-disable-next-line no-param-reassign
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasChanges]);
 
   if (mode === 'edit' && initialFormDataError) {
     return <LoadError title="Failed to load workspace kind data" error={initialFormDataError} />;
@@ -542,6 +648,21 @@ export const WorkspaceKindForm: React.FC = () => {
           </FlexItem>
         </Flex>
       </PageSection>
+      <ConfirmModal
+        isOpen={isConfirmDiscardOpen}
+        title="Discard unsaved changes?"
+        confirmLabel="Discard changes"
+        confirmLabelOnLoading="Discarding..."
+        cancelLabel="Keep editing"
+        confirmVariant="danger"
+        onConfirm={handleConfirmDiscard}
+        onClose={handleCloseDiscardModal}
+        errorTitle="Failed to discard changes"
+        testId="discard-changes-modal"
+      >
+        You have unsaved changes that will be lost if you leave this page. Are you sure you want to
+        discard changes and leave?
+      </ConfirmModal>
     </>
   );
 };
