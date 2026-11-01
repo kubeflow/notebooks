@@ -104,7 +104,7 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			controllerutil.RemoveFinalizer(workspaceKind, WorkspaceKindFinalizer)
 			if err := r.Update(ctx, workspaceKind); err != nil {
 				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while removing finalizer from WorkspaceKind, will requeue", "workspaceKind", workspaceKind.Name)
+					log.V(2).Info("update conflict while removing finalizer from WorkspaceKind, will requeue", "workspaceKind", workspaceKind.Name, "error", err.Error())
 					return ctrl.Result{RequeueAfter: 1}, nil
 				}
 				log.Error(err, "unable to remove finalizer from WorkspaceKind")
@@ -156,7 +156,7 @@ func (r *WorkspaceKindReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if !equality.Semantic.DeepEqual(currentStatus, workspaceKind.Status) {
 		if err := r.Status().Update(ctx, workspaceKind); err != nil {
 			if apierrors.IsConflict(err) {
-				log.V(2).Info("update conflict while updating WorkspaceKind status, will requeue", "workspaceKind", workspaceKind.Name)
+				log.V(2).Info("update conflict while updating WorkspaceKind status, will requeue", "workspaceKind", workspaceKind.Name, "error", err.Error())
 				return ctrl.Result{RequeueAfter: 1}, nil
 			}
 			log.Error(err, "unable to update WorkspaceKind status")

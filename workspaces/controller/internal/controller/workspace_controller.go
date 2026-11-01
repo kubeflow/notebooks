@@ -207,7 +207,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			controllerutil.AddFinalizer(workspaceKind, WorkspaceKindFinalizer)
 			if err := r.Update(ctx, workspaceKind); err != nil {
 				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while adding finalizer to WorkspaceKind, will requeue", "workspaceKind", workspaceKind.Name)
+					log.V(2).Info("update conflict while adding finalizer to WorkspaceKind, will requeue", "workspaceKind", workspaceKind.Name, "error", err.Error())
 					return ctrl.Result{RequeueAfter: 1}, nil
 				}
 				log.Error(err, "unable to add finalizer to WorkspaceKind")
@@ -327,7 +327,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if serviceAccountFieldsUpdated || controllerRefUpdated {
 			if err := r.Update(ctx, foundServiceAccount); err != nil {
 				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while updating ServiceAccount, will requeue", "serviceAccount", serviceAccountName)
+					log.V(2).Info("update conflict while updating ServiceAccount, will requeue", "serviceAccount", serviceAccountName, "error", err.Error())
 					return ctrl.Result{RequeueAfter: 1}, nil
 				}
 				log.Error(err, "unable to update ServiceAccount", "serviceAccount", serviceAccountName)
@@ -411,7 +411,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if helper.CopyStatefulSetFields(statefulSet, foundStatefulSet) || controllerRefUpdated {
 			if err := r.Update(ctx, foundStatefulSet); err != nil {
 				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while updating StatefulSet, will requeue", "statefulSet", statefulSetName)
+					log.V(2).Info("update conflict while updating StatefulSet, will requeue", "statefulSet", statefulSetName, "error", err.Error())
 					return ctrl.Result{RequeueAfter: 1}, nil
 				}
 				log.Error(err, "unable to update StatefulSet", "statefulSet", statefulSetName)
@@ -495,7 +495,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if helper.CopyServiceFields(service, foundService) || controllerRefUpdated {
 			if err := r.Update(ctx, foundService); err != nil {
 				if apierrors.IsConflict(err) {
-					log.V(2).Info("update conflict while updating Service, will requeue", "service", serviceName)
+					log.V(2).Info("update conflict while updating Service, will requeue", "service", serviceName, "error", err.Error())
 					return ctrl.Result{RequeueAfter: 1}, nil
 				}
 				log.Error(err, "unable to update Service", "service", serviceName)
@@ -579,7 +579,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if helper.CopyVirtualServiceFields(virtualsvc, foundVirtualService) || controllerRefUpdated {
 				if err := r.Update(ctx, foundVirtualService); err != nil {
 					if apierrors.IsConflict(err) {
-						log.V(2).Info("update conflict while updating VirtualService, will requeue", "virtualService", virtualServiceName)
+						log.V(2).Info("update conflict while updating VirtualService, will requeue", "virtualService", virtualServiceName, "error", err.Error())
 						return ctrl.Result{RequeueAfter: 1}, nil
 					}
 					log.Error(err, "unable to update VirtualService", "virtualService", virtualServiceName)
@@ -659,7 +659,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				if apierrors.IsConflict(err) {
 					// we tried to delete the pod, but it was not in the same state as our cache,
 					// we need to requeue so our cache is updated and we can try again
-					log.V(2).Info("conflict while deleting pod, will requeue", "pod", pod.Name)
+					log.V(2).Info("conflict while deleting pod, will requeue", "pod", pod.Name, "error", err.Error())
 					return ctrl.Result{RequeueAfter: 1}, nil
 				}
 				log.Error(err, "unable to delete Pod", "pod", pod.Name)
@@ -704,7 +704,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if !equality.Semantic.DeepEqual(currentStatus, workspace.Status) {
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			if apierrors.IsConflict(err) {
-				log.V(2).Info("update conflict while updating Workspace status, will requeue", "workspace", workspace.Name)
+				log.V(2).Info("update conflict while updating Workspace status, will requeue", "workspace", workspace.Name, "error", err.Error())
 				return ctrl.Result{RequeueAfter: 1}, nil
 			}
 			log.Error(err, "unable to update Workspace status")
@@ -723,7 +723,7 @@ func (r *WorkspaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		workspace.Spec.Paused = true
 		if err := r.Patch(ctx, workspace, client.MergeFrom(originalWorkspace)); err != nil {
 			if apierrors.IsConflict(err) {
-				log.V(2).Info("update conflict while pausing Workspace, will requeue", "workspace", workspace.Name)
+				log.V(2).Info("update conflict while pausing Workspace, will requeue", "workspace", workspace.Name, "error", err.Error())
 				return ctrl.Result{RequeueAfter: 1}, nil
 			}
 			log.Error(err, "unable to pause Workspace")
@@ -855,7 +855,7 @@ func (r *WorkspaceReconciler) updateWorkspaceState(ctx context.Context, log logr
 		workspace.Status.StateMessage = message
 		if err := r.Status().Update(ctx, workspace); err != nil {
 			if apierrors.IsConflict(err) {
-				log.V(2).Info("update conflict while updating Workspace status, will requeue", "workspace", workspace.Name)
+				log.V(2).Info("update conflict while updating Workspace status, will requeue", "workspace", workspace.Name, "error", err.Error())
 				return ctrl.Result{RequeueAfter: 1}, nil
 			}
 			log.Error(err, "unable to update Workspace status")
@@ -1189,7 +1189,7 @@ func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log log
 			if helper.CopyRoleBindingFields(desiredRoleBinding, foundRoleBinding) || controllerRefUpdated {
 				if err = r.Update(ctx, foundRoleBinding); err != nil {
 					if apierrors.IsConflict(err) {
-						log.V(2).Info("update conflict while updating RoleBinding, will requeue", "roleBinding", foundRoleBinding.Name)
+						log.V(2).Info("update conflict while updating RoleBinding, will requeue", "roleBinding", foundRoleBinding.Name, "error", err.Error())
 						return ctrl.Result{RequeueAfter: 1}, nil
 					}
 					log.Error(err, "unable to update RoleBinding", "roleBinding", foundRoleBinding.Name)
@@ -1222,7 +1222,7 @@ func (r *WorkspaceReconciler) reconcileRoleBindings(ctx context.Context, log log
 				continue
 			}
 			if apierrors.IsConflict(err) {
-				log.V(2).Info("conflict while deleting RoleBinding, will requeue", "roleBinding", foundRoleBinding.Name)
+				log.V(2).Info("conflict while deleting RoleBinding, will requeue", "roleBinding", foundRoleBinding.Name, "error", err.Error())
 				return ctrl.Result{RequeueAfter: 1}, nil
 			}
 			log.Error(err, "unable to delete RoleBinding", "roleBinding", foundRoleBinding.Name)
