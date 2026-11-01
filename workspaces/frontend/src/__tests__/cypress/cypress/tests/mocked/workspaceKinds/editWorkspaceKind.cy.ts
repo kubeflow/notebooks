@@ -1778,6 +1778,151 @@ describe('Edit workspace kind', () => {
     });
   });
 
+  describe('Unsaved changes warning and leave protection', () => {
+    it('navigates away without prompt when clean', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickCancel();
+
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      workspaceKinds.verifyPageURL();
+    });
+
+    it('navigates away without prompt when clean in YAML editor', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.clickYamlTab();
+      editWorkspaceKind.assertYamlEditorVisible();
+
+      editWorkspaceKind.clickCancel();
+
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      workspaceKinds.verifyPageURL();
+    });
+
+    it('prompts on cancel when dirty in form editor and stays when "Keep editing" is selected', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Unsaved description change');
+
+      editWorkspaceKind.clickCancel();
+
+      cy.findByTestId('discard-changes-modal').should('be.visible');
+      cy.findByTestId('discard-changes-modal').findByTestId('cancel-button').click();
+
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      editWorkspaceKind.verifyPageURL(mockWorkspaceKind.name);
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.assertDescription('Unsaved description change');
+    });
+
+    it('prompts on cancel when dirty and discards changes when "Discard changes" is confirmed', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Unsaved description change');
+
+      editWorkspaceKind.clickCancel();
+
+      cy.findByTestId('discard-changes-modal').should('be.visible');
+      cy.findByTestId('discard-changes-modal').findByTestId('confirm-button').click();
+
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      workspaceKinds.verifyPageURL();
+    });
+
+    it('intercepts history Back navigation when dirty and preserves draft when keeping edits', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      workspaceKinds.visit();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Unsaved change before history back');
+
+      cy.go('back');
+
+      cy.findByTestId('discard-changes-modal').should('be.visible');
+      cy.findByTestId('discard-changes-modal').findByTestId('cancel-button').click();
+
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      editWorkspaceKind.verifyPageURL(mockWorkspaceKind.name);
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.assertDescription('Unsaved change before history back');
+    });
+
+    it('intercepts history Back navigation when dirty and leaves when confirming discard', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      workspaceKinds.visit();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Unsaved change before history back');
+
+      cy.go('back');
+
+      cy.findByTestId('discard-changes-modal').should('be.visible');
+      cy.findByTestId('discard-changes-modal').findByTestId('confirm-button').click();
+
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      workspaceKinds.verifyPageURL();
+    });
+
+    it('tracks dirty state across Form -> YAML -> Form and does not prompt if restored to original', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Temporary description');
+
+      editWorkspaceKind.clickYamlTab();
+      editWorkspaceKind.assertYamlEditorVisible();
+
+      editWorkspaceKind.clickFormTab();
+      editWorkspaceKind.assertFormTabActive();
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription(mockWorkspaceKind.description);
+
+      editWorkspaceKind.clickCancel();
+
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      workspaceKinds.verifyPageURL();
+    });
+
+    it('does not prompt after successful save', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+      ).as('updateWorkspaceKind');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Saved description');
+
+      editWorkspaceKind.clickSubmit();
+      cy.wait('@updateWorkspaceKind');
+
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      workspaceKinds.verifyPageURL();
+    });
+  });
+
   describe('Restricted access', () => {
     it('shows the restricted-access message and never fetches the workspace kind on a forbidden list request', () => {
       const { mockWorkspaceKind } = setupForbiddenEditWorkspaceKind();

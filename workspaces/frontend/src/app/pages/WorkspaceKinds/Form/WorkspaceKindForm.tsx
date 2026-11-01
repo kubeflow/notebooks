@@ -21,10 +21,12 @@ import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
 import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
+import { useUnsavedChangesPrompt } from '~/app/hooks/useUnsavedChangesPrompt';
 import { ImagePullPolicy, WorkspaceKindFormData } from '~/app/types';
 import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
+import { ConfirmModal } from '~/shared/components/ConfirmModal';
 import {
   OptionsOptionRedirect,
   OptionsRedirectMessageLevel,
@@ -193,6 +195,10 @@ export const WorkspaceKindForm: React.FC = () => {
   );
 
   const [originalFormData, setOriginalFormData] = useState<WorkspaceKindFormData | null>(null);
+  const [baselineUpdate, setBaselineUpdate] = useState<WorkspacekindsWorkspaceKindUpdate | null>(
+    null,
+  );
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     if (!initialFormDataLoaded || initialFormData === null || mode === 'create') {
@@ -202,7 +208,9 @@ export const WorkspaceKindForm: React.FC = () => {
     replaceData(converted);
     setOriginalFormData(converted);
     lastApiObjectRef.current = initialFormData;
-    const yamlStr = yaml.dump(initialFormData, { noRefs: true });
+    const initialUpdateObj = convertFormDataToUpdate(converted, initialFormData);
+    setBaselineUpdate(initialUpdateObj);
+    const yamlStr = yaml.dump(initialUpdateObj, { noRefs: true });
     setOriginalYaml(yamlStr);
     setEditYamlValue(yamlStr);
   }, [initialFormData, initialFormDataLoaded, mode, replaceData]);
@@ -214,7 +222,6 @@ export const WorkspaceKindForm: React.FC = () => {
         const updateObj = convertFormDataToUpdate(data, lastApiObjectRef.current!);
         const yamlStr = yaml.dump(updateObj, { noRefs: true });
         setEditYamlValue(yamlStr);
-        setOriginalYaml(yamlStr);
         lastApiObjectRef.current = updateObj;
         setYamlParseError(null);
         setYamlEditorCreated(true);
@@ -248,7 +255,9 @@ export const WorkspaceKindForm: React.FC = () => {
       replaceData(converted);
       setOriginalFormData(converted);
       lastApiObjectRef.current = initialFormData;
-      const yamlStr = yaml.dump(initialFormData, { noRefs: true });
+      const initialUpdateObj = convertFormDataToUpdate(converted, initialFormData);
+      setBaselineUpdate(initialUpdateObj);
+      const yamlStr = yaml.dump(initialUpdateObj, { noRefs: true });
       setOriginalYaml(yamlStr);
       setEditYamlValue(yamlStr);
       setYamlParseError(null);
@@ -312,6 +321,7 @@ export const WorkspaceKindForm: React.FC = () => {
         }
         notification.success(`Workspace kind '${routeParams?.kind || ''}' updated successfully`);
       }
+      setIsSaved(true);
       navigate('workspaceKinds');
     } catch (err) {
       const extracted = extractErrorMessage(err);
@@ -361,11 +371,31 @@ export const WorkspaceKindForm: React.FC = () => {
   ]);
 
   const hasChanges = useMemo(() => {
-    if (mode === 'edit' && activeTabKey === YAML_TAB_KEY) {
+    if (isSaved) {
+      return false;
+    }
+    if (mode === 'create') {
+      return yamlValue.trim() !== '';
+    }
+    if (activeTabKey === YAML_TAB_KEY) {
       return editYamlValue !== originalYaml;
     }
+    if (baselineUpdate && lastApiObjectRef.current) {
+      const effectiveUpdate = convertFormDataToUpdate(data, lastApiObjectRef.current);
+      return !isEqual(effectiveUpdate, baselineUpdate);
+    }
     return originalFormData !== null && !isEqual(data, originalFormData);
-  }, [mode, activeTabKey, editYamlValue, originalYaml, data, originalFormData]);
+  }, [
+    isSaved,
+    mode,
+    yamlValue,
+    activeTabKey,
+    editYamlValue,
+    originalYaml,
+    baselineUpdate,
+    data,
+    originalFormData,
+  ]);
 
   const canSubmit = useMemo(() => {
     if (isSubmitting) {
@@ -380,9 +410,14 @@ export const WorkspaceKindForm: React.FC = () => {
     return validated === 'success' && hasChanges;
   }, [isSubmitting, validated, mode, hasChanges, activeTabKey, yamlParseError]);
 
+  const { isConfirmModalOpen, confirmDiscard, cancelDiscard, confirmNavigation } =
+    useUnsavedChangesPrompt({
+      hasUnsavedChanges: hasChanges,
+    });
+
   const cancel = useCallback(() => {
-    navigate('workspaceKinds');
-  }, [navigate]);
+    confirmNavigation(() => navigate('workspaceKinds'));
+  }, [confirmNavigation, navigate]);
 
   if (mode === 'edit' && initialFormDataError) {
     return <LoadError title="Failed to load workspace kind data" error={initialFormDataError} />;
@@ -565,6 +600,21 @@ export const WorkspaceKindForm: React.FC = () => {
           </FlexItem>
         </Flex>
       </PageSection>
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        title="Discard unsaved changes?"
+        confirmLabel="Discard changes"
+        confirmLabelOnLoading="Discarding..."
+        cancelLabel="Keep editing"
+        confirmVariant="danger"
+        onConfirm={async () => confirmDiscard()}
+        onClose={cancelDiscard}
+        errorTitle="Failed to discard changes"
+        testId="discard-changes-modal"
+      >
+        You have unsaved changes that will be lost if you leave this page. Are you sure you want to
+        discard changes and leave?
+      </ConfirmModal>
     </>
   );
 };
