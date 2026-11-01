@@ -153,31 +153,32 @@ spec:
     serviceAccount:
 
       ## ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)
-      ##  - each entry becomes a RoleBinding in the Namespace of the Workspace, so the
-      ##    permissions are scoped to that Namespace and are NOT cluster-wide
-      ##  - these are ClusterRole names, NOT ServiceAccount names
-      ##
-      ## NOTE: commented out because these ClusterRoles are provided by the Kubeflow
-      ##       platform, they do NOT exist in a standalone install of this controller
+      ##  - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding,
+      ##    so the permissions only apply inside the Namespace of the Workspace
+      ##  - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing
+      ##    ClusterRole simply grants nothing until that ClusterRole is created
+      ##  - changes take effect immediately, Workspaces do NOT need to be restarted,
+      #     and removing an entry deletes the corresponding RoleBinding
+      ##  - each element of the array is a map with the following keys:
+      ##     - name: the name of a ClusterRole
       ##
       clusterRoles: []
 
       ## metadata for the ServiceAccount of each Workspace (MUTABLE)
-      ##  - labels and annotations applied to the ServiceAccount object itself,
-      ##    for example to configure cloud Workload Identity
-      ##  - this is an admin-only default for all Workspaces of this WorkspaceKind
-      ##  - the controller-managed `workspaces.kubeflow.org/workspace-name` label
-      ##    always takes precedence and cannot be overridden here
-      ##  - removing a key here also removes it from existing ServiceAccounts, but only
-      ##    if the controller was the last to change its value, regardless of who added it
-      ##  - Workload Identity examples:
-      ##     - EKS IRSA:  "eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role"
-      ##     - GKE:       "iam.gke.io/gcp-service-account: my-gsa@my-project.iam.gserviceaccount.com"
-      ##     - Azure:     "azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000"
-      ##                  (Azure also requires the `azure.workload.identity/use: "true"` label
-      ##                   on the Pod, set that in `podMetadata.labels` above, NOT here)
-      ##  - EKS IRSA and Azure inject credentials when the Pod is created, so running
-      ##    Workspaces must be restarted to pick up changes to these annotations
+      ##  - labels and annotations applied to the ServiceAccount object itself
+      ##  - for example to configure cloud Workload Identity:
+      ##    - EKS IRSA:  "eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role"
+      ##    - GKE:       "iam.gke.io/gcp-service-account: my-gsa@my-project.iam.gserviceaccount.com"
+      ##    - Azure:     "azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000"
+      ##                 (NOTE: azure also requires the `azure.workload.identity/use: "true"` label
+      ##                  on the Pod, set that in `podMetadata.labels` above)
+      ##  - changes are applied to the ServiceAccounts of existing Workspaces without a restart,
+      ##    but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the
+      ##    ServiceAccount when a Pod is created, so running Workspaces must be restarted
+      ##    for changes to take effect
+      ##  - removing a key here removes it from the ServiceAccounts of existing Workspaces,
+      ##    if the controller was the last to change its value (ownership is tracked
+      ##    with `metadata.managedFields`), regardless of who originally added the key
       ##
       metadata:
         labels:
@@ -382,9 +383,8 @@ spec:
       ##
       ## About the `values` fields:
       ##  - the `values` field is a list of options that the user can select
-      ##  - elements of `values` can NOT be removed, only HIDDEN or REDIRECTED
-      ##     - this prevents options being removed that are still in use by existing Workspaces
-      ##     - this limitation may be removed in the future
+      ##  - elements of `values` that are used by a Workspace can NOT be removed or updated,
+      ##    they may only be HIDDEN or REDIRECTED
       ##  - options may be "hidden" by setting `spawner.hidden` to `true`
       ##     - hidden options are NOT visible by default in the Spawner UI
       ##     - hidden options are still available to the controller and manually created Workspace resources

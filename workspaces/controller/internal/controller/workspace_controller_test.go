@@ -719,7 +719,6 @@ var _ = Describe("Workspace Controller", func() {
 				Expect(roleBinding.RoleRef.APIGroup).To(Equal(rbacv1.GroupName))
 				Expect(roleBinding.RoleRef.Kind).To(Equal("ClusterRole"))
 				Expect(roleBinding.RoleRef.Name).To(BeElementOf("kubeflow-edit", "system:aggregate-to-view"))
-				Expect(roleBinding.Name).To(Equal(generateRoleBindingName(workspaceName, roleBinding.RoleRef.Name)))
 				Expect(roleBinding.Subjects).To(ConsistOf(rbacv1.Subject{
 					Kind:      rbacv1.ServiceAccountKind,
 					Name:      serviceAccountName,
@@ -983,31 +982,6 @@ var _ = Describe("Workspace Controller", func() {
 				g.Expect(serviceAccount.Labels).To(Equal(map[string]string{workspaceNameLabel: workspaceName}))
 				g.Expect(serviceAccount.Annotations).To(Equal(map[string]string{"other-tool.example.com/annotation": "other-value"}))
 			}, timeout, interval).Should(Succeed())
-		})
-	})
-
-	Context("When generating the RoleBinding name for a Workspace", func() {
-
-		It("should be stable across calls", func() {
-			Expect(generateRoleBindingName("my-workspace", "kubeflow-edit")).
-				To(Equal(generateRoleBindingName("my-workspace", "kubeflow-edit")))
-		})
-
-		It("should differ for different ClusterRoles", func() {
-			Expect(generateRoleBindingName("my-workspace", "kubeflow-edit")).
-				NotTo(Equal(generateRoleBindingName("my-workspace", "kubeflow-view")))
-		})
-
-		It("should not collide when the Workspace/ClusterRole split is ambiguous", func() {
-			Expect(generateRoleBindingName("a", "b-c")).NotTo(Equal(generateRoleBindingName("a-b", "c")))
-		})
-
-		It("should fit within the max RoleBinding name length", func() {
-			for _, workspaceName := range []string{"a", strings.Repeat("a", 253)} {
-				name := generateRoleBindingName(workspaceName, strings.Repeat("b", 253))
-				Expect(len(name)).To(BeNumerically("<=", maxRoleBindingNameLength))
-				Expect(name).To(MatchRegexp(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`))
-			}
 		})
 	})
 
@@ -2592,7 +2566,7 @@ var _ = Describe("Workspace Controller", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-			Expect(message).To(Equal(stateMsgWaitingStatefulSetPodCreate))
+			Expect(message).To(Equal(stateMsgWaitingPodUpdate))
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 5 * time.Second}))
 
 		})
