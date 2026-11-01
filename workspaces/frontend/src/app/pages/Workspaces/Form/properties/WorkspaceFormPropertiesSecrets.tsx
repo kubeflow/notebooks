@@ -144,21 +144,12 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
     (secretName: string) => {
       const secret = availableSecrets.find((s) => s.name === secretName);
 
-      if (secret && !secret.canUpdate) {
+      if (!secret?.canUpdate) {
         return;
       }
 
-      const secretData = secret ?? {
-        name: secretName,
-        type: 'Opaque',
-        immutable: false,
-        canMount: true,
-        canUpdate: true,
-        audit: { createdAt: '', createdBy: '', updatedAt: '', updatedBy: '', deletedAt: '' },
-      };
-
       setIsEditModalOpen(true);
-      setSecretToEdit(secretData);
+      setSecretToEdit(secret);
     },
     [availableSecrets],
   );
@@ -312,7 +303,7 @@ export const WorkspaceFormPropertiesSecrets: React.FC<WorkspaceFormPropertiesSec
             </Thead>
             {secrets.map((secret, index) => {
               const secretDetails = availableSecrets.find((s) => s.name === secret.secretName);
-              const canUpdate = secretDetails?.canUpdate ?? true;
+              const canUpdate = secretDetails?.canUpdate ?? false;
               const isExpanded = expandedSecrets.has(secret.secretName);
 
               return (

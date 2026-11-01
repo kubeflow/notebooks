@@ -102,8 +102,11 @@ class SecretsModal {
     return cy.findByTestId('secret-immutable-switch');
   }
 
-  toggleImmutable() {
-    this.findImmutableSwitch().click({ force: true });
+  enableImmutable() {
+    return this.findImmutableSwitch()
+      .should('be.enabled')
+      .check({ force: true })
+      .should('be.checked');
   }
 
   findSubmitButton() {
@@ -124,6 +127,92 @@ class SecretsModal {
 
   typeKey(index: number, key: string) {
     return this.findKeyInput().eq(index).clear().type(key);
+  }
+
+  findRow(index: number) {
+    return this.find().findAllByTestId('key-value-pair').eq(index);
+  }
+
+  replaceValue({ index, value }: { index: number; value: string }) {
+    this.findRow(index).findByTestId('replace-secret-value').click();
+    return this.typeValue({ index, value });
+  }
+
+  typeValue({ index, value }: { index: number; value: string }) {
+    return this.findRow(index)
+      .findByTestId('value-input')
+      .clear({ log: false })
+      .type(value, { log: false, parseSpecialCharSequences: false });
+  }
+
+  keepValue(index: number) {
+    return this.findRow(index).findByTestId('keep-secret-value').click();
+  }
+
+  resizeViewport(width: number) {
+    return cy.viewport(width, 1080);
+  }
+
+  assertReplacementControlsAligned(index: number) {
+    this.findRow(index)
+      .findByTestId('key-input')
+      .then(($key) => {
+        const key = $key[0].getBoundingClientRect();
+        const keyCenter = key.top + key.height / 2;
+        ['value-input', 'keep-secret-value', 'remove-key-value-pair'].forEach((testId) => {
+          this.findRow(index)
+            .findByTestId(testId)
+            .should(($control) => {
+              const control = $control[0].getBoundingClientRect();
+              expect(
+                control.top + control.height / 2,
+                `${testId} vertical alignment`,
+              ).to.be.closeTo(keyCenter, 1);
+            });
+        });
+      });
+    this.findRow(index).findByTestId('value-input').should('have.attr', 'type', 'password');
+    this.findRow(index)
+      .findByTestId('keep-secret-value')
+      .should('have.attr', 'aria-label')
+      .and('match', /^Keep existing value for /);
+  }
+
+  deleteKey(index: number) {
+    return this.findRow(index).findByTestId('remove-key-value-pair').click();
+  }
+
+  save() {
+    return this.findSubmitButton().click();
+  }
+
+  cancel() {
+    return this.find().findByTestId('secret-modal-cancel-button').click();
+  }
+
+  assertUndisclosed(count: number) {
+    this.find().findAllByTestId('undisclosed-value').should('have.length', count);
+    this.find().findAllByTestId('value-input').should('not.exist');
+  }
+
+  assertType(type: string) {
+    return this.find().findByTestId('secret-type-select').should('contain.text', type);
+  }
+
+  assertNotEditable() {
+    this.findSubmitButton().should('be.disabled');
+    this.findImmutableSwitch().should('be.disabled');
+    this.find().findAllByTestId('replace-secret-value').should('be.disabled');
+    this.find().findAllByTestId('remove-key-value-pair').should('be.disabled');
+    this.find().findByTestId('another-key-value-pair-button').should('be.disabled');
+  }
+
+  assertClosed() {
+    return this.find().should('not.exist');
+  }
+
+  capture(name: string) {
+    return this.find().screenshot(name);
   }
 
   findErrorAlert() {

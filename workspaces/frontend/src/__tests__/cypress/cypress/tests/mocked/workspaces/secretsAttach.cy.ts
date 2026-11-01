@@ -77,7 +77,7 @@ describe('SecretsAttachModal', () => {
             type: V1SecretType.SecretTypeOpaque,
             immutable: false,
             contents: {
-              key1: { base64: 'dmFsdWUx' }, // base64 for 'value1'
+              key1: {},
             },
           },
         },

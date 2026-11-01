@@ -85,9 +85,9 @@ describe('Secrets Expandable Key/Value Pairs', () => {
           type: 'Opaque',
           immutable: false,
           contents: {
-            username: { base64: 'dXNlcm5hbWU=' },
+            username: {},
             // cspell:disable-next-line
-            password: { base64: 'cGFzc3dvcmQ=' },
+            password: {},
           },
         },
       },
@@ -103,9 +103,9 @@ describe('Secrets Expandable Key/Value Pairs', () => {
           immutable: false,
           contents: {
             // cspell:disable-next-line
-            dbHost: { base64: 'ZGJIb3N0' },
+            dbHost: {},
             // cspell:disable-next-line
-            dbPassword: { base64: 'ZGJQYXNzd29yZA==' },
+            dbPassword: {},
           },
         },
       },

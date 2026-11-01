@@ -1303,7 +1303,7 @@ describe('Create workspace', () => {
       it('should successfully create a secret with valid data', () => {
         const secretName = 'test-secret';
         const key1 = 'username';
-        const value1 = 'admin';
+        const value1 = '日本語🔑 café';
         const key2 = 'password';
         const value2 = 'secret123';
 
@@ -1312,8 +1312,8 @@ describe('Create workspace', () => {
           type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
-            [key1]: { base64: btoa(value1) },
-            [key2]: { base64: btoa(value2) },
+            [key1]: {},
+            [key2]: {},
           },
         };
 
@@ -1346,7 +1346,9 @@ describe('Create workspace', () => {
         cy.wait('@createSecret').then((interception) => {
           expect(interception.request.body.data.name).to.equal(secretName);
           expect(interception.request.body.data.type).to.equal('Opaque');
-          expect(interception.request.body.data.contents[key1].base64).to.equal(btoa(value1));
+          expect(interception.request.body.data.contents[key1].base64).to.equal(
+            Cypress.Buffer.from(value1, 'utf8').toString('base64'),
+          );
           expect(interception.request.body.data.contents[key2].base64).to.equal(btoa(value2));
         });
 
@@ -1362,7 +1364,7 @@ describe('Create workspace', () => {
           type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
-            key1: { base64: btoa('value1') },
+            key1: {},
           },
         };
 
@@ -1461,7 +1463,7 @@ describe('Create workspace', () => {
           type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
-            key1: { base64: btoa('value1') },
+            key1: {},
           },
         };
 
@@ -1525,7 +1527,7 @@ describe('Create workspace', () => {
           type: V1SecretType.SecretTypeOpaque,
           immutable: false,
           contents: {
-            [key1]: { base64: btoa(value1) },
+            [key1]: {},
           },
         };
 
@@ -1603,14 +1605,14 @@ describe('Create workspace', () => {
           name: secret1,
           type: V1SecretType.SecretTypeOpaque,
           immutable: false,
-          contents: { key1: { base64: btoa('value1') } },
+          contents: { key1: {} },
         };
 
         const mockSecret2Response = {
           name: secret2,
           type: V1SecretType.SecretTypeOpaque,
           immutable: false,
-          contents: { key2: { base64: btoa('value2') } },
+          contents: { key2: {} },
         };
 
         navigateToPropertiesStep();

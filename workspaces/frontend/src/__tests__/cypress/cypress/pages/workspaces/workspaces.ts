@@ -233,6 +233,10 @@ class Workspaces {
     return this.findAction({ action: 'viewDetails', workspaceName }).click();
   }
 
+  clickEditAction(workspaceName: string) {
+    return this.findAction({ action: 'edit', workspaceName }).click();
+  }
+
   toggleRowExpansion(rowIndex: number) {
     return cy
       .findByTestId(`workspace-row-${rowIndex}`)

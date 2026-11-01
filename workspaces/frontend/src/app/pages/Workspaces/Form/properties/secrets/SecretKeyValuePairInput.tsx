@@ -1,75 +1,98 @@
 import React from 'react';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
-import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
-import { Grid, GridItem } from '@patternfly/react-core/dist/esm/layouts/Grid';
-import { Stack } from '@patternfly/react-core/dist/esm/layouts/Stack';
-import { MinusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/minus-circle-icon';
-import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+import { Tooltip } from '@patternfly/react-core/dist/esm/components/Tooltip';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { Tr, Td } from '@patternfly/react-table/dist/esm/components/Table';
+import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
+import { TimesIcon } from '@patternfly/react-icons/dist/esm/icons/times-icon';
+import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
+import { SecretKeyValuePair } from '~/app/hooks/useSecret';
 import PasswordInput from '~/shared/components/PasswordInput';
 
 interface SecretKeyValuePairInputProps {
   index: number;
-  keyValue: string;
-  valueValue: string;
-  onKeyChange: (value: string) => void;
-  onValueChange: (value: string) => void;
+  row: SecretKeyValuePair;
+  onChange: (row: SecretKeyValuePair) => void;
   onRemove: () => void;
   canRemove: boolean;
 }
 
-/**
- * A composite component for managing a single secret key-value pair
- * Handles layout and semantics for Key input, Value input, and Remove button
- */
 const SecretKeyValuePairInput: React.FC<SecretKeyValuePairInputProps> = ({
   index,
-  keyValue,
-  valueValue,
-  onKeyChange,
-  onValueChange,
+  row,
+  onChange,
   onRemove,
   canRemove,
 }) => (
-  <>
-    <Grid hasGutter data-testid="key-value-pair">
-      <GridItem span={11}>
-        <Form>
-          <ThemeAwareFormGroupWrapper isRequired label="Key" fieldId={`key-${index}`}>
-            <TextInput
-              id={`key-${index}`}
-              data-testid="key-input"
-              isRequired
-              aria-label={`key of item ${index}`}
-              value={keyValue}
-              onChange={(_event, val) => onKeyChange(val)}
-            />
-          </ThemeAwareFormGroupWrapper>
-        </Form>
-      </GridItem>
-      <GridItem span={1} className="secret-remove-button-container">
-        <Stack className="pf-v6-u-justify-content-flex-end">
-          <Button
-            isDisabled={!canRemove}
-            data-testid="remove-key-value-pair"
-            aria-label="Remove key-value pair"
-            variant="plain"
-            icon={<MinusCircleIcon />}
-            onClick={onRemove}
-          />
-        </Stack>
-      </GridItem>
-    </Grid>
-    <ThemeAwareFormGroupWrapper isRequired label="Value" fieldId={`value-${index}`}>
-      <PasswordInput
-        data-testid="value-input"
-        isRequired
-        aria-label={`value of item ${index}`}
-        value={valueValue}
-        onChange={(_event, val) => onValueChange(val)}
+  <Tr data-testid="key-value-pair">
+    <Td>
+      <TextInput
+        aria-label={`Key row ${index + 1}`}
+        value={row.key}
+        readOnlyVariant={row.kind !== 'new' ? 'default' : undefined}
+        onChange={(_event, key) => onChange({ ...row, key })}
+        placeholder="Enter key"
+        data-testid="key-input"
       />
-    </ThemeAwareFormGroupWrapper>
-  </>
+    </Td>
+    <Td>
+      <Flex
+        alignItems={{ default: 'alignItemsCenter' }}
+        flexWrap={{ default: 'nowrap' }}
+        spaceItems={{ default: 'spaceItemsXs' }}
+      >
+        <FlexItem flex={{ default: 'flex_1' }}>
+          {row.kind === 'unchanged' ? (
+            <span data-testid="undisclosed-value">Undisclosed (kept)</span>
+          ) : (
+            <PasswordInput
+              aria-label={`Value row ${index + 1}`}
+              value={row.value}
+              onChange={(_event, value) => onChange({ ...row, value })}
+              data-testid="value-input"
+            />
+          )}
+        </FlexItem>
+        {row.kind === 'unchanged' && (
+          <FlexItem>
+            <Tooltip content="Replace value">
+              <Button
+                variant="plain"
+                data-testid="replace-secret-value"
+                aria-label={`Replace value for ${row.key}`}
+                onClick={() => onChange({ key: row.key, kind: 'replacement', value: '' })}
+                icon={<PencilAltIcon />}
+              />
+            </Tooltip>
+          </FlexItem>
+        )}
+        {row.kind === 'replacement' && (
+          <FlexItem>
+            <Tooltip content="Keep existing value">
+              <Button
+                variant="plain"
+                data-testid="keep-secret-value"
+                aria-label={`Keep existing value for ${row.key}`}
+                onClick={() => onChange({ key: row.key, kind: 'unchanged' })}
+                icon={<TimesIcon />}
+              />
+            </Tooltip>
+          </FlexItem>
+        )}
+      </Flex>
+    </Td>
+    <Td>
+      <Button
+        variant="plain"
+        aria-label={`Delete key ${row.key || index + 1}`}
+        data-testid="remove-key-value-pair"
+        isDisabled={!canRemove}
+        onClick={onRemove}
+        icon={<TrashAltIcon />}
+      />
+    </Td>
+  </Tr>
 );
 
 export default SecretKeyValuePairInput;

@@ -8,7 +8,6 @@ import {
   V1PersistentVolumeMode,
   V1PersistentVolumeReclaimPolicy,
   V1PodPhase,
-  V1SecretType,
   WorkspacekindsWorkspaceKindListItem,
   WorkspacesRedirectMessageLevel,
   WorkspacesWorkspaceListItem,
@@ -20,6 +19,7 @@ import {
   buildMockPVC,
   buildMockPVCCreate,
   buildMockSecret,
+  buildMockSecretResponse,
   buildMockStorageClass,
   buildMockWorkspace,
   buildMockWorkspaceCreate,
@@ -342,24 +342,12 @@ export const mockWorkspaceCreate = buildMockWorkspaceCreate({});
 export const mockWorkspaceUpdate = buildMockWorkspaceUpdate({});
 export const mockSecretCreate: SecretsSecretCreate = {
   name: 'secret-1',
-  type: V1SecretType.SecretTypeOpaque,
-  immutable: false,
-  contents: {
-    username: {
-      base64: 'abcd',
-    },
-    password: {},
-  },
+  ...buildMockSecretResponse(),
 };
 
 export const mockSecretCreate3: SecretsSecretCreate = {
   name: 'secret-3',
-  type: V1SecretType.SecretTypeOpaque,
-  immutable: false,
-  contents: {
-    apiKey: {},
-    apiSecret: {},
-  },
+  ...buildMockSecretResponse({ contents: { apiKey: {}, apiSecret: {} } }),
 };
 
 export const mockSecretsList = [
