@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -9,11 +9,14 @@ import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
-import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindPodConfigValue } from '~/app/types';
 import { EditableRowsTable, KeyValueRow } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import {
   getResources,
+  validateOptionId,
+  validateOptionDisplayName,
+  validateOptionDescription,
   getRedirectMessageError,
   normalizeRedirect,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
@@ -39,6 +42,7 @@ interface WorkspaceKindFormPodConfigModalProps {
   currConfig: WorkspaceKindPodConfigValue;
   setCurrConfig: (currConfig: WorkspaceKindPodConfigValue) => void;
   podConfigOptions?: WorkspaceKindPodConfigValue[];
+  existingIds?: string[];
 }
 
 export const WorkspaceKindFormPodConfigModal: React.FC<WorkspaceKindFormPodConfigModalProps> = (
@@ -59,6 +63,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   currConfig,
   setCurrConfig,
   podConfigOptions,
+  existingIds,
 }) => {
   const initialResources = useMemo(() => getEditableResources(currConfig), [currConfig]);
 
@@ -74,6 +79,26 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   const [redirect, setRedirect] = useState<OptionsOptionRedirect>(
     currConfig.redirect || { to: '' },
   );
+  const [isIdTouched, setIsIdTouched] = useState(false);
+  const [isDisplayNameTouched, setIsDisplayNameTouched] = useState(false);
+  const [isDescriptionTouched, setIsDescriptionTouched] = useState(false);
+  const currConfigIdRef = useRef(currConfig.id);
+  currConfigIdRef.current = currConfig.id;
+  const initialIdRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (isOpen) {
+      initialIdRef.current = editIndex !== null ? currConfigIdRef.current : undefined;
+      setIsIdTouched(editIndex !== null);
+      setIsDisplayNameTouched(editIndex !== null);
+      setIsDescriptionTouched(editIndex !== null);
+    } else {
+      initialIdRef.current = undefined;
+      setIsIdTouched(false);
+      setIsDisplayNameTouched(false);
+      setIsDescriptionTouched(false);
+    }
+  }, [isOpen, editIndex]);
 
   useEffect(() => {
     setResources(getEditableResources(currConfig));
@@ -87,6 +112,33 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
       Object.entries(currConfig.nodeSelector ?? {}).map(([key, value]) => ({ key, value })),
     );
   }, [currConfig, isOpen, editIndex]);
+
+  const resolvedExistingIds = useMemo(
+    () => existingIds ?? (podConfigOptions ?? []).map((opt) => opt.id),
+    [existingIds, podConfigOptions],
+  );
+
+  const originalId =
+    editIndex !== null && podConfigOptions?.[editIndex]
+      ? podConfigOptions[editIndex]?.id
+      : initialIdRef.current;
+
+  const idError =
+    isIdTouched || id.length > 0 ? validateOptionId(id, resolvedExistingIds, originalId) : null;
+
+  const displayNameError =
+    isDisplayNameTouched || displayName.length > 0 ? validateOptionDisplayName(displayName) : null;
+
+  const descriptionError =
+    isDescriptionTouched || description.length > 0 ? validateOptionDescription(description) : null;
+
+  const isFormValid =
+    !idError &&
+    !displayNameError &&
+    !descriptionError &&
+    validateOptionId(id, resolvedExistingIds, originalId) === null &&
+    validateOptionDisplayName(displayName) === null &&
+    validateOptionDescription(description) === null;
 
   // merge resource entries to k8s resources type
   // resources: {requests: {}, limits: {}}
@@ -114,9 +166,9 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   const candidateTargets = useMemo(
     () =>
       (podConfigOptions ?? [])
-        .filter((opt) => opt.id && opt.id !== id && opt.id !== currConfig.id)
+        .filter((opt) => opt.id && opt.id !== id && opt.id !== originalId)
         .map((opt) => ({ id: opt.id, displayName: opt.displayName })),
-    [podConfigOptions, id, currConfig.id],
+    [podConfigOptions, id, originalId],
   );
 
   const hasResourceErrors = resources.some((resource) => getResourceErrors(resource).length > 0);
@@ -125,7 +177,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   const hasRedirectError = Boolean(getRedirectMessageError(redirect)) || isMissingRedirectTarget;
 
   const handleSubmit = useCallback(() => {
-    if (hasResourceErrors || hasRedirectError) {
+    if (hasResourceErrors || hasRedirectError || !isFormValid) {
       return;
     }
     const finalRedirect = normalizeRedirect(redirect);
@@ -153,6 +205,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
     hasResourceErrors,
     hidden,
     id,
+    isFormValid,
     labels,
     mergeResourceLabels,
     nodeSelectors,
@@ -202,40 +255,89 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
       />
       <ModalBody>
         <Form>
-          <ThemeAwareFormGroupWrapper label="ID" isRequired fieldId="workspace-kind-pod-config-id">
+          <ThemeAwareFormGroupWrapper
+            label="ID"
+            isRequired
+            fieldId="workspace-kind-pod-config-id"
+            hasError={!!idError}
+            helperTextNode={
+              idError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="pod-config-id-error">
+                    {idError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
+          >
             <TextInput
               isRequired
               type="text"
               value={id}
-              onChange={(_, value) => setId(value)}
+              onChange={(_, value) => {
+                setIsIdTouched(true);
+                setId(value);
+              }}
+              onBlur={() => setIsIdTouched(true)}
               id="workspace-kind-pod-config-id"
               data-testid="workspace-kind-pod-config-id-input"
+              validated={idError ? 'error' : 'default'}
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
             label="Display Name"
             isRequired
             fieldId="workspace-kind-pod-config-name"
+            hasError={!!displayNameError}
+            helperTextNode={
+              displayNameError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="pod-config-name-error">
+                    {displayNameError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
           >
             <TextInput
               isRequired
               type="text"
               value={displayName}
-              onChange={(_, value) => setDisplayName(value)}
+              onChange={(_, value) => {
+                setIsDisplayNameTouched(true);
+                setDisplayName(value);
+              }}
+              onBlur={() => setIsDisplayNameTouched(true)}
               id="workspace-kind-pod-config-name"
               data-testid="workspace-kind-pod-config-name-input"
+              validated={displayNameError ? 'error' : 'default'}
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
             label="Description"
             fieldId="workspace-kind-pod-config-description"
+            hasError={!!descriptionError}
+            helperTextNode={
+              descriptionError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="pod-config-description-error">
+                    {descriptionError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
           >
             <TextInput
               type="text"
               value={description}
-              onChange={(_, value) => setDescription(value)}
+              onChange={(_, value) => {
+                setIsDescriptionTouched(true);
+                setDescription(value);
+              }}
+              onBlur={() => setIsDescriptionTouched(true)}
               id="workspace-kind-pod-config-description"
               data-testid="workspace-kind-pod-config-description-input"
+              validated={descriptionError ? 'error' : 'default'}
             />
           </ThemeAwareFormGroupWrapper>
           <FormGroup
@@ -288,7 +390,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
           key="confirm"
           variant="primary"
           onClick={handleSubmit}
-          isDisabled={hasResourceErrors || hasRedirectError}
+          isDisabled={hasResourceErrors || hasRedirectError || !isFormValid}
           data-testid="pod-config-modal-submit-button"
         >
           {editIndex !== null ? 'Save' : 'Create'}
