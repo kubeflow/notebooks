@@ -143,7 +143,15 @@ describe('WorkspaceActionsContext namespace routing', () => {
           },
         },
       });
-      const currentState = buildMockWorkspaceUpdateFromWorkspace({ workspace: workspaceInB });
+      const currentState = buildMockWorkspaceUpdateFromWorkspace({
+        workspace: workspaceInB,
+        workspaceUpdate: {
+          displayName: 'Current display name from GET',
+          revision: 'opaque/revision:17',
+        },
+        podMetadata: { labels: { team: 'research' }, annotations: { owner: 'notebooks' } },
+        volumes: { home: 'home-pvc' },
+      });
       getWorkspace.mockResolvedValue({ data: currentState });
 
       render(
@@ -160,11 +168,19 @@ describe('WorkspaceActionsContext namespace routing', () => {
       if (button.startsWith('update-and')) {
         await waitFor(() => {
           expect(getWorkspace).toHaveBeenCalledWith(namespaceB, workspaceName);
-          expect(updateWorkspace).toHaveBeenCalledWith(
-            namespaceB,
-            workspaceName,
-            expect.objectContaining({ data: expect.objectContaining({ paused }) }),
-          );
+          expect(updateWorkspace).toHaveBeenCalledWith(namespaceB, workspaceName, {
+            data: {
+              ...currentState,
+              paused,
+              podTemplate: {
+                ...currentState.podTemplate,
+                options: {
+                  imageConfig: 'jupyterlab_scipy_190',
+                  podConfig: currentState.podTemplate.options.podConfig,
+                },
+              },
+            },
+          });
         });
         expect(updateWorkspacePauseState).not.toHaveBeenCalled();
       } else {

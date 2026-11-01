@@ -8,6 +8,7 @@ import {
   WorkspacekindsPodVolumeMountPaths,
   WorkspacekindsWorkspaceKindListItem,
   WorkspacesPodSecretMount,
+  WorkspacesPodMetadataMutate,
   WorkspacesPodTemplateOptionsMutate,
   WorkspacesPodVolumeMount,
   V1Toleration,
@@ -44,6 +45,8 @@ export interface WorkspaceFormProperties {
 
 export interface WorkspaceFormData {
   revision: string;
+  originalDisplayName: string | undefined;
+  podMetadata: WorkspacesPodMetadataMutate;
   kind: WorkspacekindsWorkspaceKindListItem | undefined;
   imageConfig: WorkspacesPodTemplateOptionsMutate['imageConfig'] | undefined;
   podConfig: WorkspacesPodTemplateOptionsMutate['podConfig'] | undefined;
