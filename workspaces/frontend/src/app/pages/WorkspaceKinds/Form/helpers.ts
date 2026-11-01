@@ -24,6 +24,47 @@ import { PodResourceEntry } from './podConfig/WorkspaceKindFormResource';
 export const generateUniqueId = (): string =>
   `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+export const OPTION_ID_REGEX = /^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$/;
+export const MAX_OPTION_ID_LENGTH = 256;
+export const MIN_DISPLAY_NAME_LENGTH = 2;
+export const MAX_DISPLAY_NAME_LENGTH = 128;
+
+export const validateOptionId = (
+  id: string,
+  existingIds: string[] = [],
+  currentId?: string,
+): string | null => {
+  const trimmed = id.trim();
+  if (!trimmed) {
+    return 'ID is required.';
+  }
+  if (id.length > MAX_OPTION_ID_LENGTH) {
+    return `ID must not exceed ${MAX_OPTION_ID_LENGTH} characters.`;
+  }
+  if (!OPTION_ID_REGEX.test(id)) {
+    return 'ID must start and end with an alphanumeric character and contain only lowercase letters, numbers, hyphens, or underscores.';
+  }
+  const duplicates = existingIds.filter((existing) => existing !== currentId);
+  if (duplicates.includes(id)) {
+    return 'An option with this ID already exists.';
+  }
+  return null;
+};
+
+export const validateOptionDisplayName = (displayName: string): string | null => {
+  const trimmed = displayName.trim();
+  if (!trimmed) {
+    return 'Display Name is required.';
+  }
+  if (displayName.length < MIN_DISPLAY_NAME_LENGTH) {
+    return `Display Name must be at least ${MIN_DISPLAY_NAME_LENGTH} characters.`;
+  }
+  if (displayName.length > MAX_DISPLAY_NAME_LENGTH) {
+    return `Display Name must not exceed ${MAX_DISPLAY_NAME_LENGTH} characters.`;
+  }
+  return null;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export const isValidWorkspaceKindYaml = (data: any): boolean => {
   if (!data || typeof data !== 'object') {
