@@ -203,8 +203,8 @@ func mergeStringMapFields(desired map[string]string, target map[string]string, o
 		if _, ok := desired[k]; ok {
 			continue
 		}
-		mapFieldPath = append(mapFieldPath, fieldpath.MakePathOrDie(k)...)
-		if owned.Has(mapFieldPath) {
+		keyFieldPath := append(mapFieldPath, fieldpath.MakePathOrDie(k)...) //nolint:gocritic
+		if owned.Has(keyFieldPath) {
 			delete(target, k)
 			requireUpdate = true
 		}
