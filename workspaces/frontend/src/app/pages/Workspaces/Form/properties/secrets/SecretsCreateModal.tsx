@@ -178,7 +178,6 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
         pair.kind === 'unchanged' ? {} : { base64: encodeSecretText(pair.value) },
       ]),
     );
-    console.log(contents);
     return contents;
   }, [keyValuePairs]);
 
