@@ -4,7 +4,12 @@ import {
   workspaceKindDetailsDrawer,
   deleteModal,
 } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
-import { buildMockWorkspaceKind, buildMockNamespace } from '~/shared/mock/mockBuilder';
+import {
+  buildMockListValuesData,
+  buildMockNamespace,
+  buildMockWorkspaceKind,
+} from '~/shared/mock/mockBuilder';
+import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import type { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 import { createWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspaceKinds/createWorkspaceKind';
@@ -716,6 +721,7 @@ describe('WorkspaceKinds', () => {
     const setupWorkspaceKindActionTest = (
       workspaceKindName: string,
       deprecated = false,
+      listValues?: ReturnType<typeof buildMockListValuesData>,
     ): WorkspacekindsWorkspaceKindListItem => {
       const mockWorkspaceKind = buildMockWorkspaceKind({
         name: workspaceKindName,
@@ -749,6 +755,8 @@ describe('WorkspaceKinds', () => {
         mockModArchResponse([]),
       ).as('getAllWorkspaces');
 
+      interceptListValues(mockWorkspaceKind, listValues ? { listValues } : {});
+
       visitWorkspaceKinds();
 
       return mockWorkspaceKind;
@@ -775,6 +783,82 @@ describe('WorkspaceKinds', () => {
         workspaceKindDetailsDrawer.shouldBeVisible();
         workspaceKindDetailsDrawer.findCloseButton().click();
         workspaceKindDetailsDrawer.shouldNotExist();
+      });
+
+      it('should load image and pod config details from list values once when opening the drawer', () => {
+        const baseListValues = buildMockListValuesData();
+
+        const image = {
+          ...baseListValues.imageConfig.values![0],
+          id: 'resolved-image',
+          displayName: 'Resolved Image',
+          clusterMetrics: {
+            workspacesCount: 7,
+          },
+        };
+
+        const podConfig = {
+          ...baseListValues.podConfig.values![0],
+          id: 'resolved-pod-config',
+          displayName: 'Resolved Pod Config',
+          clusterMetrics: {
+            workspacesCount: 4,
+          },
+        };
+
+        const listValues = buildMockListValuesData({
+          imageConfig: {
+            default: image.id,
+            values: [image],
+          },
+          podConfig: {
+            default: podConfig.id,
+            values: [podConfig],
+          },
+        });
+
+        const mockWorkspaceKind = setupWorkspaceKindActionTest(
+          TEST_WORKSPACEKIND_NAME,
+          false,
+          listValues,
+        );
+
+        const listValuesAlias = `@listValues-${mockWorkspaceKind.name}`;
+
+        // Listing WorkspaceKinds must not eagerly resolve per-kind options.
+        cy.get(`${listValuesAlias}.all`).should('have.length', 0);
+
+        workspaceKinds
+          .findAction({
+            action: 'view-details',
+            workspaceKindName: mockWorkspaceKind.name,
+          })
+          .click();
+
+        workspaceKindDetailsDrawer.shouldBeVisible();
+
+        cy.wait(listValuesAlias);
+
+        // Opening one drawer resolves its options exactly once.
+        cy.get(`${listValuesAlias}.all`).should('have.length', 1);
+
+        workspaceKindDetailsDrawer.clickImagesTab();
+        workspaceKindDetailsDrawer.assertImageRow({
+          displayName: image.displayName,
+          workspaceCount: 7,
+        });
+
+        workspaceKindDetailsDrawer.clickPodConfigsTab();
+        workspaceKindDetailsDrawer.assertPodConfigRow({
+          displayName: podConfig.displayName,
+          workspaceCount: 4,
+        });
+
+        // Both tabs reuse the response fetched by the parent details component.
+        workspaceKindDetailsDrawer.clickImagesTab();
+        workspaceKindDetailsDrawer.clickPodConfigsTab();
+
+        cy.get(`${listValuesAlias}.all`).should('have.length', 1);
       });
 
       it('should update drawer content when switching between workspace kinds', () => {
@@ -812,6 +896,9 @@ describe('WorkspaceKinds', () => {
           { path: { apiVersion: NOTEBOOKS_API_VERSION } },
           mockModArchResponse([]),
         ).as('getAllWorkspaces');
+
+        interceptListValues(workspaceKind1);
+        interceptListValues(workspaceKind2);
 
         visitWorkspaceKinds();
 

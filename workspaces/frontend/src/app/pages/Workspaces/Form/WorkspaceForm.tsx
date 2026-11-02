@@ -498,18 +498,16 @@ const WorkspaceForm: React.FC = () => {
   // Get original values for edit mode diff
   const originalImage = useMemo(
     () =>
-      originalData?.kind?.podTemplate.options.imageConfig.values?.find(
-        (image) => image.id === originalData.imageConfig,
-      ),
-    [originalData],
+      allValuesData?.imageConfig.values?.find((image) => image.id === originalData?.imageConfig),
+    [allValuesData, originalData?.imageConfig],
   );
 
   const originalPodConfig = useMemo(
     () =>
-      originalData?.kind?.podTemplate.options.podConfig.values?.find(
-        (podConfig) => podConfig.id === originalData.podConfig,
+      allValuesData?.podConfig.values?.find(
+        (podConfig) => podConfig.id === originalData?.podConfig,
       ),
-    [originalData],
+    [allValuesData, originalData?.podConfig],
   );
 
   if (initialFormDataError) {
@@ -525,6 +523,8 @@ const WorkspaceForm: React.FC = () => {
     selectedKind: data.kind,
     selectedImage,
     selectedPodConfig,
+    selectedImageId: data.imageConfig,
+    selectedPodConfigId: data.podConfig,
     properties: data.properties,
     currentStep,
     onNavigateToStep: navigateToStep,
@@ -535,6 +535,8 @@ const WorkspaceForm: React.FC = () => {
     originalKind: originalData?.kind,
     originalImage,
     originalPodConfig,
+    originalImageId: originalData?.imageConfig,
+    originalPodConfigId: originalData?.podConfig,
     originalProperties: originalData?.properties,
   };
 

@@ -1,7 +1,4 @@
-import {
-  OptionsOptionRedirect,
-  WorkspacekindsWorkspaceKindListItem,
-} from '~/generated/data-contracts';
+import { WorkspacekindsWorkspaceKindListItem } from '~/generated/data-contracts';
 
 type KindLogoDict = Record<string, string>;
 
@@ -23,25 +20,4 @@ export function buildKindLogoDictionary(
     }
   }
   return kindLogoDict;
-}
-
-type WorkspaceRedirectStatus = Record<string, OptionsOptionRedirect | undefined>;
-
-/**
- * Builds a dictionary of workspace kinds to redirect statuses.
- * @param {WorkspaceKind[]} workspaceKinds - The list of workspace kinds.
- * @returns {WorkspaceRedirectStatus} A dictionary with kind names as keys and redirect status objects as values.
- */
-export function buildWorkspaceRedirectStatus(
-  workspaceKinds: WorkspacekindsWorkspaceKindListItem[] | [],
-): WorkspaceRedirectStatus {
-  const workspaceRedirectStatus: WorkspaceRedirectStatus = {};
-  for (const workspaceKind of workspaceKinds) {
-    // Loop through the `values` array inside `imageConfig`
-    workspaceRedirectStatus[workspaceKind.name] =
-      workspaceKind.podTemplate.options.imageConfig.values?.find(
-        (value) => value.redirect,
-      )?.redirect;
-  }
-  return workspaceRedirectStatus;
 }
