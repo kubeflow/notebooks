@@ -1834,7 +1834,9 @@ func (r *WorkspaceReconciler) generateWorkspaceStatus(ctx context.Context, log l
 	// NOTE: the ServiceAccount name is set outside `generateWorkspacePodStatus()` because it is
 	//       known even when the Pod does not exist yet (e.g. while the Workspace is paused)
 	status.PodTemplatePod = generateWorkspacePodStatus(pod)
-	status.PodTemplatePod.ServiceAccountName = serviceAccount.Name
+	if serviceAccount != nil {
+		status.PodTemplatePod.ServiceAccountName = serviceAccount.Name
+	}
 	status.PodTemplateStatefulSet = generateWorkspaceStatefulSetStatus(statefulSet)
 
 	// populate the workspace state and state message
