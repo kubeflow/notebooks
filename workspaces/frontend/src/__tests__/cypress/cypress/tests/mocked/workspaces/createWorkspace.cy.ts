@@ -1191,16 +1191,31 @@ describe('Create workspace', () => {
         secretsCreateModal.assertErrorAlertContainsMessage('Key is required');
       });
 
-      it('should validate value is required', () => {
+      it('should allow an empty secret value', () => {
+        const secretName = 'empty-value-secret';
+        cy.interceptApi(
+          'POST /api/:apiVersion/secrets/:namespace',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, namespace: mockNamespace.name } },
+          mockModArchResponse({
+            name: secretName,
+            type: V1SecretType.SecretTypeOpaque,
+            immutable: false,
+            contents: { key1: {} },
+          }),
+        ).as('createSecret');
+
         openSecretsCreationModal();
 
-        secretsCreateModal.typeSecretName('valid-secret-name');
+        secretsCreateModal.typeSecretName(secretName);
         secretsCreateModal.typeKey(0, 'key1');
-        // Don't fill in value
+        secretsCreateModal.assertValueValue(0, '');
 
         secretsCreateModal.clickCreate();
 
-        secretsCreateModal.assertErrorAlertContainsMessage('Value is required');
+        cy.wait('@createSecret').then(({ request }) => {
+          expect(request.body.data.contents).to.deep.equal({ key1: { base64: '' } });
+        });
+        secretsCreateModal.assertModalNotExists();
       });
 
       it('should validate key format - invalid characters', () => {
@@ -1255,8 +1270,6 @@ describe('Create workspace', () => {
         secretsCreateModal.typeSecretName('valid-secret-name');
         secretsCreateModal.assertErrorAlertContainsMessage('Key is required (pair 1)');
         secretsCreateModal.typeKey(0, 'key1');
-        secretsCreateModal.assertErrorAlertContainsMessage('Value is required (pair 1)');
-        secretsCreateModal.typeValue(0, 'value1');
         secretsCreateModal.assertErrorAlertNotExists();
       });
     });

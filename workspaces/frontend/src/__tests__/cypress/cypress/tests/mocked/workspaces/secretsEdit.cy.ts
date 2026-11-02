@@ -163,6 +163,21 @@ describe('Edit Secret Modal', () => {
     secretsModal.assertClosed();
   });
 
+  it('allows replacing a secret value with an empty string', () => {
+    openEditor();
+    secretsModal.findRow(0).findByTestId('replace-secret-value').click();
+    secretsModal.findRow(0).findByTestId('value-input').should('have.value', '');
+    secretsModal.save();
+
+    cy.wait('@updateSecret').then(({ request }) => {
+      expect(request.body.data.contents).to.deep.equal({
+        apiKey: { base64: '' },
+        username: {},
+      });
+    });
+    secretsModal.assertClosed();
+  });
+
   [1920, 1024, 768].forEach((width) => {
     it(`aligns replacement controls at ${width}px and preserves the other undisclosed key`, () => {
       secretsModal.resizeViewport(width);
