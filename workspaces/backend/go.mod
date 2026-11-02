@@ -5,6 +5,7 @@ go 1.27.1
 replace github.com/kubeflow/notebooks/workspaces/controller => ../controller
 
 require (
+	github.com/go-logr/logr v1.4.4
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/klauspost/compress v1.19.2
 	github.com/kubeflow/notebooks/workspaces/controller v0.0.0
@@ -36,7 +37,6 @@ require (
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.3 // indirect
-	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect

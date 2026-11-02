@@ -210,7 +210,6 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 			ObjectMeta: metav1.ObjectMeta{Name: "ws", Namespace: namespace, Generation: generation},
 			Status:     appsv1.StatefulSetStatus{ObservedGeneration: generation, UpdateRevision: revision},
 		}
-
 		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "ws-0",
@@ -224,8 +223,11 @@ var _ = Describe("generateWorkspaceStatus activity status reset on restart", fun
 				},
 			},
 		}
+		sa := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{Name: "ws-sa", Namespace: namespace},
+		}
 
-		status, _, err := r.generateWorkspaceStatus(ctx, log, ws, pod, statefulSet, "")
+		status, _, err := r.generateWorkspaceStatus(ctx, log, ws, pod, statefulSet, sa)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(status.State).To(Equal(kubefloworgv1beta1.WorkspaceStateRunning))
 		Expect(status.Activity).To(Equal(kubefloworgv1beta1.WorkspaceActivity{}))

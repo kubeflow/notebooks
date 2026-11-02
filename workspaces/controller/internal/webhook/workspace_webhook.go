@@ -26,6 +26,7 @@ import (
 	v1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -75,6 +76,7 @@ func (v *WorkspaceValidator) ValidateCreate(ctx context.Context, workspace *kube
 	// validate the Workspace
 	// NOTE: we do this after fetching the WorkspaceKind as there will be multiple types in the future,
 	//       and we need to know which one the Workspace is using to validate it correctly.
+	allErrs = append(allErrs, v.validateWorkspaceName(workspace)...)
 	allErrs = append(allErrs, v.validatePodTemplatePodMetadata(workspace)...)
 	allErrs = append(allErrs, v.validateImageConfig(workspace, workspaceKind)...)
 	allErrs = append(allErrs, v.validatePodConfig(workspace, workspaceKind)...)
@@ -188,6 +190,19 @@ func (v *WorkspaceValidator) validateWorkspaceKind(ctx context.Context, workspac
 		}
 	}
 	return workspaceKind, nil
+}
+
+// validateWorkspaceName validates the name of a Workspace
+func (v *WorkspaceValidator) validateWorkspaceName(workspace *kubefloworgv1beta1.Workspace) []*field.Error {
+	var allErrs []*field.Error //nolint:prealloc
+
+	workspaceNamePath := field.NewPath("metadata", "name")
+	nameErrs := validation.IsDNS1123Label(workspace.Name)
+	for _, nameErr := range nameErrs {
+		allErrs = append(allErrs, field.Invalid(workspaceNamePath, workspace.Name, nameErr))
+	}
+
+	return allErrs
 }
 
 // validatePodTemplatePodMetadata validates the podMetadata of a Workspace's PodTemplate
