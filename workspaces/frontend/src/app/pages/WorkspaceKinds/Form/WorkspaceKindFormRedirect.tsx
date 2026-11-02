@@ -16,29 +16,36 @@ import {
   getRedirectMessageError,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
 
-interface WorkspaceKindFormPodConfigRedirectProps {
+export interface WorkspaceKindFormRedirectProps {
   redirect?: OptionsOptionRedirect;
   setRedirect: (obj: OptionsOptionRedirect) => void;
   candidateTargets: { id: string; displayName?: string }[];
+  fieldIdPrefix?: string;
+  targetLabel?: string;
+  entityType?: string;
 }
 
-export const WorkspaceKindFormPodConfigRedirect: React.FC<
-  WorkspaceKindFormPodConfigRedirectProps
-> = ({ redirect = { to: '' }, setRedirect, candidateTargets }) => {
+export const WorkspaceKindFormRedirect: React.FC<WorkspaceKindFormRedirectProps> = ({
+  redirect = { to: '' },
+  setRedirect,
+  candidateTargets,
+  fieldIdPrefix = 'workspace-kind-redirect',
+  targetLabel = 'Redirect To',
+  entityType = 'configuration',
+}) => {
   const isMissingTarget =
     Boolean(redirect.to) && !candidateTargets.some((target) => target.id === redirect.to);
 
   const helperTextNode = isMissingTarget ? (
     <HelperText>
       <HelperTextItem variant="warning" data-testid="missing-target-warning">
-        The target pod configuration &quot;{redirect.to}&quot; is missing from currently defined
-        options.
+        The target {entityType} &quot;{redirect.to}&quot; is missing from currently defined options.
       </HelperTextItem>
     </HelperText>
   ) : candidateTargets.length === 0 ? (
     <HelperText>
       <HelperTextItem variant="indeterminate">
-        No other pod configurations available to redirect to.
+        No other {entityType}s available to redirect to.
       </HelperTextItem>
     </HelperText>
   ) : undefined;
@@ -61,21 +68,21 @@ export const WorkspaceKindFormPodConfigRedirect: React.FC<
         <FormFieldGroupHeader
           titleText={{
             text: 'Redirect',
-            id: 'workspace-kind-pod-config-redirect',
+            id: fieldIdPrefix,
           }}
         />
       }
-      data-testid="workspace-kind-pod-config-redirect-section"
+      data-testid={`${fieldIdPrefix}-section`}
     >
       <ThemeAwareFormGroupWrapper
-        label="Redirect To"
-        fieldId="workspace-kind-pod-config-redirect-to"
+        label={targetLabel}
+        fieldId={`${fieldIdPrefix}-to`}
         helperTextNode={helperTextNode}
       >
         <FormSelect
-          id="workspace-kind-pod-config-redirect-to"
-          data-testid="workspace-kind-pod-config-redirect-to-select"
-          aria-label="Redirect To"
+          id={`${fieldIdPrefix}-to`}
+          data-testid={`${fieldIdPrefix}-to-select`}
+          aria-label={targetLabel}
           value={redirect.to || ''}
           onChange={(_, val) => {
             if (!val) {
@@ -114,11 +121,11 @@ export const WorkspaceKindFormPodConfigRedirect: React.FC<
         <>
           <ThemeAwareFormGroupWrapper
             label="Redirect Message Level"
-            fieldId="workspace-kind-pod-config-redirect-msg-lvl"
+            fieldId={`${fieldIdPrefix}-msg-lvl`}
           >
             <FormSelect
-              id="workspace-kind-pod-config-redirect-msg-lvl"
-              data-testid="workspace-kind-pod-config-redirect-msg-lvl-select"
+              id={`${fieldIdPrefix}-msg-lvl`}
+              data-testid={`${fieldIdPrefix}-msg-lvl-select`}
               aria-label="Redirect Message Level"
               value={
                 redirect.message?.level || OptionsRedirectMessageLevel.RedirectMessageLevelInfo
@@ -146,15 +153,15 @@ export const WorkspaceKindFormPodConfigRedirect: React.FC<
 
           <ThemeAwareFormGroupWrapper
             label="Text"
-            fieldId="workspace-kind-pod-config-redirect-message-text"
+            fieldId={`${fieldIdPrefix}-message-text`}
             helperTextNode={textHelperText}
             hasError={hasTextError}
           >
             <TextInput
-              name="workspace-kind-pod-config-redirect-message-text"
+              name={`${fieldIdPrefix}-message-text`}
               type="text"
-              id="workspace-kind-pod-config-redirect-message-text"
-              data-testid="workspace-kind-pod-config-redirect-message-text-input"
+              id={`${fieldIdPrefix}-message-text`}
+              data-testid={`${fieldIdPrefix}-message-text-input`}
               value={redirect.message?.text || ''}
               validated={hasTextError ? 'error' : 'default'}
               onChange={(_, val) =>

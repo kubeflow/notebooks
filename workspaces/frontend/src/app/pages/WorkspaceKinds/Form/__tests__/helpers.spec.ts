@@ -5,6 +5,8 @@ import {
   convertFormDataToUpdate,
   formatSeconds,
   getActivityRuleMatchLabels,
+  getRedirectMessageError,
+  REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { convertToFormData } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
 
@@ -574,6 +576,76 @@ describe('convertFormDataToUpdate', () => {
     });
   });
 
+  it('should preserve untouched image redirect message text without trimming', () => {
+    const formData = buildMockFormData();
+    formData.imageConfig.values![0].redirect = {
+      to: 'img-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: ' x',
+      },
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.imageConfig.values[0].redirect).toEqual({
+      to: 'img-2',
+      message: {
+        level: 'Info',
+        text: ' x',
+      },
+    });
+  });
+
+  it('should preserve untouched image redirect message with leading whitespace through Form -> YAML -> Form round trip', () => {
+    const formData = buildMockFormData();
+    formData.imageConfig.values![0].redirect = {
+      to: 'img-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: ' x',
+      },
+    };
+    const original = buildMockApiUpdate();
+
+    // Form -> YAML
+    const updateObj = convertFormDataToUpdate(formData, original);
+    const yamlStr = yaml.dump(updateObj, { noRefs: true });
+
+    // YAML -> Form
+    const parsed = yaml.load(yamlStr) as WorkspacekindsWorkspaceKindUpdate;
+    const roundTrippedFormData = convertToFormData(parsed);
+
+    expect(roundTrippedFormData.imageConfig.values![0].redirect).toEqual({
+      to: 'img-2',
+      message: {
+        level: 'Info',
+        text: ' x',
+      },
+    });
+  });
+
+  it('should preserve podConfig redirect message text with leading whitespace without trimming', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: ' x',
+      },
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.podConfig.values[0].redirect).toEqual({
+      to: 'pod-2',
+      message: {
+        level: 'Info',
+        text: ' x',
+      },
+    });
+  });
+
   it('should format seconds below 60 as whole seconds', () => {
     expect(formatSeconds(0)).toBe('0 seconds');
     expect(formatSeconds(1)).toBe('1 second');
@@ -775,5 +847,125 @@ describe('buildActivityRuleMatch', () => {
     expect(buildActivityRuleMatch({ podConfigLabels: { cpu: '100m' } })).toEqual([
       { matchPodConfig: { selector: { matchLabels: { cpu: '100m' } } } },
     ]);
+  });
+});
+
+
+describe('getRedirectMessageError', () => {
+  it('returns undefined when redirect is missing or has no target', () => {
+    expect(getRedirectMessageError(undefined)).toBeUndefined();
+    expect(getRedirectMessageError({ to: '' })).toBeUndefined();
+  });
+
+  it('returns undefined when message text is missing or whitespace-only', () => {
+    expect(getRedirectMessageError({ to: 'pod-2' })).toBeUndefined();
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '' },
+      }),
+    ).toBeUndefined();
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '    ' },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for a valid message', () => {
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: 'Valid message' },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('counts runes on raw un-trimmed text, allowing " x" as 2 characters', () => {
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: ' x' },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('rejects message with less than 2 runes', () => {
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: 'a' },
+      }),
+    ).toBe('Message text must be at least 2 characters.');
+
+    // Astral-plane Unicode character (1 rune, though UTF-16 length is 2)
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '\u{20000}' },
+      }),
+    ).toBe('Message text must be at least 2 characters.');
+  });
+
+  it('accepts multi-byte Unicode letters when rune count >= 2', () => {
+    // 2 astral-plane Unicode letters (2 runes, though UTF-16 length is 4)
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '\u{20000}\u{20001}' },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('accepts 600 supplementary-plane Unicode letters (rune count 600, UTF-16 length 1200)', () => {
+    const astral600 = '\u{20000}'.repeat(600);
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: astral600 },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('rejects characters not matching the allowlist regex', () => {
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: 'hello \u{1F9AD}' }, // emoji 🦭
+      }),
+    ).toBe(REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE);
+
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: 'price $100' },
+      }),
+    ).toBe(REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE);
+
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '<script>alert(1)</script>' },
+      }),
+    ).toBe(REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE);
+  });
+
+  it('enforces maxLength of 1024 runes', () => {
+    const valid1024 = 'a'.repeat(1024);
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: valid1024 },
+      }),
+    ).toBeUndefined();
+
+    const invalid1025 = 'a'.repeat(1025);
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: invalid1025 },
+      }),
+    ).toBe('Message text cannot exceed 1024 characters.');
   });
 });

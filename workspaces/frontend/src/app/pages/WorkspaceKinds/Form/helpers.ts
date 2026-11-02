@@ -299,18 +299,26 @@ export const REDIRECT_MESSAGE_LEVEL_OPTIONS = [
   },
 ];
 
+export const REDIRECT_MESSAGE_ALLOWED_CHARS_REGEX = /^[\p{L}\p{M}\p{N}\-_.,'":?!@#%^*()~+/ ]*$/u;
+export const REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE =
+  'Only letters (any language), numbers, spaces, and the characters - _ . , \' " : ? ! @ # % ^ * ( ) ~ + / are allowed';
+
 export const getRedirectMessageError = (redirect?: OptionsOptionRedirect): string | undefined => {
   if (!redirect?.to || !redirect.message?.text) {
     return undefined;
   }
-  const trimmed = redirect.message.text.trim();
-  if (trimmed.length === 0) {
+  const rawText = redirect.message.text;
+  if (rawText.trim().length === 0) {
     return undefined;
   }
-  if (trimmed.length < 2) {
+  if (!REDIRECT_MESSAGE_ALLOWED_CHARS_REGEX.test(rawText)) {
+    return REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE;
+  }
+  const runeLength = Array.from(rawText).length;
+  if (runeLength < 2) {
     return 'Message text must be at least 2 characters.';
   }
-  if (trimmed.length > 1024) {
+  if (runeLength > 1024) {
     return 'Message text cannot exceed 1024 characters.';
   }
   return undefined;
@@ -322,14 +330,17 @@ const convertRedirectToApi = (
   if (!redirect?.to) {
     return undefined;
   }
+  const rawText = redirect.message?.text;
   return {
     to: redirect.to,
-    message: redirect.message?.text.trim()
-      ? {
-          level: redirect.message.level as unknown as V1Beta1RedirectMessageLevel,
-          text: redirect.message.text.trim(),
-        }
-      : undefined,
+    message:
+      rawText && rawText.trim().length > 0
+        ? {
+            level: (redirect.message?.level ||
+              OptionsRedirectMessageLevel.RedirectMessageLevelInfo) as unknown as V1Beta1RedirectMessageLevel,
+            text: rawText,
+          }
+        : undefined,
   };
 };
 

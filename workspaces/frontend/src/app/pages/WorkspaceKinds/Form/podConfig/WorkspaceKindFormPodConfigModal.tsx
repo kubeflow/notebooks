@@ -19,9 +19,9 @@ import {
   OptionsRedirectMessageLevel,
 } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+import { WorkspaceKindFormRedirect } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormRedirect';
 import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
 import { getResourceErrors, requiresMatchingResources } from './resourceValidation';
-import { WorkspaceKindFormPodConfigRedirect } from './WorkspaceKindFormPodConfigRedirect';
 
 const getEditableResources = (config: WorkspaceKindPodConfigValue): PodResourceEntry[] =>
   getResources(config).map((resource) =>
@@ -112,7 +112,8 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   }, []);
 
   const hasResourceErrors = resources.some((resource) => getResourceErrors(resource).length > 0);
-  const redirectText = redirect.message?.text.trim() || '';
+  const rawRedirectText = redirect.message?.text || '';
+  const hasRedirectMessage = rawRedirectText.trim().length > 0;
   const hasRedirectError = Boolean(getRedirectMessageError(redirect));
 
   const handleSubmit = useCallback(() => {
@@ -122,11 +123,11 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
     const finalRedirect: OptionsOptionRedirect | undefined = redirect.to
       ? {
           to: redirect.to,
-          message: redirectText
+          message: hasRedirectMessage
             ? {
                 level:
                   redirect.message?.level || OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
-                text: redirectText,
+                text: rawRedirectText,
               }
             : undefined,
         }
@@ -161,7 +162,8 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
     onSubmit,
     redirect.message?.level,
     redirect.to,
-    redirectText,
+    hasRedirectMessage,
+    rawRedirectText,
     resources,
     setCurrConfig,
   ]);
@@ -284,10 +286,13 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
             custom={customResources}
           />
           {mode === 'edit' && (
-            <WorkspaceKindFormPodConfigRedirect
+            <WorkspaceKindFormRedirect
               redirect={redirect}
               setRedirect={setRedirect}
               candidateTargets={candidateTargets}
+              fieldIdPrefix="workspace-kind-pod-config-redirect"
+              targetLabel="Redirect To"
+              entityType="pod configuration"
             />
           )}
         </Form>
