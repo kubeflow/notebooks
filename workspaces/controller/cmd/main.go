@@ -112,11 +112,19 @@ func main() {
 			"report an Error state. Warning Events are still reported in `status.stateMessage`.")
 
 	opts := zap.Options{}
-	if debugMode {
-		opts.Level = zapcore.Level(-2)
-	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+
+	// Calculate the log level
+	zapLogLevelSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "zap-log-level" {
+			zapLogLevelSet = true
+		}
+	})
+	if debugMode && !zapLogLevelSet {
+		opts.Level = zapcore.Level(-2)
+	}
 
 	// Initialize the logger
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
