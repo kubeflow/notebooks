@@ -108,15 +108,17 @@ const (
 	stateMsgErrorPodSchedulerError         = "Workspace Pod has scheduler error: %s"
 	stateMsgErrorPodWarningEvent           = "Workspace Pod has warning event: %s"
 	stateMsgErrorPodNotOwnedByStatefulSet  = "Workspace Pod %s is not owned by the Workspace StatefulSet %s"
-	stateMsgErrorContainerCrashLoopBackOff = "Workspace Container is not running (CrashLoopBackOff)"
-	stateMsgErrorContainerImagePullBackOff = "Workspace Container is not running (ImagePullBackOff)"
+	stateMsgErrorContainerCrashLoopBackOff = "Workspace Container is not running (CrashLoopBackOff): %s"
+	stateMsgErrorContainerImagePullBackOff = "Workspace Container is not running (ImagePullBackOff): %s"
 	stateMsgPaused                         = "Workspace is paused"
-	stateMsgPending                        = "Workspace is pending"
+	stateMsgPendingPodPending              = "Workspace is pending: Pod is pending"
+	stateMsgPendingPodRunningNotReady      = "Workspace is pending: Pod is running but not ready: %s"
+	stateMsgPendingStatefulSetReconcile    = "Workspace is pending: Waiting for Kubernetes to reconcile StatefulSet"
+	stateMsgPendingPodCreate               = "Workspace is pending: Waiting for Pod to be created"
+	stateMsgPendingPodUpdate               = "Workspace is pending: Waiting for Pod to be updated"
 	stateMsgRunning                        = "Workspace is running"
 	stateMsgTerminating                    = "Workspace is terminating"
 	stateMsgUnknown                        = "Workspace is in an unknown state"
-	stateMsgWaitingStatefulSetReconcile    = "Waiting for Kubernetes to reconcile StatefulSet"
-	stateMsgWaitingPodUpdate               = "Waiting for Pod update"
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -1976,7 +1978,7 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 	// STATUS: Pending (kubernetes might not have processed StatefulSet)
 	if statefulSet.Generation != statefulSet.Status.ObservedGeneration {
 		return kubefloworgv1beta1.WorkspaceStatePending,
-			stateMsgWaitingStatefulSetReconcile,
+			stateMsgPendingStatefulSetReconcile,
 			ctrl.Result{RequeueAfter: 5 * time.Second},
 			nil
 	}
@@ -2008,7 +2010,7 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 		// NOTE: this is to avoid a race condition where the STS Event that indicates why the Pod
 		//       has not been created does not exist yet, or is not in our cache.
 		state = kubefloworgv1beta1.WorkspaceStatePending
-		stateMessage = stateMsgPending
+		stateMessage = stateMsgPendingPodCreate
 		return state, stateMessage, ctrl.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
@@ -2022,7 +2024,7 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 	// STATUS: Pending (waiting for pod update)
 	if pod.Labels[appsv1.StatefulSetRevisionLabel] != statefulSet.Status.UpdateRevision {
 		state = kubefloworgv1beta1.WorkspaceStatePending
-		stateMessage = stateMsgWaitingPodUpdate
+		stateMessage = stateMsgPendingPodUpdate
 		return state, stateMessage, ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -2089,12 +2091,12 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 	if containerState.Waiting != nil {
 		if containerState.Waiting.Reason == "CrashLoopBackOff" {
 			state = kubefloworgv1beta1.WorkspaceStateError
-			stateMessage = stateMsgErrorContainerCrashLoopBackOff
+			stateMessage = fmt.Sprintf(stateMsgErrorContainerCrashLoopBackOff, containerState.Waiting.Message)
 			return state, stateMessage, ctrl.Result{}, nil
 		}
 		if containerState.Waiting.Reason == "ImagePullBackOff" {
 			state = kubefloworgv1beta1.WorkspaceStateError
-			stateMessage = stateMsgErrorContainerImagePullBackOff
+			stateMessage = fmt.Sprintf(stateMsgErrorContainerImagePullBackOff, containerState.Waiting.Message)
 			return state, stateMessage, ctrl.Result{}, nil
 		}
 	}
@@ -2113,20 +2115,27 @@ func (r *WorkspaceReconciler) generateWorkspaceState(ctx context.Context, log lo
 		return state, stateMessage, ctrl.Result{}, nil
 	}
 
-	// STATUS: Error (Pod is Failed)
-	if podPhase == corev1.PodFailed {
-		state = kubefloworgv1beta1.WorkspaceStateError
-		stateMessage = stateMsgErrorPodFailedPhase
-		return state, stateMessage, ctrl.Result{}, nil
-	}
-
 	// STATUS: Pending
 	// NOTE: this is to avoid a race condition where the Event that indicates why the Pod
 	//       is pending has not been created, or is not in our cache.
 	if podPhase == corev1.PodPending {
 		state = kubefloworgv1beta1.WorkspaceStatePending
-		stateMessage = stateMsgPending
+		stateMessage = stateMsgPendingPodPending
 		return state, stateMessage, ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	}
+
+	// STATUS: Pending (Pod running but not ready)
+	if podPhase == corev1.PodRunning && !podReady {
+		state = kubefloworgv1beta1.WorkspaceStatePending
+		stateMessage = fmt.Sprintf(stateMsgPendingPodRunningNotReady, podReadyCondition.Message)
+		return state, stateMessage, ctrl.Result{RequeueAfter: 60 * time.Second}, nil
+	}
+
+	// STATUS: Error (Pod is failed)
+	if podPhase == corev1.PodFailed {
+		state = kubefloworgv1beta1.WorkspaceStateError
+		stateMessage = stateMsgErrorPodFailedPhase
+		return state, stateMessage, ctrl.Result{}, nil
 	}
 
 	// STATUS: Unknown

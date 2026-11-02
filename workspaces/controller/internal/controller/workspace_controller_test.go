@@ -2450,7 +2450,7 @@ var _ = Describe("Workspace Controller", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-				Expect(msg).To(Equal(stateMsgPending))
+				Expect(msg).To(Equal(stateMsgPendingPodPending))
 				Expect(result.RequeueAfter).To(Equal(15 * time.Second))
 			}
 		})
@@ -2469,7 +2469,7 @@ var _ = Describe("Workspace Controller", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-				Expect(msg).To(Equal(stateMsgPending))
+				Expect(msg).To(Equal(stateMsgPendingPodCreate))
 			}
 		})
 	})
@@ -2518,7 +2518,7 @@ var _ = Describe("Workspace Controller", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
+			Expect(message).To(Equal(stateMsgPendingStatefulSetReconcile))
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 5 * time.Second}))
 		})
 
@@ -2536,7 +2536,7 @@ var _ = Describe("Workspace Controller", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-			Expect(message).To(Equal(stateMsgWaitingStatefulSetReconcile))
+			Expect(message).To(Equal(stateMsgPendingStatefulSetReconcile))
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 5 * time.Second}))
 		})
 
@@ -2566,7 +2566,7 @@ var _ = Describe("Workspace Controller", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(state).To(Equal(kubefloworgv1beta1.WorkspaceStatePending))
-			Expect(message).To(Equal(stateMsgWaitingPodUpdate))
+			Expect(message).To(Equal(stateMsgPendingPodUpdate))
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: 5 * time.Second}))
 
 		})
