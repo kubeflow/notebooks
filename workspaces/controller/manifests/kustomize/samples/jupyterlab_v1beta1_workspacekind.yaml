@@ -340,10 +340,8 @@ spec:
         readinessProbe:
           periodSeconds: 5
           tcpSocket:
-            ##
-            ## TODO: we need to ensure that if a string is provided, that it is a valid port name in the `spec.ports` list,
-            ##       otherwise the controller will fail to reconcile the Workspace
-            ##
+            ## WARNING: ensure that the `id` here is defined for ALL imageConfig values in this WorkspaceKind,
+            ##          otherwise the readiness probe will fail and the Workspace will never become ready
             port: "jupyterlab"
 
         ## environment variables for the main container (MUTABLE)
