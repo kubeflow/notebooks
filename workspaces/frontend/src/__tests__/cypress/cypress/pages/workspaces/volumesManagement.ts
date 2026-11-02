@@ -182,6 +182,50 @@ class VolumesAttachModal {
       .should('have.class', 'pf-m-disabled') as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
   }
 
+  assertPVCAriaDisabled(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.openPVCDropdown();
+    return cy
+      .findByTestId(`pvc-option-${pvcName}`)
+      .closest('button, a')
+      .should('have.attr', 'aria-disabled', 'true') as unknown as Cypress.Chainable<
+      JQuery<HTMLElement>
+    >;
+  }
+
+  hoverPVCOption(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`pvc-option-${pvcName}`).closest('button, a').trigger('mouseenter');
+  }
+
+  assertPVCTooltipText(pvcName: string, text: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`pvc-option-tooltip-${pvcName}`)
+      .should('be.visible')
+      .and('have.text', text)
+      .closest('[role="tooltip"]')
+      .should('be.visible');
+  }
+
+  /**
+   * Asserts that a PVC option is enabled (not disabled or aria-disabled) and selects it.
+   * Uses the stable data-testid selector added to the option description.
+   */
+  assertEnabledAndSelectPVC(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    this.openPVCDropdown();
+    return cy
+      .findByTestId(`pvc-option-${pvcName}`)
+      .closest('li')
+      .should('not.have.class', 'pf-m-disabled')
+      .and('not.have.class', 'pf-m-aria-disabled')
+      .click() as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+  }
+
+  clickDisabledPVCOption(pvcName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId(`pvc-option-${pvcName}`)
+      .closest('li')
+      .click() as unknown as Cypress.Chainable<JQuery<HTMLElement>>;
+  }
+
   // Mount Path
   findMountPathInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('#pvc-mount-path');
@@ -213,6 +257,10 @@ class VolumesAttachModal {
 
   assertInUseWarningVisible(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findAlert('warning').should('be.visible');
+  }
+
+  assertInUseWarningTitle(text: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findAlert('warning').find('.pf-v6-c-alert__title').should('contain', text);
   }
 
   assertInUseDangerVisible(): Cypress.Chainable<JQuery<HTMLElement>> {

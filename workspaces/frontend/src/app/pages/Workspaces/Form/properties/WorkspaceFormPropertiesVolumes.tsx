@@ -46,6 +46,7 @@ interface WorkspaceFormPropertiesVolumesProps {
   isHomeVolume?: boolean;
   fixedMountPath?: string; // For home volume only
   excludedPvcNames?: Set<string>; // PVC names used in the other section
+  currentWorkspaceName?: string;
 }
 
 const NUM_TABLE_COLUMNS = 5; // expand toggle + PVC Name + Mount Path + Read-only Access + Actions
@@ -57,6 +58,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
   isHomeVolume,
   fixedMountPath,
   excludedPvcNames,
+  currentWorkspaceName,
 }) => {
   const isHomeMounted = (isHomeVolume || !!fixedMountPath) && volumes.length > 0;
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -449,6 +451,7 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         onAttach={handleAttachPVC}
         fixedMountPath={fixedMountPath}
         excludedPvcNames={allExcludedPvcNames}
+        currentWorkspaceName={currentWorkspaceName}
       />
 
       <VolumesCreateModal
