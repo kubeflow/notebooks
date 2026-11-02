@@ -46,7 +46,7 @@ func (e *testError) Error() string {
 var _ = Describe("Validation Helper Functions", func() {
 
 	// Centralized test cases for DNS1123 Subdomain validation
-	// Used by: ValidateWorkspaceName, ValidateWorkspaceKindName, ValidateKubernetesSecretName
+	// Used by: ValidateKubernetesSecretName
 	var (
 		validDNS1123SubdomainNames = []string{
 			"a",                             // single character
@@ -69,7 +69,7 @@ var _ = Describe("Validation Helper Functions", func() {
 	)
 
 	// Centralized test cases for DNS1123 Label validation
-	// Used by: ValidateKubernetesNamespaceName, ValidateKubernetesServicesName
+	// Used by: ValidateWorkspaceName, ValidateWorkspaceKindName, ValidateKubernetesNamespaceName, ValidateKubernetesServicesName
 	// NOTE: Labels are more restrictive than subdomains - they do NOT allow dots
 	var (
 		validDNS1123LabelNames = []string{
@@ -161,7 +161,7 @@ var _ = Describe("Validation Helper Functions", func() {
 
 		testCases := []testCase{}
 
-		for _, name := range validDNS1123SubdomainNames {
+		for _, name := range validDNS1123LabelNames {
 			testCases = append(testCases, testCase{
 				description: "should accept valid workspace names",
 				name:        name,
@@ -169,7 +169,7 @@ var _ = Describe("Validation Helper Functions", func() {
 			})
 		}
 
-		for _, name := range invalidDNS1123SubdomainNames {
+		for _, name := range invalidDNS1123LabelNames {
 			testCases = append(testCases, testCase{
 				description: "should reject invalid workspace names",
 				name:        name,
@@ -207,7 +207,7 @@ var _ = Describe("Validation Helper Functions", func() {
 
 		testCases := []testCase{}
 
-		for _, name := range validDNS1123SubdomainNames {
+		for _, name := range validDNS1123LabelNames {
 			testCases = append(testCases, testCase{
 				description: "should accept valid workspace kind names",
 				name:        name,
@@ -215,7 +215,7 @@ var _ = Describe("Validation Helper Functions", func() {
 			})
 		}
 
-		for _, name := range invalidDNS1123SubdomainNames {
+		for _, name := range invalidDNS1123LabelNames {
 			testCases = append(testCases, testCase{
 				description: "should reject invalid workspace kind names",
 				name:        name,

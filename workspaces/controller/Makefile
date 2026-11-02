@@ -65,7 +65,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 	## this makes it difficult to clean up the downloaded binaries later.
 	## https://github.com/kubernetes-sigs/controller-runtime/blob/v0.22.4/tools/setup-envtest/store/store.go#L191
 	chmod -R u+w $(LOCALBIN)
-	KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS} go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+	KUBEBUILDER_ASSETS=${KUBEBUILDER_ASSETS} go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out -ginkgo.v
 
 # The default setup assumes Kind is pre-installed and builds/loads the Manager Docker image locally.
 # Prometheus, CertManager, and Istio are installed by default; skip with:
@@ -83,7 +83,7 @@ test-e2e: manifests generate fmt vet istioctl ## Run the e2e tests. Expected an 
 		exit 1; \
 	}
 
-	go test ./test/e2e/ -v -ginkgo.v
+	go test ./test/e2e/ -v -ginkgo.v -timeout 30m
 
 .PHONY: lint
 lint: golangci-lint ## Run golangci-lint linter

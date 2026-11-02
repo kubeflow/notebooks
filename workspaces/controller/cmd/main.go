@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 
+	"go.uber.org/zap/zapcore"
 	istiov1 "istio.io/client-go/pkg/apis/networking/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -67,6 +68,7 @@ func init() {
 }
 
 func main() {
+	var debugMode bool
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -77,6 +79,8 @@ func main() {
 	// Define command line flags
 	cfg := &config.EnvConfig{}
 
+	flag.BoolVar(&debugMode, "debug-mode", getEnvAsBool("DEBUG_MODE", false),
+		"Enable development mode. Increases logging verbosity.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -107,12 +111,22 @@ func main() {
 			"(which is unbounded during an event storm), at the cost of Workspaces taking longer to "+
 			"report an Error state. Warning Events are still reported in `status.stateMessage`.")
 
-	opts := zap.Options{
-		Development: true,
-	}
+	opts := zap.Options{}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	// Calculate the log level
+	zapLogLevelSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "zap-log-level" {
+			zapLogLevelSet = true
+		}
+	})
+	if debugMode && !zapLogLevelSet {
+		opts.Level = zapcore.Level(-2)
+	}
+
+	// Initialize the logger
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled

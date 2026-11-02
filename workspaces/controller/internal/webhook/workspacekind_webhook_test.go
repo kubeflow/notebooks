@@ -1205,7 +1205,7 @@ var _ = Describe("WorkspaceKind Webhook", func() {
 				workspaceKind: NewExampleWorkspaceKind(workspaceKindName),
 				modifyKindFn: func(wsk *kubefloworgv1beta1.WorkspaceKind) gomegaTypes.GomegaMatcher {
 					existingPortId := wsk.Spec.PodTemplate.Ports[0].Id
-					wsk.Spec.PodTemplate.Ports[0].Id = "non-existent-port-id"
+					wsk.Spec.PodTemplate.Ports[0].Id = "not-exist-port"
 					return ContainSubstring("%q: missing from spec.podTemplate.ports", existingPortId)
 				},
 			},

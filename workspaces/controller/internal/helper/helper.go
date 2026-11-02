@@ -118,6 +118,12 @@ func CopyStatefulSetFields(desired *appsv1.StatefulSet, target *appsv1.StatefulS
 		requireUpdate = true
 	}
 
+	// copy `spec.updateStrategy`
+	if !equality.Semantic.DeepEqual(target.Spec.UpdateStrategy, desired.Spec.UpdateStrategy) {
+		target.Spec.UpdateStrategy = desired.Spec.UpdateStrategy
+		requireUpdate = true
+	}
+
 	return requireUpdate
 }
 
@@ -167,16 +173,18 @@ func CopyServiceFields(desired *corev1.Service, target *corev1.Service) bool {
 // uses server-side apply and never writes to subresources of the objects it merges metadata into.
 func getFieldsOwnedByController(obj metav1.Object) (*fieldpath.Set, error) {
 	owned := &fieldpath.Set{}
-	for _, entry := range obj.GetManagedFields() {
+	for index, entry := range obj.GetManagedFields() {
 		if entry.Manager != ControllerFieldOwner ||
 			entry.Operation != metav1.ManagedFieldsOperationUpdate ||
-			entry.Subresource != "" ||
-			entry.FieldsV1 == nil {
+			entry.Subresource != "" {
 			continue
+		}
+		if entry.FieldsType != "FieldsV1" {
+			return nil, fmt.Errorf("unexpected managedFields entry at index %d: expected FieldsType=FieldsV1, got %s", index, entry.FieldsType)
 		}
 		entryFields := &fieldpath.Set{}
 		if err := entryFields.FromJSON(entry.FieldsV1.GetRawReader()); err != nil {
-			return nil, fmt.Errorf("unable to parse managedFields entry for manager %q (apiVersion %q): %w", entry.Manager, entry.APIVersion, err)
+			return nil, fmt.Errorf("unable to parse managedFields at index %d: %w", index, err)
 		}
 		owned = owned.Union(entryFields)
 	}
@@ -186,7 +194,7 @@ func getFieldsOwnedByController(obj metav1.Object) (*fieldpath.Set, error) {
 // mergeStringMapFields sets every key of desired on target, returning the updated map and whether an update is required.
 // Keys that are only present on the target are preserved, unless they are owned by the controller
 // (i.e. `metadata.{mapField}.{key}` is in owned), in which case they are removed.
-func mergeStringMapFields(desired map[string]string, target map[string]string, owned *fieldpath.Set, mapField string) (map[string]string, bool) {
+func mergeStringMapFields(desired map[string]string, target map[string]string, owned *fieldpath.Set, mapFieldPath fieldpath.Path) (map[string]string, bool) {
 	requireUpdate := false
 
 	// remove keys which are no longer desired, but only if the controller owns them
@@ -195,7 +203,8 @@ func mergeStringMapFields(desired map[string]string, target map[string]string, o
 		if _, ok := desired[k]; ok {
 			continue
 		}
-		if owned.Has(fieldpath.MakePathOrDie("metadata", mapField, k)) {
+		keyFieldPath := append(mapFieldPath, fieldpath.MakePathOrDie(k)...) //nolint:gocritic
+		if owned.Has(keyFieldPath) {
 			delete(target, k)
 			requireUpdate = true
 		}
@@ -227,16 +236,21 @@ func CopyServiceAccountFields(desired *corev1.ServiceAccount, target *corev1.Ser
 	//       first added it.
 	owned, err := getFieldsOwnedByController(target)
 	if err != nil {
+		err = fmt.Errorf("unable to determine fields owned by controller for ServiceAccount %s/%s: %w", target.GetNamespace(), target.GetName(), err)
 		return false, err
 	}
 
+	// copy `metadata.labels`, merging with existing labels
 	var updated bool
-	target.Labels, updated = mergeStringMapFields(desired.Labels, target.Labels, owned, "labels")
+	labelsFieldPath := fieldpath.MakePathOrDie("metadata", "labels")
+	target.Labels, updated = mergeStringMapFields(desired.Labels, target.Labels, owned, labelsFieldPath)
 	if updated {
 		requireUpdate = true
 	}
 
-	target.Annotations, updated = mergeStringMapFields(desired.Annotations, target.Annotations, owned, "annotations")
+	// copy `metadata.annotations`, merging with existing annotations
+	annotationsFieldPath := fieldpath.MakePathOrDie("metadata", "annotations")
+	target.Annotations, updated = mergeStringMapFields(desired.Annotations, target.Annotations, owned, annotationsFieldPath)
 	if updated {
 		requireUpdate = true
 	}
@@ -245,21 +259,24 @@ func CopyServiceAccountFields(desired *corev1.ServiceAccount, target *corev1.Ser
 }
 
 // CopyRoleBindingFields updates a target RoleBinding with the fields from a desired RoleBinding, returning true if an update is required.
-// NOTE: `roleRef` is immutable and so is NOT copied, the caller must compare it and recreate the RoleBinding when it has drifted.
+// NOTE: `roleRef` is immutable and so is NOT copied, the caller should use it as the key to find the target RoleBinding to update.
 func CopyRoleBindingFields(desired *rbacv1.RoleBinding, target *rbacv1.RoleBinding) bool {
 	requireUpdate := false
 
+	// copy `metadata.labels`
 	var updated bool
 	target.Labels, updated = copyLabelFields(desired.Labels, target.Labels)
 	if updated {
 		requireUpdate = true
 	}
 
+	// copy `metadata.annotations`
 	target.Annotations, updated = copyAnnotationFields(desired.Annotations, target.Annotations)
 	if updated {
 		requireUpdate = true
 	}
 
+	// copy `subjects`
 	if !equality.Semantic.DeepEqual(target.Subjects, desired.Subjects) {
 		target.Subjects = desired.Subjects
 		requireUpdate = true
