@@ -6966,7 +6966,7 @@
                     "type": "string"
                 },
                 "id": {
-                    "description": "the id of the port\n - this is NOT used as the Container or Service port name, but as part of the HTTP path\n+kubebuilder:example=\"jupyterlab\"",
+                    "description": "the id of the port\n - this is used as the Container and Service port name, in addition to the HTTP URL path\n+kubebuilder:example=\"jupyterlab\"",
                     "type": "string"
                 },
                 "port": {
@@ -7555,14 +7555,14 @@
             "type": "object",
             "properties": {
                 "clusterRoles": {
-                    "description": "the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)\n - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the\n   permissions only apply inside the Namespace of the Workspace\n - removing an entry deletes the corresponding RoleBinding\n - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing\n   ClusterRole simply grants nothing until that ClusterRole is created\n - changes take effect immediately, Workspaces do NOT need to be restarted\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"\n+kubebuilder:example={{name: \"kubeflow-edit\"}}",
+                    "description": "the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)\n - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding,\n   so the permissions only apply inside the Namespace of the Workspace\n - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing\n   ClusterRole simply grants nothing until that ClusterRole is created\n - changes take effect immediately, Workspaces do NOT need to be restarted,\n   and removing an entry deletes the corresponding RoleBinding\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"\n+kubebuilder:example={{name: \"kubeflow-edit\"}}",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.WorkspaceKindClusterRole"
                     }
                 },
                 "metadata": {
-                    "description": "metadata for the ServiceAccount of each Workspace (MUTABLE)\n - for example, the annotations used by cloud Workload Identity:\n    - \"eks.amazonaws.com/role-arn\" (EKS IRSA)\n    - \"iam.gke.io/gcp-service-account\" (GKE)\n    - \"azure.workload.identity/client-id\" (Azure)\n - the Azure \"azure.workload.identity/use\" label belongs on the Pod, NOT the\n   ServiceAccount, so set it in `spec.podTemplate.podMetadata.labels` instead\n - the controller-managed `workspaces.kubeflow.org/*` labels always take precedence\n - changes are applied to the ServiceAccounts of existing Workspaces without a restart,\n   but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the\n   ServiceAccount when a Pod is created, so running Workspaces must be restarted\n   for those changes to take effect\n - removing a key here also removes it from the ServiceAccounts of existing Workspaces,\n   but only if the controller was the last to change its value (ownership is tracked\n   with `metadata.managedFields`), regardless of who originally added the key\n+kubebuilder:validation:Optional\n+kubebuilder:example={annotations: {\"eks.amazonaws.com/role-arn\": \"arn:aws:iam::111122223333:role/my-role\"}}",
+                    "description": "metadata for the ServiceAccount of each Workspace (MUTABLE)\n - labels and annotations applied to the ServiceAccount object itself\n - for example to configure cloud Workload Identity:\n   - EKS IRSA:  \"eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role\"\n   - GKE:       \"iam.gke.io/gcp-service-account: my-gsa@my-project.iam.gserviceaccount.com\"\n   - Azure:     \"azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000\"\n                (NOTE: azure also requires the `azure.workload.identity/use: \"true\"` label\n                 on the Pod, set that in `podMetadata.labels` above)\n - changes are applied to the ServiceAccounts of existing Workspaces without a restart,\n   but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the\n   ServiceAccount when a Pod is created, so running Workspaces must be restarted\n   for changes to take effect\n - removing a key here removes it from the ServiceAccounts of existing Workspaces,\n   if the controller was the last to change its value (ownership is tracked\n   with `metadata.managedFields`), regardless of who originally added the key\n+kubebuilder:validation:Optional\n+kubebuilder:example={annotations: {\"eks.amazonaws.com/role-arn\": \"arn:aws:iam::111122223333:role/my-role\"}}",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccountMetadata"

@@ -125,10 +125,10 @@ func ValidateFieldIsDNS1123Subdomain(path *field.Path, value string) field.Error
 }
 
 // ValidateWorkspaceName validates a field contains a valid Workspace name.
-var ValidateWorkspaceName = ValidateFieldIsDNS1123Subdomain
+var ValidateWorkspaceName = ValidateFieldIsDNS1123Label
 
 // ValidateWorkspaceKindName validates a field contains a valid WorkspaceKind name.
-var ValidateWorkspaceKindName = ValidateFieldIsDNS1123Subdomain
+var ValidateWorkspaceKindName = ValidateFieldIsDNS1123Label
 
 // ValidateWorkspaceKindGVK validates the provided apiVersion and kind are for a WorkspaceKind.
 func ValidateWorkspaceKindGVK(apiVersion, kind string) field.ErrorList {

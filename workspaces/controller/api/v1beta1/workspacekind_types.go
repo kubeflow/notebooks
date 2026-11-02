@@ -43,11 +43,16 @@ const (
 ===============================================================================
 */
 
-// the id of a port
+// the id of a port. must be a valid kubernetes IANA_SVC_NAME:
+//   - must be 1-15 characters long
+//   - must only contain alpha-numeric characters (a-z, 0-9), and hyphens (-)
+//   - must contain at least one letter (a-z)
+//   - must not contain consecutive hyphens
+//   - must not begin or end with a hyphen
 //
 // +kubebuilder:validation:MinLength:=1
-// +kubebuilder:validation:MaxLength:=32
-// +kubebuilder:validation:Pattern:=^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$
+// +kubebuilder:validation:MaxLength:=15
+// +kubebuilder:validation:Pattern:="^(?:[0-9]-?)*[a-z](?:-?[a-z0-9])*$"
 type PortId string
 
 // WorkspaceKindSpec defines the desired state of WorkspaceKind
@@ -389,12 +394,12 @@ type WorkspaceKindStatefulSetMetadata struct {
 // creates and owns for each Workspace of this WorkspaceKind.
 type WorkspaceKindServiceAccount struct {
 	// the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)
-	//  - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the
-	//    permissions only apply inside the Namespace of the Workspace
-	//  - removing an entry deletes the corresponding RoleBinding
+	//  - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding,
+	//    so the permissions only apply inside the Namespace of the Workspace
 	//  - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing
 	//    ClusterRole simply grants nothing until that ClusterRole is created
-	//  - changes take effect immediately, Workspaces do NOT need to be restarted
+	//  - changes take effect immediately, Workspaces do NOT need to be restarted,
+	//    and removing an entry deletes the corresponding RoleBinding
 	// +kubebuilder:validation:Optional
 	// +listType:="map"
 	// +listMapKey:="name"
@@ -402,19 +407,19 @@ type WorkspaceKindServiceAccount struct {
 	ClusterRoles []WorkspaceKindClusterRole `json:"clusterRoles,omitempty"`
 
 	// metadata for the ServiceAccount of each Workspace (MUTABLE)
-	//  - for example, the annotations used by cloud Workload Identity:
-	//     - "eks.amazonaws.com/role-arn" (EKS IRSA)
-	//     - "iam.gke.io/gcp-service-account" (GKE)
-	//     - "azure.workload.identity/client-id" (Azure)
-	//  - the Azure "azure.workload.identity/use" label belongs on the Pod, NOT the
-	//    ServiceAccount, so set it in `spec.podTemplate.podMetadata.labels` instead
-	//  - the controller-managed `workspaces.kubeflow.org/*` labels always take precedence
+	//  - labels and annotations applied to the ServiceAccount object itself
+	//  - for example to configure cloud Workload Identity:
+	//    - EKS IRSA:  "eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role"
+	//    - GKE:       "iam.gke.io/gcp-service-account: my-gsa@my-project.iam.gserviceaccount.com"
+	//    - Azure:     "azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000"
+	//                 (NOTE: azure also requires the `azure.workload.identity/use: "true"` label
+	//                  on the Pod, set that in `podMetadata.labels` above)
 	//  - changes are applied to the ServiceAccounts of existing Workspaces without a restart,
 	//    but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the
 	//    ServiceAccount when a Pod is created, so running Workspaces must be restarted
-	//    for those changes to take effect
-	//  - removing a key here also removes it from the ServiceAccounts of existing Workspaces,
-	//    but only if the controller was the last to change its value (ownership is tracked
+	//    for changes to take effect
+	//  - removing a key here removes it from the ServiceAccounts of existing Workspaces,
+	//    if the controller was the last to change its value (ownership is tracked
 	//    with `metadata.managedFields`), regardless of who originally added the key
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example={annotations: {"eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"}}
@@ -623,7 +628,7 @@ type ImageConfigSpec struct {
 
 type ImagePort struct {
 	// the id of the port
-	//  - this is NOT used as the Container or Service port name, but as part of the HTTP path
+	//  - this is used as the Container and Service port name, in addition to the HTTP URL path
 	// +kubebuilder:example="jupyterlab"
 	Id PortId `json:"id"`
 

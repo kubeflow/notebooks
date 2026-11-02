@@ -22,6 +22,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -57,6 +58,10 @@ import (
 func main() {
 	// Define command line flags
 	cfg := &config.EnvConfig{}
+	flag.BoolVar(&cfg.DebugMode,
+		"debug-mode",
+		getEnvAsBool("DEBUG_MODE", false),
+		"Enable development mode. Increases logging verbosity.")
 	flag.IntVar(&cfg.Port,
 		"port",
 		getEnvAsInt("PORT", 4000),
@@ -133,7 +138,19 @@ func main() {
 	}
 
 	// Initialize the logger
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	var logHandler slog.Handler
+	if cfg.DebugMode {
+		loggerOpts := &slog.HandlerOptions{Level: slog.LevelDebug}
+		logHandler = slog.NewJSONHandler(os.Stdout, loggerOpts)
+	} else {
+		loggerOpts := &slog.HandlerOptions{Level: slog.LevelInfo}
+		logHandler = slog.NewJSONHandler(os.Stdout, loggerOpts)
+	}
+	logger := slog.New(logHandler)
+
+	// Set the controller-runtime logger to use our slog logger
+	// Otherwise it will complain about not having a logger set during startup.
+	ctrl.SetLogger(logr.FromSlogHandler(logHandler))
 
 	// Build the Kubernetes client configuration
 	kubeconfig, err := ctrl.GetConfig()

@@ -45,9 +45,6 @@ spec:
         pauseWorkspace: true
 
   podTemplate:
-    podMetadata:
-      labels: {}
-      annotations: {}
     activityProbe:
       minProbeIntervalSeconds: 300
       probeIntervalSeconds: 3600
