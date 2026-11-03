@@ -64,7 +64,7 @@ func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "probe-addr", ":8081", "The address the health endpoint binds to.")
 	flag.StringVar(&leaderElectionNamespace, "leader-election-namespace", "",
-		"Determines the namespace in which the leader election configmap will be created.")
+		"Determines the namespace in which the leader election resources (ConfigMap and Lease) will be created.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.IntVar(&Burst, "burst", 0, "If it's zero, the created RESTClient will use DefaultBurst")
