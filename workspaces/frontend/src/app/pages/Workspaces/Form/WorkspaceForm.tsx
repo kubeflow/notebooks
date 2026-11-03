@@ -460,26 +460,7 @@ const WorkspaceForm: React.FC = () => {
     setError(null);
 
     try {
-      // Strip the UI-only `isAttached` field from homeVolume, volumes, and secrets before submitting
-      const { homeVolume } = data.properties;
-      const preparedData: WorkspaceFormData = {
-        ...data,
-        properties: {
-          ...data.properties,
-          homeVolume: homeVolume
-            ? {
-                pvcName: homeVolume.pvcName,
-                mountPath: homeVolume.mountPath,
-                readOnly: homeVolume.readOnly,
-              }
-            : undefined,
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          secrets: data.properties.secrets.map(({ isAttached: _, ...rest }) => rest),
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          volumes: data.properties.volumes.map(({ isAttached: _, ...rest }) => rest),
-        },
-      };
-      await submitFormData({ mode, data: preparedData, api, namespace });
+      await submitFormData({ mode, data, api, namespace });
       navigate('workspaces');
       notification.success(
         `Workspace '${data.properties.displayName || data.properties.name}' ${mode === 'create' ? 'created' : 'updated'} successfully`,
