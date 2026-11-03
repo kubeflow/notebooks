@@ -17,6 +17,13 @@ class EditWorkspace extends WorkspaceForm {
     return cy.verifyRelativeURL(this.EDIT_WORKSPACE_ROUTE);
   }
 
+  assertSubmissionError(message: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy
+      .findByTestId('workspace-form-error')
+      .should('be.visible')
+      .and('contain.text', message);
+  }
+
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findSubmitButton();
   }

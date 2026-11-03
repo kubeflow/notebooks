@@ -13,6 +13,7 @@ import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActio
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import { WorkspacesRedirectStep, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
 import { NotebookApis } from '~/shared/api/notebookApi';
+import { buildWorkspaceUpdatePayload } from '~/shared/api/workspacePayloads';
 
 const resolveRedirectTargetId = (
   redirectChain: WorkspacesRedirectStep[] | undefined,
@@ -39,17 +40,19 @@ const updateWorkspaceWithRedirects = async (args: {
   const workspaceEnvelope = await api.workspaces.getWorkspace(namespace, workspace.name);
   const currentState = workspaceEnvelope.data;
   await api.workspaces.updateWorkspace(namespace, workspace.name, {
-    data: {
+    data: buildWorkspaceUpdatePayload({
+      displayName: currentState.displayName,
       paused,
       podTemplate: {
-        ...currentState.podTemplate,
+        podMetadata: currentState.podTemplate.podMetadata,
+        volumes: currentState.podTemplate.volumes,
         options: {
           imageConfig: imageRedirectTargetId ?? currentState.podTemplate.options.imageConfig,
           podConfig: podRedirectTargetId ?? currentState.podTemplate.options.podConfig,
         },
       },
       revision: currentState.revision,
-    },
+    }),
   });
 };
 

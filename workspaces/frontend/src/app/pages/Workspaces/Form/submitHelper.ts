@@ -3,10 +3,12 @@ import {
   ApiWorkspaceCreateEnvelope,
   ApiWorkspaceEnvelope,
   WorkspacekindsWorkspaceKindListItem,
-  WorkspacesWorkspaceCreate,
-  WorkspacesWorkspaceUpdate,
 } from '~/generated/data-contracts';
 import { NotebookApis } from '~/shared/api/notebookApi';
+import {
+  buildWorkspaceCreatePayload,
+  buildWorkspaceUpdatePayload,
+} from '~/shared/api/workspacePayloads';
 
 // TODO: properly validate form data
 interface ValidatedWorkspaceFormData
@@ -22,73 +24,6 @@ export function isValidWorkspaceFormData(
   return data.kind !== undefined && data.imageConfig !== undefined && data.podConfig !== undefined;
 }
 
-const createWorkspace = async (args: {
-  data: ValidatedWorkspaceFormData;
-  api: NotebookApis;
-  namespace: string;
-}): Promise<ApiWorkspaceCreateEnvelope> => {
-  const { data, api, namespace } = args;
-
-  const wsCreateData: WorkspacesWorkspaceCreate = {
-    name: data.properties.name,
-    displayName: data.properties.displayName || undefined,
-    kind: data.kind.name,
-    paused: false,
-    podTemplate: {
-      podMetadata: {
-        labels: {},
-        annotations: {},
-      },
-      options: {
-        imageConfig: data.imageConfig,
-        podConfig: data.podConfig,
-      },
-      volumes: {
-        home: data.properties.homeVolume?.pvcName,
-        data: data.properties.volumes,
-        secrets: data.properties.secrets,
-      },
-    },
-  };
-
-  return api.workspaces.createWorkspace(namespace, {
-    data: wsCreateData,
-  });
-};
-
-const updateWorkspace = async (args: {
-  data: ValidatedWorkspaceFormData;
-  api: NotebookApis;
-  namespace: string;
-}): Promise<ApiWorkspaceEnvelope> => {
-  const { data, api, namespace } = args;
-
-  const wsUpdateData: WorkspacesWorkspaceUpdate = {
-    displayName: data.properties.displayName,
-    paused: false,
-    podTemplate: {
-      podMetadata: {
-        labels: {},
-        annotations: {},
-      },
-      options: {
-        imageConfig: data.imageConfig,
-        podConfig: data.podConfig,
-      },
-      volumes: {
-        home: data.properties.homeVolume?.pvcName,
-        data: data.properties.volumes,
-        secrets: data.properties.secrets,
-      },
-    },
-    revision: data.revision,
-  };
-
-  return api.workspaces.updateWorkspace(namespace, data.properties.name, {
-    data: wsUpdateData,
-  });
-};
-
 export const submitFormData = (args: {
   mode: WorkspaceFormMode;
   data: WorkspaceFormData;
@@ -100,9 +35,44 @@ export const submitFormData = (args: {
     throw new Error('Invalid form data');
   }
 
+  const podTemplate = {
+    podMetadata: data.podMetadata,
+    options: {
+      imageConfig: data.imageConfig,
+      podConfig: data.podConfig,
+    },
+    volumes: {
+      home: data.properties.homeVolume?.pvcName,
+      data: data.properties.volumes,
+      secrets: data.properties.secrets,
+    },
+  };
+
   if (mode === 'create') {
-    return createWorkspace({ api, data, namespace });
+    return api.workspaces.createWorkspace(namespace, {
+      data: buildWorkspaceCreatePayload({
+        name: data.properties.name,
+        displayName: data.properties.displayName || undefined,
+        kind: data.kind.name,
+        paused: false,
+        podTemplate,
+      }),
+    });
   }
 
-  return updateWorkspace({ api, data, namespace });
+  // The form displays the resource name as a fallback. Do not persist that
+  // fallback as a display name unless the user changes the field.
+  const displayName =
+    data.properties.displayName === (data.originalDisplayName || data.properties.name)
+      ? data.originalDisplayName
+      : data.properties.displayName;
+
+  return api.workspaces.updateWorkspace(namespace, data.properties.name, {
+    data: buildWorkspaceUpdatePayload({
+      displayName,
+      paused: false,
+      podTemplate,
+      revision: data.revision,
+    }),
+  });
 };
