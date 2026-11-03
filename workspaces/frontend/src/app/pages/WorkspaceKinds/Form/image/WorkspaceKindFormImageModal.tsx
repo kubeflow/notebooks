@@ -70,7 +70,8 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
           message: hasRedirectMessage
             ? {
                 level:
-                  image.redirect.message?.level || OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+                  image.redirect.message?.level ||
+                  OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
                 text: rawRedirectText,
               }
             : undefined,

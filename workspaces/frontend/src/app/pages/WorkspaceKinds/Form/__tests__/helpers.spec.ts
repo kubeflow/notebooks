@@ -850,7 +850,6 @@ describe('buildActivityRuleMatch', () => {
   });
 });
 
-
 describe('getRedirectMessageError', () => {
   it('returns undefined when redirect is missing or has no target', () => {
     expect(getRedirectMessageError(undefined)).toBeUndefined();
@@ -877,7 +876,10 @@ describe('getRedirectMessageError', () => {
     expect(
       getRedirectMessageError({
         to: 'pod-2',
-        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: 'Valid message' },
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: 'Valid message',
+        },
       }),
     ).toBeUndefined();
   });
@@ -913,7 +915,10 @@ describe('getRedirectMessageError', () => {
     expect(
       getRedirectMessageError({
         to: 'pod-2',
-        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '\u{20000}\u{20001}' },
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: '\u{20000}\u{20001}',
+        },
       }),
     ).toBeUndefined();
   });
@@ -932,21 +937,30 @@ describe('getRedirectMessageError', () => {
     expect(
       getRedirectMessageError({
         to: 'pod-2',
-        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: 'hello \u{1F9AD}' }, // emoji 🦭
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: 'hello \u{1F9AD}',
+        }, // emoji 🦭
       }),
     ).toBe(REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE);
 
     expect(
       getRedirectMessageError({
         to: 'pod-2',
-        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: 'price $100' },
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: 'price $100',
+        },
       }),
     ).toBe(REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE);
 
     expect(
       getRedirectMessageError({
         to: 'pod-2',
-        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '<script>alert(1)</script>' },
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: '<script>alert(1)</script>',
+        },
       }),
     ).toBe(REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE);
   });

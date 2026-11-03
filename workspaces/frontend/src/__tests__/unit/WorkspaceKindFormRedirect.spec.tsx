@@ -4,7 +4,11 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { WorkspaceKindFormPodConfigModal } from '~/app/pages/WorkspaceKinds/Form/podConfig/WorkspaceKindFormPodConfigModal';
 import { WorkspaceKindFormImageModal } from '~/app/pages/WorkspaceKinds/Form/image/WorkspaceKindFormImageModal';
-import { WorkspaceKindPodConfigValue, WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
+import {
+  WorkspaceKindPodConfigValue,
+  WorkspaceKindImageConfigValue,
+  ImagePullPolicy,
+} from '~/app/types';
 import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
 
 jest.mock('mod-arch-kubeflow', () => ({
@@ -223,7 +227,10 @@ describe('WorkspaceKindFormRedirect', () => {
       await user.click(screen.getByRole('button', { name: /Redirect/i }));
 
       const levelSelect = screen.getByTestId('workspace-kind-pod-config-redirect-msg-lvl-select');
-      await user.selectOptions(levelSelect, OptionsRedirectMessageLevel.RedirectMessageLevelWarning);
+      await user.selectOptions(
+        levelSelect,
+        OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+      );
 
       const textInput = screen.getByTestId('workspace-kind-pod-config-redirect-message-text-input');
       expect(textInput).toHaveValue('Important note on pod size');
@@ -359,9 +366,7 @@ describe('WorkspaceKindFormRedirect', () => {
       const redirectToggle = screen.getByRole('button', { name: /Redirect/i });
       await user.click(redirectToggle);
 
-      expect(
-        screen.queryByRole('option', { name: /jupyter-custom/ }),
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('option', { name: /jupyter-custom/ })).not.toBeInTheDocument();
       expect(
         screen.queryByRole('option', { name: /Minimal Notebook \(jupyter-minimal\)/ }),
       ).not.toBeInTheDocument();
@@ -384,7 +389,10 @@ describe('WorkspaceKindFormRedirect', () => {
       await user.click(screen.getByRole('button', { name: /Redirect/i }));
 
       const levelSelect = screen.getByTestId('workspace-kind-image-redirect-msg-lvl-select');
-      await user.selectOptions(levelSelect, OptionsRedirectMessageLevel.RedirectMessageLevelWarning);
+      await user.selectOptions(
+        levelSelect,
+        OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+      );
 
       const textInput = screen.getByTestId('workspace-kind-image-redirect-message-text-input');
       expect(textInput).toHaveValue('Image has moved to scipy container');

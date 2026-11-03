@@ -653,7 +653,9 @@ class EditWorkspaceKind {
   }
 
   expandPodConfigRedirectSection() {
-    this.findPodConfigRedirectSection().findByRole('button', { name: /Redirect/i }).click();
+    this.findPodConfigRedirectSection()
+      .findByRole('button', { name: /Redirect/i })
+      .click();
   }
 
   findPodConfigRedirectToSelect() {
@@ -665,7 +667,9 @@ class EditWorkspaceKind {
   }
 
   findPodConfigRedirectMsgLvlSelect() {
-    return this.findPodConfigModal().findByTestId('workspace-kind-pod-config-redirect-msg-lvl-select');
+    return this.findPodConfigModal().findByTestId(
+      'workspace-kind-pod-config-redirect-msg-lvl-select',
+    );
   }
 
   selectPodConfigRedirectMsgLvl(level: string) {
@@ -673,7 +677,9 @@ class EditWorkspaceKind {
   }
 
   findPodConfigRedirectMessageInput() {
-    return this.findPodConfigModal().findByTestId('workspace-kind-pod-config-redirect-message-text-input');
+    return this.findPodConfigModal().findByTestId(
+      'workspace-kind-pod-config-redirect-message-text-input',
+    );
   }
 
   typePodConfigRedirectMessage(text: string) {
