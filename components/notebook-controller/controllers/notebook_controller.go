@@ -22,7 +22,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
@@ -321,23 +320,8 @@ func PodCondToNotebookCond(podc corev1.PodCondition) v1beta1.NotebookCondition {
 		condition.Reason = podc.Reason
 	}
 
-	// check if podc.LastProbeTime is null. If so initialize
-	// the field with metav1.Now()
-	check := podc.LastProbeTime.Time.Equal(time.Time{})
-	if !check {
-		condition.LastProbeTime = podc.LastProbeTime
-	} else {
-		condition.LastProbeTime = metav1.Now()
-	}
-
-	// check if podc.LastTransitionTime is null. If so initialize
-	// the field with metav1.Now()
-	check = podc.LastTransitionTime.Time.Equal(time.Time{})
-	if !check {
-		condition.LastTransitionTime = podc.LastTransitionTime
-	} else {
-		condition.LastTransitionTime = metav1.Now()
-	}
+	condition.LastTransitionTime = podc.LastTransitionTime
+	condition.LastProbeTime = podc.LastProbeTime
 
 	return condition
 }
