@@ -207,18 +207,18 @@ describe('editing undisclosed secret data', () => {
     expect(setIsOpen).toHaveBeenCalledWith(false);
   });
 
-  it.each(['new-password', '日本語🔑 café'])(
+  it.each(['', 'new-password', '日本語🔑 café'])(
     'replaces one value with UTF-8 text: %s',
     async (text) => {
       const user = userEvent.setup();
       renderEditor();
       await user.click(screen.getAllByTestId('replace-secret-value')[1]);
       expect(screen.getByTestId('value-input')).toHaveValue('');
-      await user.click(screen.getByTestId('secret-modal-submit-button'));
-      expect(screen.getByTestId('error-alert')).toHaveTextContent('Value is required (pair 2)');
-      expect(updateSecret).not.toHaveBeenCalled();
-      await user.type(screen.getByTestId('value-input'), text);
-      expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument();
+
+      if (text !== '') {
+        await user.type(screen.getByTestId('value-input'), text);
+      }
+
       await user.click(screen.getByTestId('secret-modal-submit-button'));
       expectUpdate({
         username: {},
@@ -262,19 +262,23 @@ describe('editing undisclosed secret data', () => {
     expectUpdate(count === 1 ? { password: {} } : {});
   });
 
-  it('requires text for a deleted and re-added key instead of silently preserving it', async () => {
-    const user = userEvent.setup();
-    renderEditor();
-    await user.click(screen.getAllByTestId('remove-key-value-pair')[1]);
-    await user.click(screen.getByTestId('another-key-value-pair-button'));
-    await user.type(screen.getAllByTestId('key-input')[1], 'password');
-    await user.click(screen.getByTestId('secret-modal-submit-button'));
-    expect(screen.getByTestId('error-alert')).toHaveTextContent('Value is required (pair 2)');
-    expect(updateSecret).not.toHaveBeenCalled();
-    await user.type(screen.getByTestId('value-input'), 'replacement');
-    await user.click(screen.getByTestId('secret-modal-submit-button'));
-    expectUpdate({ username: {}, password: { base64: btoa('replacement') } });
-  });
+  it.each(['', 'replacement'])(
+    'sets an explicit value for a deleted and re-added key instead of preserving it: %s',
+    async (text) => {
+      const user = userEvent.setup();
+      renderEditor();
+      await user.click(screen.getAllByTestId('remove-key-value-pair')[1]);
+      await user.click(screen.getByTestId('another-key-value-pair-button'));
+      await user.type(screen.getAllByTestId('key-input')[1], 'password');
+
+      if (text !== '') {
+        await user.type(screen.getByTestId('value-input'), text);
+      }
+
+      await user.click(screen.getByTestId('secret-modal-submit-button'));
+      expectUpdate({ username: {}, password: { base64: btoa(text) } });
+    },
+  );
 
   it('rejects duplicate keys and permits correction before saving', async () => {
     const user = userEvent.setup();
@@ -333,19 +337,29 @@ describe('editing undisclosed secret data', () => {
     expect(onSecretUpdated).toHaveBeenCalledTimes(1);
   });
 
-  it('resets discarded text and errors when the editor is closed and reopened', async () => {
+  it('resets discarded text, removals, and errors when the editor is closed and reopened', async () => {
     const user = userEvent.setup();
+    updateSecret.mockRejectedValueOnce(new Error('Secret was modified'));
     const props = { setIsOpen: jest.fn(), namespace: 'default', secretToEdit: editSecret };
     const { rerender } = render(<SecretsCreateModal isOpen {...props} />);
     await user.click(screen.getAllByTestId('replace-secret-value')[0]);
+    await user.type(screen.getByTestId('value-input'), 'discarded-text');
+    await user.click(screen.getAllByTestId('remove-key-value-pair')[1]);
     await user.click(screen.getByTestId('secret-modal-submit-button'));
-    expect(screen.getByTestId('error-alert')).toBeInTheDocument();
+    expect(await screen.findByTestId('error-alert')).toHaveTextContent('Secret was modified');
+    expect(screen.getByTestId('value-input')).toHaveValue('discarded-text');
+    expect(screen.getAllByTestId('key-input')).toHaveLength(1);
+    expect(props.setIsOpen).not.toHaveBeenCalled();
+    expect(updateSecret).toHaveBeenCalledTimes(1);
     await user.click(screen.getByTestId('secret-modal-cancel-button'));
     rerender(<SecretsCreateModal isOpen={false} {...props} />);
     rerender(<SecretsCreateModal isOpen {...props} />);
     expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('value-input')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('undisclosed-value')).toHaveLength(2);
+    expect(screen.getAllByTestId('key-input')[0]).toHaveValue('username');
+    expect(screen.getAllByTestId('key-input')[1]).toHaveValue('password');
+    expect(updateSecret).toHaveBeenCalledTimes(1);
   });
 
   it('loads an existing empty secret without adding a required blank row', async () => {
@@ -376,6 +390,28 @@ describe('SecretsCreateModal', () => {
       undefined,
       jest.fn(),
     ]);
+  });
+
+  it('creates a secret with an empty-string value', async () => {
+    const user = userEvent.setup();
+    const createSecret = jest.fn().mockResolvedValue({});
+    mockUseNotebookAPI.mockReturnValue({
+      api: { secrets: { createSecret } } as unknown as NotebookApis,
+      apiAvailable: true,
+      refreshAllAPI: jest.fn(),
+    });
+    renderModal();
+    await user.type(screen.getByTestId('secret-name-input'), 'empty-value-secret');
+    await user.type(screen.getByTestId('key-input'), 'token');
+    await user.click(screen.getByTestId('secret-modal-submit-button'));
+    expect(createSecret).toHaveBeenCalledWith('default', {
+      data: {
+        name: 'empty-value-secret',
+        type: V1SecretType.SecretTypeOpaque,
+        immutable: false,
+        contents: { token: { base64: '' } },
+      },
+    });
   });
 
   it('creates UTF-8 text including Japanese and emoji through the existing Base64 contract', async () => {

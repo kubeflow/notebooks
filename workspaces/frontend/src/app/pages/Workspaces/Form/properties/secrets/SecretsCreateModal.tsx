@@ -147,9 +147,6 @@ export const SecretsCreateModal: React.FC<SecretsCreateModalProps> = ({
       if (keyError) {
         return `${keyError} (pair ${i + 1})`;
       }
-      if (pair.kind !== 'unchanged' && !pair.value) {
-        return `Value is required (pair ${i + 1})`;
-      }
       if (seenKeys.has(pair.key)) {
         return 'Duplicate keys are not allowed';
       }
