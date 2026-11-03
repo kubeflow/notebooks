@@ -170,6 +170,11 @@ export const WorkspaceKindForm: React.FC = () => {
   const FORM_TAB_KEY = 0;
   const YAML_TAB_KEY = 1;
   const [activeTabKey, setActiveTabKey] = useState<number>(FORM_TAB_KEY);
+  // The Monaco editor is created lazily, the first time the YAML tab is opened. Creating it
+  // together with the form leaves a pending word-highlight debounce inside Monaco whenever the
+  // page is left shortly after the WorkspaceKind has been loaded. Disposing the editor then
+  // rejects that debounce with an unhandled `CancellationError` ("Canceled").
+  const [yamlEditorCreated, setYamlEditorCreated] = useState(false);
   const [editYamlValue, setEditYamlValue] = useState('');
   const [originalYaml, setOriginalYaml] = useState('');
   const [yamlParseError, setYamlParseError] = useState<string | null>(null);
@@ -212,6 +217,7 @@ export const WorkspaceKindForm: React.FC = () => {
         setOriginalYaml(yamlStr);
         lastApiObjectRef.current = updateObj;
         setYamlParseError(null);
+        setYamlEditorCreated(true);
       } else if (newTab === FORM_TAB_KEY && activeTabKey === YAML_TAB_KEY) {
         try {
           const parsed = yaml.load(editYamlValue);
@@ -512,11 +518,13 @@ export const WorkspaceKindForm: React.FC = () => {
                 style={{ flex: 1 }}
               >
                 <TabContentBody style={{ height: '100%' }}>
-                  <WorkspaceKindYamlEditor
-                    value={editYamlValue}
-                    onChange={handleYamlChange}
-                    error={yamlParseError}
-                  />
+                  {yamlEditorCreated && (
+                    <WorkspaceKindYamlEditor
+                      value={editYamlValue}
+                      onChange={handleYamlChange}
+                      error={yamlParseError}
+                    />
+                  )}
                 </TabContentBody>
               </TabContent>
             </>

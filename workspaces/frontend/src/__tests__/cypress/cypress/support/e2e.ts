@@ -26,6 +26,17 @@ Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
 });
 
+// Monaco cancels its in-flight promises (for example the debounced word highlighter) when the
+// editor is disposed. The rejection is not handled inside Monaco, so it escapes as an unhandled
+// promise rejection named "Canceled" and fails the running test, even though nothing went wrong
+// in the application. Only this specific cancellation is ignored, every other error still fails.
+Cypress.on('uncaught:exception', (err) => {
+  if (err.name === 'Canceled' && err.message === 'Canceled') {
+    return false;
+  }
+  return undefined;
+});
+
 beforeEach(() => {
   if (Cypress.env('MOCK')) {
     // fallback: return 404 for all api requests
