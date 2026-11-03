@@ -151,6 +151,17 @@ What this does:
 >
 > `ENABLE_METRICS_SERVER=true` installs [metrics-server](https://github.com/kubernetes-sigs/metrics-server), registering the `metrics.k8s.io` API so `kubectl top nodes` / `kubectl top pods` work against the cluster.
 
+> [!TIP]
+>
+> To persist these options instead of typing them on every invocation, copy [`tilt.env.example`](./tilt.env.example) to `tilt.env` (gitignored) and uncomment the options you need:
+>
+> ```bash
+> cp tilt.env.example tilt.env
+> ```
+>
+> Options set on the command line (`make tilt-up VAR=x`) or in the environment (`VAR=x make tilt-up`) still take precedence over `tilt.env`, as long as it uses `?=` assignments like the example.
+> Run `make show-config` to print the effective value of each option and where it came from.
+
 Wait until all resources show green/healthy status. 
 The frontend may take a couple of minutes on first start as webpack compiles the bundle.
 
