@@ -16,6 +16,8 @@ limitations under the License.
 
 package config
 
+import "time"
+
 type EnvConfig struct {
 	DebugMode bool
 
@@ -23,6 +25,8 @@ type EnvConfig struct {
 
 	ClientQPS   float64
 	ClientBurst int
+
+	CacheSyncTimeout time.Duration
 
 	UserIdHeader string
 	UserIdPrefix string
