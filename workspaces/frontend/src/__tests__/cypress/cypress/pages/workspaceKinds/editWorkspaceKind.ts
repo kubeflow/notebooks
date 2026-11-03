@@ -1193,7 +1193,12 @@ class EditWorkspaceKind {
       .findByTestId('toast-notification-danger')
       .should('exist');
   }
-
+  findErrorToast() {
+    return cy.findByTestId('toast-notification-group').findByTestId('toast-notification-danger');
+  }
+  assertErrorToastContainsListItem(message: string) {
+    this.findErrorToast().find('li').should('contain.text', message);
+  }
   // View mode tabs (Form / YAML)
   findFormTab() {
     return cy.findByTestId('form-tab');
