@@ -4,6 +4,7 @@ import yaml from 'js-yaml';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Content, ContentVariants } from '@patternfly/react-core/dist/esm/components/Content';
 import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { List, ListItem } from '@patternfly/react-core/dist/esm/components/List';
 import { PageGroup, PageSection } from '@patternfly/react-core/dist/esm/components/Page';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import {
@@ -21,12 +22,6 @@ import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { ImagePullPolicy, WorkspaceKindFormData } from '~/app/types';
-import {
-  extractErrorMessage,
-  formatConflictErrorMessages,
-  formatValidationErrorMessages,
-  safeApiCall,
-} from '~/shared/api/apiUtils';
 import { CONTENT_TYPE_KEY, WORKSPACE_KIND_EXAMPLES_URL } from '~/shared/utilities/const';
 import { ContentType } from '~/shared/utilities/types';
 import { LoadError } from '~/app/components/LoadError';
@@ -36,6 +31,12 @@ import {
   V1Beta1OptionRedirect,
   WorkspacekindsWorkspaceKindUpdate,
 } from '~/generated/data-contracts';
+import {
+  extractErrorMessage,
+  formatConflictErrorMessages,
+  formatValidationErrorMessages,
+  safeApiCall,
+} from '~/shared/api/apiUtils';
 import { WorkspaceKindFileUpload } from './fileUpload/WorkspaceKindFileUpload';
 import { WorkspaceKindFormProperties } from './properties/WorkspaceKindFormProperties';
 import { WorkspaceKindFormImage } from './image/WorkspaceKindFormImage';
@@ -185,6 +186,7 @@ export const WorkspaceKindForm: React.FC = () => {
   const [data, setData, resetData, replaceData] = useGenericObjectState<WorkspaceKindFormData>(
     initialFormData ? convertToFormData(initialFormData) : EMPTY_WORKSPACE_KIND_FORM_DATA,
   );
+
   const [originalFormData, setOriginalFormData] = useState<WorkspaceKindFormData | null>(null);
 
   useEffect(() => {
@@ -307,15 +309,28 @@ export const WorkspaceKindForm: React.FC = () => {
       navigate('workspaceKinds');
     } catch (err) {
       const extracted = extractErrorMessage(err);
-      let message: string;
+      let message: React.ReactNode;
       if (typeof extracted === 'string') {
         message = extracted;
       } else {
-        const details = [
-          ...formatValidationErrorMessages(extracted),
-          ...formatConflictErrorMessages(extracted),
-        ];
-        message = details.length > 0 ? details.join('; ') : extracted.error.message;
+        const validationErrors = extracted.error.cause?.validation_errors;
+        if (extracted.error.code === '422' && validationErrors && validationErrors.length > 0) {
+          message = (
+            <List>
+              {validationErrors.map((validationError, index) => (
+                <ListItem key={`${validationError.field}-${index}`}>
+                  {validationError.field}: {validationError.message}
+                </ListItem>
+              ))}
+            </List>
+          );
+        } else {
+          const details = [
+            ...formatValidationErrorMessages(extracted),
+            ...formatConflictErrorMessages(extracted),
+          ];
+          message = details.length > 0 ? details.join('; ') : extracted.error.message;
+        }
       }
       notification.error(
         `Failed to ${mode === 'edit' ? 'edit' : 'create'} workspace kind`,
@@ -414,8 +429,7 @@ export const WorkspaceKindForm: React.FC = () => {
                 setValue={setYamlValue}
                 validated={validated}
                 setValidated={setValidated}
-                // eslint-disable-next-line @typescript-eslint/no-empty-function
-                onClear={() => {}}
+                onClear={() => undefined}
               />
             </StackItem>
           )}
