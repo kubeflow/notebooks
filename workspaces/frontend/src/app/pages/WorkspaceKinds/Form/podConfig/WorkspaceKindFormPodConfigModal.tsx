@@ -12,12 +12,12 @@ import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindPodConfigValue } from '~/app/types';
 import { EditableRowsTable, KeyValueRow } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
-import { getResources, getRedirectMessageError } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import {
-  OptionsOptionLabel,
-  OptionsOptionRedirect,
-  OptionsRedirectMessageLevel,
-} from '~/generated/data-contracts';
+  getResources,
+  getRedirectMessageError,
+  normalizeRedirect,
+} from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { OptionsOptionLabel, OptionsOptionRedirect } from '~/generated/data-contracts';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import { WorkspaceKindFormRedirect } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormRedirect';
 import { WorkspaceKindFormResource, PodResourceEntry } from './WorkspaceKindFormResource';
@@ -111,27 +111,24 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
     return parsedResources;
   }, []);
 
+  const candidateTargets = useMemo(
+    () =>
+      (podConfigOptions ?? [])
+        .filter((opt) => opt.id && opt.id !== id && opt.id !== currConfig.id)
+        .map((opt) => ({ id: opt.id, displayName: opt.displayName })),
+    [podConfigOptions, id, currConfig.id],
+  );
+
   const hasResourceErrors = resources.some((resource) => getResourceErrors(resource).length > 0);
-  const rawRedirectText = redirect.message?.text || '';
-  const hasRedirectMessage = rawRedirectText.trim().length > 0;
-  const hasRedirectError = Boolean(getRedirectMessageError(redirect));
+  const isMissingRedirectTarget =
+    Boolean(redirect.to) && !candidateTargets.some((target) => target.id === redirect.to);
+  const hasRedirectError = Boolean(getRedirectMessageError(redirect)) || isMissingRedirectTarget;
 
   const handleSubmit = useCallback(() => {
     if (hasResourceErrors || hasRedirectError) {
       return;
     }
-    const finalRedirect: OptionsOptionRedirect | undefined = redirect.to
-      ? {
-          to: redirect.to,
-          message: hasRedirectMessage
-            ? {
-                level:
-                  redirect.message?.level || OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
-                text: rawRedirectText,
-              }
-            : undefined,
-        }
-      : undefined;
+    const finalRedirect = normalizeRedirect(redirect);
 
     const updatedConfig: WorkspaceKindPodConfigValue = {
       ...currConfig,
@@ -160,21 +157,10 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
     mergeResourceLabels,
     nodeSelectors,
     onSubmit,
-    redirect.message?.level,
-    redirect.to,
-    hasRedirectMessage,
-    rawRedirectText,
+    redirect,
     resources,
     setCurrConfig,
   ]);
-
-  const candidateTargets = useMemo(
-    () =>
-      (podConfigOptions ?? [])
-        .filter((opt) => opt.id && opt.id !== id && opt.id !== currConfig.id)
-        .map((opt) => ({ id: opt.id, displayName: opt.displayName })),
-    [podConfigOptions, id, currConfig.id],
-  );
 
   const cpuResource: PodResourceEntry = useMemo(
     () =>

@@ -282,6 +282,98 @@ describe('WorkspaceKindFormRedirect', () => {
       ).toBeInTheDocument();
     });
 
+    it('disables Save button, blocks submission, and keeps modal open when redirect points to a missing target ID', async () => {
+      const { user, onSubmit } = setupPodConfigHarness({
+        redirect: {
+          to: 'non-existent-pod-config',
+        },
+      });
+
+      await user.click(screen.getByRole('button', { name: /Redirect/i }));
+
+      const submitBtn = screen.getByTestId('pod-config-modal-submit-button');
+      expect(submitBtn).toBeDisabled();
+
+      await user.click(submitBtn);
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByTestId('pod-config-modal')).toBeInTheDocument();
+    });
+
+    it('rejects save when redirect target was deleted or renamed from options', async () => {
+      const { user, onSubmit } = setupPodConfigHarness({ redirect: { to: 'old-renamed-id' } }, [
+        { ...mockPodConfigs[0], id: 'new-id', displayName: 'New Pod Config' },
+      ]);
+
+      await user.click(screen.getByRole('button', { name: /Redirect/i }));
+
+      const submitBtn = screen.getByTestId('pod-config-modal-submit-button');
+      expect(submitBtn).toBeDisabled();
+
+      await user.click(submitBtn);
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByTestId('pod-config-modal')).toBeInTheDocument();
+    });
+
+    it('re-enables Save button when missing redirect target is changed to an eligible candidate', async () => {
+      const { user, onSubmit } = setupPodConfigHarness({
+        redirect: {
+          to: 'non-existent-pod-config',
+        },
+      });
+
+      await user.click(screen.getByRole('button', { name: /Redirect/i }));
+
+      const submitBtn = screen.getByTestId('pod-config-modal-submit-button');
+      expect(submitBtn).toBeDisabled();
+
+      await user.selectOptions(
+        screen.getByTestId('workspace-kind-pod-config-redirect-to-select'),
+        'medium',
+      );
+
+      expect(submitBtn).toBeEnabled();
+      await user.click(submitBtn);
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'small',
+          redirect: {
+            to: 'medium',
+          },
+        }),
+      );
+    });
+
+    it('re-enables Save button when missing redirect target is cleared ("No redirect")', async () => {
+      const { user, onSubmit } = setupPodConfigHarness({
+        redirect: {
+          to: 'non-existent-pod-config',
+        },
+      });
+
+      await user.click(screen.getByRole('button', { name: /Redirect/i }));
+
+      const submitBtn = screen.getByTestId('pod-config-modal-submit-button');
+      expect(submitBtn).toBeDisabled();
+
+      await user.selectOptions(
+        screen.getByTestId('workspace-kind-pod-config-redirect-to-select'),
+        '',
+      );
+
+      expect(submitBtn).toBeEnabled();
+      await user.click(submitBtn);
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'small',
+          redirect: undefined,
+        }),
+      );
+    });
+
     it('shows indeterminate helper text when no other pod configurations are available', async () => {
       const { user } = setupPodConfigHarness({}, [mockPodConfigs[0]]);
 
@@ -414,6 +506,95 @@ describe('WorkspaceKindFormRedirect', () => {
       expect(
         screen.getByText(/The target image "deprecated-tensorflow" is missing/),
       ).toBeInTheDocument();
+    });
+
+    it('disables Save button, blocks submission, and keeps modal open when image redirect points to a missing target ID', async () => {
+      const { user, onSubmit } = setupImageHarness({
+        redirect: {
+          to: 'deprecated-tensorflow',
+        },
+      });
+
+      await user.click(screen.getByRole('button', { name: /Redirect/i }));
+
+      const submitBtn = screen.getByTestId('image-modal-submit-button');
+      expect(submitBtn).toBeDisabled();
+
+      await user.click(submitBtn);
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByTestId('image-modal')).toBeInTheDocument();
+    });
+
+    it('rejects save when image redirect target was deleted or renamed from options', async () => {
+      const { user, onSubmit } = setupImageHarness({ redirect: { to: 'old-renamed-image' } }, [
+        { ...mockImages[0], id: 'new-image', displayName: 'New Image' },
+      ]);
+
+      await user.click(screen.getByRole('button', { name: /Redirect/i }));
+
+      const submitBtn = screen.getByTestId('image-modal-submit-button');
+      expect(submitBtn).toBeDisabled();
+
+      await user.click(submitBtn);
+      expect(onSubmit).not.toHaveBeenCalled();
+      expect(screen.getByTestId('image-modal')).toBeInTheDocument();
+    });
+
+    it('re-enables Save button when missing image redirect target is changed to an eligible candidate', async () => {
+      const { user, onSubmit } = setupImageHarness({
+        redirect: {
+          to: 'deprecated-tensorflow',
+        },
+      });
+
+      await user.click(screen.getByRole('button', { name: /Redirect/i }));
+
+      const submitBtn = screen.getByTestId('image-modal-submit-button');
+      expect(submitBtn).toBeDisabled();
+
+      await user.selectOptions(
+        screen.getByTestId('workspace-kind-image-redirect-to-select'),
+        'jupyter-scipy',
+      );
+
+      expect(submitBtn).toBeEnabled();
+      await user.click(submitBtn);
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'jupyter-minimal',
+          redirect: {
+            to: 'jupyter-scipy',
+          },
+        }),
+      );
+    });
+
+    it('re-enables Save button when missing image redirect target is cleared ("No redirect")', async () => {
+      const { user, onSubmit } = setupImageHarness({
+        redirect: {
+          to: 'deprecated-tensorflow',
+        },
+      });
+
+      await user.click(screen.getByRole('button', { name: /Redirect/i }));
+
+      const submitBtn = screen.getByTestId('image-modal-submit-button');
+      expect(submitBtn).toBeDisabled();
+
+      await user.selectOptions(screen.getByTestId('workspace-kind-image-redirect-to-select'), '');
+
+      expect(submitBtn).toBeEnabled();
+      await user.click(submitBtn);
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'jupyter-minimal',
+          redirect: undefined,
+        }),
+      );
     });
 
     it('shows indeterminate helper text when no other images are available', async () => {

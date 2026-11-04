@@ -6,6 +6,7 @@ import {
   formatSeconds,
   getActivityRuleMatchLabels,
   getRedirectMessageError,
+  normalizeRedirect,
   REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { convertToFormData } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
@@ -23,6 +24,7 @@ import {
   V1PullPolicy,
   V1ResourceList,
   WorkspacekindsActivityRuleMatch,
+  OptionsOptionRedirect,
   OptionsRedirectMessageLevel,
   V1Beta1RedirectMessageLevel,
 } from '~/generated/data-contracts';
@@ -981,5 +983,61 @@ describe('getRedirectMessageError', () => {
         message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: invalid1025 },
       }),
     ).toBe('Message text cannot exceed 1024 characters.');
+  });
+});
+
+describe('normalizeRedirect', () => {
+  it('returns undefined when redirect is missing or has an empty target', () => {
+    expect(normalizeRedirect(undefined)).toBeUndefined();
+    expect(normalizeRedirect({ to: '' })).toBeUndefined();
+  });
+
+  it('omits message property entirely when message is missing or whitespace-only', () => {
+    expect(normalizeRedirect({ to: 'pod-2' })).toEqual({ to: 'pod-2' });
+    expect(
+      normalizeRedirect({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '' },
+      }),
+    ).toEqual({ to: 'pod-2' });
+    expect(
+      normalizeRedirect({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning, text: '   ' },
+      }),
+    ).toEqual({ to: 'pod-2' });
+  });
+
+  it('defaults level to Info when level is omitted', () => {
+    expect(
+      normalizeRedirect({
+        to: 'pod-2',
+        message: { text: 'Valid message' } as unknown as OptionsOptionRedirect['message'],
+      }),
+    ).toEqual({
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: 'Valid message',
+      },
+    });
+  });
+
+  it('preserves existing level and verbatim text without trimming', () => {
+    expect(
+      normalizeRedirect({
+        to: 'pod-2',
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+          text: ' x',
+        },
+      }),
+    ).toEqual({
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+        text: ' x',
+      },
+    });
   });
 });

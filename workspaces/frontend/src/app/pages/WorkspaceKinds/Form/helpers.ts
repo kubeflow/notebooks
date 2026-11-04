@@ -324,23 +324,42 @@ export const getRedirectMessageError = (redirect?: OptionsOptionRedirect): strin
   return undefined;
 };
 
-const convertRedirectToApi = (
-  redirect: WorkspaceKindPodConfigValue['redirect'],
-): V1Beta1OptionRedirect | undefined => {
+export const normalizeRedirect = (
+  redirect?: OptionsOptionRedirect,
+): OptionsOptionRedirect | undefined => {
   if (!redirect?.to) {
     return undefined;
   }
   const rawText = redirect.message?.text;
+  if (!rawText || rawText.trim().length === 0) {
+    return {
+      to: redirect.to,
+    };
+  }
   return {
     to: redirect.to,
-    message:
-      rawText && rawText.trim().length > 0
-        ? {
-            level: (redirect.message?.level ||
-              OptionsRedirectMessageLevel.RedirectMessageLevelInfo) as unknown as V1Beta1RedirectMessageLevel,
-            text: rawText,
-          }
-        : undefined,
+    message: {
+      level: redirect.message?.level || OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+      text: rawText,
+    },
+  };
+};
+
+const convertRedirectToApi = (
+  redirect: WorkspaceKindPodConfigValue['redirect'],
+): V1Beta1OptionRedirect | undefined => {
+  const normalized = normalizeRedirect(redirect);
+  if (!normalized) {
+    return undefined;
+  }
+  return {
+    to: normalized.to,
+    message: normalized.message
+      ? {
+          level: normalized.message.level as unknown as V1Beta1RedirectMessageLevel,
+          text: normalized.message.text,
+        }
+      : undefined,
   };
 };
 

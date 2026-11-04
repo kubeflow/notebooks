@@ -17,8 +17,10 @@ import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperTex
 import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
-import { OptionsOptionRedirect, OptionsRedirectMessageLevel } from '~/generated/data-contracts';
-import { getRedirectMessageError } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import {
+  getRedirectMessageError,
+  normalizeRedirect,
+} from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormRedirect } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormRedirect';
 import { WorkspaceKindFormImagePort } from './WorkspaceKindFormImagePort';
 
@@ -56,27 +58,17 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
     [imageOptions, image.id, originalId],
   );
 
-  const rawRedirectText = image.redirect?.message?.text || '';
-  const hasRedirectMessage = rawRedirectText.trim().length > 0;
-  const hasRedirectError = Boolean(getRedirectMessageError(image.redirect));
+  const isMissingRedirectTarget =
+    Boolean(image.redirect?.to) &&
+    !candidateTargets.some((target) => target.id === image.redirect?.to);
+  const hasRedirectError =
+    Boolean(getRedirectMessageError(image.redirect)) || isMissingRedirectTarget;
 
   const handleSubmit = () => {
     if (hasRedirectError) {
       return;
     }
-    const finalRedirect: OptionsOptionRedirect | undefined = image.redirect?.to
-      ? {
-          to: image.redirect.to,
-          message: hasRedirectMessage
-            ? {
-                level:
-                  image.redirect.message?.level ||
-                  OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
-                text: rawRedirectText,
-              }
-            : undefined,
-        }
-      : undefined;
+    const finalRedirect = normalizeRedirect(image.redirect);
 
     const updatedImage: WorkspaceKindImageConfigValue = {
       ...image,
