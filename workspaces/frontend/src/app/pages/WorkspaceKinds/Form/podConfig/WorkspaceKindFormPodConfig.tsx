@@ -65,14 +65,30 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
       const currentValues = podConfig.values ?? [];
       if (editIndex !== null) {
         const updated = [...currentValues];
+        const oldId = currentValues[editIndex]?.id;
+        if (oldId && oldId !== config.id) {
+          tolerationSettersCache.current.delete(oldId);
+          modalSettersCache.current.delete(oldId);
+        }
         updated[editIndex] = config;
-        updatePodConfig({ ...podConfig, values: updated });
+        const isRenamingDefault = oldId === defaultId;
+        const newDefault = isRenamingDefault ? config.id : defaultId;
+        updatePodConfig({ ...podConfig, default: newDefault, values: updated });
+        if (isRenamingDefault) {
+          setDefaultId(config.id);
+        }
       } else {
-        updatePodConfig({ ...podConfig, values: [...currentValues, config] });
+        const configs = [...currentValues, config];
+        if (configs.length === 1 || !defaultId) {
+          updatePodConfig({ ...podConfig, default: config.id, values: configs });
+          setDefaultId(config.id);
+        } else {
+          updatePodConfig({ ...podConfig, values: configs });
+        }
       }
       clearForm();
     },
-    [clearForm, editIndex, podConfig, updatePodConfig],
+    [clearForm, defaultId, editIndex, podConfig, updatePodConfig],
   );
 
   const handleEdit = useCallback(
@@ -89,19 +105,25 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
       return;
     }
     const currentValues = podConfig.values ?? [];
-    const removedId = currentValues[deleteIndex].id;
-    tolerationSettersCache.current.delete(removedId);
-    modalSettersCache.current.delete(removedId);
+    const removedId = currentValues[deleteIndex]?.id;
+    if (removedId) {
+      tolerationSettersCache.current.delete(removedId);
+      modalSettersCache.current.delete(removedId);
+    }
+    const remaining = currentValues.filter((_, i) => i !== deleteIndex);
+    const isDeletingDefault = removedId === defaultId;
+    const newDefault = isDeletingDefault ? (remaining[0]?.id ?? '') : defaultId;
     updatePodConfig({
-      default: currentValues[deleteIndex].id === defaultId ? '' : defaultId,
-      values: currentValues.filter((_, i) => i !== deleteIndex),
+      ...podConfig,
+      default: newDefault,
+      values: remaining,
     });
-    if (currentValues[deleteIndex].id === defaultId) {
-      setDefaultId('');
+    if (isDeletingDefault) {
+      setDefaultId(newDefault);
     }
     setDeleteIndex(null);
     setIsDeleteModalOpen(false);
-  }, [deleteIndex, podConfig, updatePodConfig, setDefaultId, defaultId]);
+  }, [deleteIndex, defaultId, podConfig, updatePodConfig]);
 
   const podConfigRef = useRef(podConfig);
   podConfigRef.current = podConfig;
@@ -265,6 +287,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
           editIndex={editIndex}
           currConfig={currConfig}
           setCurrConfig={setCurrConfig}
+          existingIds={(podConfig.values ?? []).map((v) => v.id)}
         />
         <Modal
           isOpen={isDeleteModalOpen}

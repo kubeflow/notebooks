@@ -59,19 +59,25 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
     const currentValues = imageConfig.values ?? [];
     if (editIndex !== null) {
       const updated = [...currentValues];
+      const oldId = currentValues[editIndex]?.id;
       updated[editIndex] = image;
-      updateImageConfig({ ...imageConfig, values: updated });
+      const isRenamingDefault = oldId === defaultId;
+      const newDefault = isRenamingDefault ? image.id : defaultId;
+      updateImageConfig({ ...imageConfig, default: newDefault, values: updated });
+      if (isRenamingDefault) {
+        setDefaultId(image.id);
+      }
     } else {
       const images = [...currentValues, image];
-      if (images.length === 1) {
-        updateImageConfig({ default: image.id, values: [...currentValues, image] });
+      if (images.length === 1 || !defaultId) {
+        updateImageConfig({ ...imageConfig, default: image.id, values: images });
         setDefaultId(image.id);
       } else {
-        updateImageConfig({ ...imageConfig, values: [...currentValues, image] });
+        updateImageConfig({ ...imageConfig, values: images });
       }
     }
     clearForm();
-  }, [clearForm, editIndex, image, imageConfig, updateImageConfig]);
+  }, [clearForm, defaultId, editIndex, image, imageConfig, updateImageConfig]);
 
   const handleEdit = useCallback(
     (index: number) => {
@@ -87,16 +93,21 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
       return;
     }
     const currentValues = imageConfig.values ?? [];
+    const removedId = currentValues[deleteIndex]?.id;
+    const remaining = currentValues.filter((_, i) => i !== deleteIndex);
+    const isDeletingDefault = removedId === defaultId;
+    const newDefault = isDeletingDefault ? (remaining[0]?.id ?? '') : defaultId;
     updateImageConfig({
-      default: currentValues[deleteIndex].id === defaultId ? '' : defaultId,
-      values: currentValues.filter((_, i) => i !== deleteIndex),
+      ...imageConfig,
+      default: newDefault,
+      values: remaining,
     });
-    if (currentValues[deleteIndex].id === defaultId) {
-      setDefaultId('');
+    if (isDeletingDefault) {
+      setDefaultId(newDefault);
     }
     setDeleteIndex(null);
     setIsDeleteModalOpen(false);
-  }, [deleteIndex, imageConfig, updateImageConfig, setDefaultId, defaultId]);
+  }, [deleteIndex, defaultId, imageConfig, updateImageConfig]);
   const addImageBtn = (
     <Button
       variant="link"
@@ -150,6 +161,7 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
           image={image}
           setImage={setImage}
           mode={mode}
+          existingIds={(imageConfig.values ?? []).map((v) => v.id)}
         />
         <Modal
           isOpen={isDeleteModalOpen}
