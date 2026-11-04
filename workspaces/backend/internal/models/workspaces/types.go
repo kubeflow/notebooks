@@ -40,7 +40,7 @@ type WorkspaceListItem struct {
 	StateMessage    string                            `json:"stateMessage"`
 	PodTemplate     PodTemplate                       `json:"podTemplate"`
 	Activity        Activity                          `json:"activity"`
-	Services        []Service                         `json:"services"`
+	Services        []Service                         `json:"services,omitempty"`
 	Audit           commonCore.Audit                  `json:"audit"`
 }
 
@@ -74,7 +74,7 @@ type OptionInfo struct {
 	Id          string        `json:"id"`
 	DisplayName string        `json:"displayName"`
 	Description string        `json:"description"`
-	Labels      []OptionLabel `json:"labels"`
+	Labels      []OptionLabel `json:"labels,omitempty"`
 }
 
 type OptionLabel struct {
