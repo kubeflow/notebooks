@@ -54,11 +54,12 @@ describe('WorkspaceKindFormImagePort', () => {
     await user.type(screen.getByTestId('port-modal-id-input'), 'jupyter');
     await user.clear(screen.getByTestId('port-modal-port-input'));
     await user.type(screen.getByTestId('port-modal-port-input'), '8889');
+    await user.type(screen.getByTestId('port-modal-display-name-input'), 'JupyterLab');
     await user.click(screen.getByTestId('port-modal-submit-button'));
 
     expect(setPorts).toHaveBeenCalledWith([
       makePort({ id: 'http', port: 8888 }),
-      { id: 'jupyter', displayName: '', port: 8889, protocol: 'HTTP' },
+      { id: 'jupyter', displayName: 'JupyterLab', port: 8889, protocol: 'HTTP' },
     ]);
   });
 
@@ -150,6 +151,68 @@ describe('WorkspaceKindFormImagePort', () => {
 
     expect(screen.getByTestId('port-modal-submit-button')).toBeDisabled();
     expect(screen.getByText('Port must be between 1 and 65535')).toBeInTheDocument();
+  });
+
+  // 8c. Duplicate port number is rejected.
+  it('disables submit when a duplicate port number is entered', async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkspaceKindFormImagePort
+        ports={[makePort({ id: 'http', port: 8888 })]}
+        setPorts={setPorts}
+      />,
+    );
+
+    await user.click(screen.getByTestId('add-port-button'));
+    await user.type(screen.getByTestId('port-modal-id-input'), 'jupyter');
+    // clear and retype the default port to touch the field — 8888 is already taken
+    await user.clear(screen.getByTestId('port-modal-port-input'));
+    await user.type(screen.getByTestId('port-modal-port-input'), '8888');
+    expect(screen.getByTestId('port-modal-submit-button')).toBeDisabled();
+    expect(screen.getByText('Port number is already in use')).toBeInTheDocument();
+  });
+
+  // 8d. Display name shorter than 2 characters is rejected.
+  it('disables submit when display name is 1 character', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('add-port-button'));
+    await user.type(screen.getByTestId('port-modal-id-input'), 'jupyter');
+    await user.clear(screen.getByTestId('port-modal-port-input'));
+    await user.type(screen.getByTestId('port-modal-port-input'), '8889');
+    await user.type(screen.getByTestId('port-modal-display-name-input'), 'X');
+
+    expect(screen.getByTestId('port-modal-submit-button')).toBeDisabled();
+    expect(screen.getByText('Display name must be at least 2 characters')).toBeInTheDocument();
+  });
+
+  // 8e. Empty display name is accepted (displayName is optional per CRD).
+  it('enables submit when display name is empty', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('add-port-button'));
+    await user.type(screen.getByTestId('port-modal-id-input'), 'jupyter');
+    await user.clear(screen.getByTestId('port-modal-port-input'));
+    await user.type(screen.getByTestId('port-modal-port-input'), '8889');
+    // displayName left empty — valid per CRD (+Optional), serializes to undefined
+
+    expect(screen.getByTestId('port-modal-submit-button')).not.toBeDisabled();
+  });
+
+  // 8f. Display name with exactly 2 characters is accepted.
+  it('enables submit when display name is exactly 2 characters', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('add-port-button'));
+    await user.type(screen.getByTestId('port-modal-id-input'), 'jupyter');
+    await user.clear(screen.getByTestId('port-modal-port-input'));
+    await user.type(screen.getByTestId('port-modal-port-input'), '8889');
+    await user.type(screen.getByTestId('port-modal-display-name-input'), 'JL');
+
+    expect(screen.getByTestId('port-modal-submit-button')).not.toBeDisabled();
   });
 
   // 9. Opening and cancelling the modal does not call setPorts.

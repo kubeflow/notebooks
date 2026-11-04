@@ -311,7 +311,6 @@ describe('convertFormDataToUpdate', () => {
     expect(ports[2]).toEqual({ id: 'tensorboard', displayName: 'TensorBoard', port: 6006 });
   });
 
-
   it('should map pod config values with resources correctly', () => {
     const formData = buildMockFormData();
     const original = buildMockApiUpdate();

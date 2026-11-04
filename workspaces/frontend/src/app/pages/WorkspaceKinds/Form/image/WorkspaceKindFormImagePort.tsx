@@ -50,32 +50,42 @@ const PortModal: React.FC<PortModalProps> = ({
 }) => {
   const [id, setId] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [port, setPort] = useState(8888);
+  const [displayNameTouched, setDisplayNameTouched] = useState(false);
+  const [portInput, setPortInput] = useState('8888');
+  const [portTouched, setPortTouched] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       if (existingPort) {
         setId(existingPort.id);
         setDisplayName(existingPort.displayName);
-        setPort(existingPort.port);
+        setPortInput(String(existingPort.port));
       } else {
         const defaults = emptyPort();
         setId(defaults.id);
         setDisplayName(defaults.displayName);
-        setPort(defaults.port);
+        setPortInput(String(defaults.port));
       }
+      setDisplayNameTouched(false);
+      setPortTouched(false);
     }
   }, [isOpen, existingPort]);
 
+  const portNum = Number(portInput);
   const isDuplicateId = id !== '' && existingIds.includes(id);
-  const isDuplicatePort = existingPorts.includes(port);
+  const isDuplicatePort = existingPorts.includes(portNum);
   const isDisplayNameValid = displayName === '' || displayName.length >= 2;
-  const isPortValid = Number.isInteger(port) && port >= 1 && port <= 65535;
-  const canSubmit = id !== '' && !isDuplicateId && isPortValid && !isDuplicatePort && isDisplayNameValid;
+  const isPortValid = Number.isInteger(portNum) && portNum >= 1 && portNum <= 65535;
+  const canSubmit =
+    id !== '' && !isDuplicateId && isPortValid && !isDuplicatePort && isDisplayNameValid;
+
+  const showDisplayNameError = displayNameTouched && !isDisplayNameValid;
+  const showPortError = portTouched && !isPortValid;
+  const showDuplicatePortError = portTouched && isDuplicatePort;
 
   const handleSubmit = useCallback(() => {
-    onSubmit({ id, displayName, port, protocol: 'HTTP' });
-  }, [id, displayName, port, onSubmit]);
+    onSubmit({ id, displayName, port: portNum, protocol: 'HTTP' });
+  }, [id, displayName, portNum, onSubmit]);
 
   return (
     <Modal
@@ -109,7 +119,9 @@ const PortModal: React.FC<PortModalProps> = ({
             label="Display Name"
             fieldId="port-modal-display-name"
             helperTextNode={
-              !isDisplayNameValid ? <span>Display name must be at least 2 characters</span> : undefined
+              showDisplayNameError ? (
+                <span>Display name must be at least 2 characters</span>
+              ) : undefined
             }
           >
             <TextInput
@@ -117,8 +129,11 @@ const PortModal: React.FC<PortModalProps> = ({
               id="port-modal-display-name"
               data-testid="port-modal-display-name-input"
               value={displayName}
-              onChange={(_, val) => setDisplayName(val)}
-              validated={!isDisplayNameValid ? 'error' : 'default'}
+              onChange={(_, val) => {
+                setDisplayName(val);
+                setDisplayNameTouched(true);
+              }}
+              validated={showDisplayNameError ? 'error' : 'default'}
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
@@ -126,9 +141,9 @@ const PortModal: React.FC<PortModalProps> = ({
             isRequired
             fieldId="port-modal-port"
             helperTextNode={
-              !isPortValid ? (
+              showPortError ? (
                 <span>Port must be between 1 and 65535</span>
-              ) : isDuplicatePort ? (
+              ) : showDuplicatePortError ? (
                 <span>Port number is already in use</span>
               ) : undefined
             }
@@ -138,9 +153,12 @@ const PortModal: React.FC<PortModalProps> = ({
               type="number"
               id="port-modal-port"
               data-testid="port-modal-port-input"
-              value={port}
-              onChange={(_, val) => setPort(Number(val))}
-              validated={!isPortValid || isDuplicatePort ? 'error' : 'default'}
+              value={portInput}
+              onChange={(_, val) => {
+                setPortInput(val);
+                setPortTouched(true);
+              }}
+              validated={showPortError || showDuplicatePortError ? 'error' : 'default'}
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper label="Protocol" fieldId="port-modal-protocol">
@@ -220,8 +238,7 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
   // IDs and port numbers already taken, excluding the entry being edited
   const existingIds = ports.filter((_, i) => i !== editIndex).map((p) => p.id);
   const existingPortNumbers = ports.filter((_, i) => i !== editIndex).map((p) => p.port);
-  const editingPort =
-    editIndex !== null && editIndex < ports.length ? ports[editIndex] : null;
+  const editingPort = editIndex !== null && editIndex < ports.length ? ports[editIndex] : null;
 
   return (
     <FormFieldGroupExpandable
