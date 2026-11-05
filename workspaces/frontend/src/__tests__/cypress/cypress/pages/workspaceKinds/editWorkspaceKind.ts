@@ -647,6 +647,61 @@ class EditWorkspaceKind {
     }
   }
 
+  // Pod Config Redirect
+  findPodConfigRedirectSection() {
+    return this.findPodConfigModal().findByTestId('workspace-kind-pod-config-redirect-section');
+  }
+
+  expandPodConfigRedirectSection() {
+    this.findPodConfigRedirectSection()
+      .findByRole('button', { name: /Redirect/i })
+      .click();
+  }
+
+  findPodConfigRedirectToSelect() {
+    return this.findPodConfigModal().findByTestId('workspace-kind-pod-config-redirect-to-select');
+  }
+
+  selectPodConfigRedirectTo(targetId: string) {
+    this.findPodConfigRedirectToSelect().select(targetId);
+  }
+
+  findPodConfigRedirectMsgLvlSelect() {
+    return this.findPodConfigModal().findByTestId(
+      'workspace-kind-pod-config-redirect-msg-lvl-select',
+    );
+  }
+
+  selectPodConfigRedirectMsgLvl(level: string) {
+    this.findPodConfigRedirectMsgLvlSelect().select(level);
+  }
+
+  findPodConfigRedirectMessageInput() {
+    return this.findPodConfigModal().findByTestId(
+      'workspace-kind-pod-config-redirect-message-text-input',
+    );
+  }
+
+  typePodConfigRedirectMessage(text: string) {
+    this.findPodConfigRedirectMessageInput().clear().type(text);
+  }
+
+  assertPodConfigRedirectMessage(text: string) {
+    this.findPodConfigRedirectMessageInput().should('have.value', text);
+  }
+
+  findPodConfigRedirectMessageError() {
+    return this.findPodConfigModal().findByTestId('redirect-message-error');
+  }
+
+  assertPodConfigRedirectMessageErrorVisible(visible: boolean) {
+    if (visible) {
+      this.findPodConfigRedirectMessageError().should('be.visible');
+    } else {
+      this.findPodConfigRedirectMessageError().should('not.exist');
+    }
+  }
+
   // Node Selector in Pod Config Modal
   findNodeSelectorSection() {
     return this.findPodConfigModal().findByTestId('node-selector-section');

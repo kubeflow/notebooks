@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -16,9 +16,12 @@ import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
-import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
-import { WorkspaceKindFormImageRedirect } from './WorkspaceKindFormImageRedirect';
+import {
+  getRedirectMessageError,
+  normalizeRedirect,
+} from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { WorkspaceKindFormRedirect } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormRedirect';
 import { WorkspaceKindFormImagePort } from './WorkspaceKindFormImagePort';
 
 interface WorkspaceKindFormImageModalProps {
@@ -29,6 +32,7 @@ interface WorkspaceKindFormImageModalProps {
   editIndex: number | null;
   image: WorkspaceKindImageConfigValue;
   setImage: (image: WorkspaceKindImageConfigValue) => void;
+  imageOptions?: WorkspaceKindImageConfigValue[];
 }
 
 export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalProps> = ({
@@ -39,7 +43,41 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
   editIndex,
   image,
   setImage,
+  imageOptions,
 }) => {
+  const originalId =
+    editIndex !== null && imageOptions && imageOptions[editIndex]
+      ? imageOptions[editIndex]?.id
+      : undefined;
+
+  const candidateTargets = useMemo(
+    () =>
+      (imageOptions ?? [])
+        .filter((opt) => opt.id && opt.id !== image.id && opt.id !== originalId)
+        .map((opt) => ({ id: opt.id, displayName: opt.displayName })),
+    [imageOptions, image.id, originalId],
+  );
+
+  const isMissingRedirectTarget =
+    Boolean(image.redirect?.to) &&
+    !candidateTargets.some((target) => target.id === image.redirect?.to);
+  const hasRedirectError =
+    Boolean(getRedirectMessageError(image.redirect)) || isMissingRedirectTarget;
+
+  const handleSubmit = () => {
+    if (hasRedirectError) {
+      return;
+    }
+    const finalRedirect = normalizeRedirect(image.redirect);
+
+    const updatedImage: WorkspaceKindImageConfigValue = {
+      ...image,
+      redirect: finalRedirect,
+    };
+    setImage(updatedImage);
+    onSubmit(updatedImage);
+  };
+
   const options = [
     { value: 'please choose', label: 'Select one', disabled: true },
     { value: ImagePullPolicy.IfNotPresent, label: ImagePullPolicy.IfNotPresent, disabled: false },
@@ -162,9 +200,13 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
             setPorts={(ports) => setImage({ ...image, ports })}
           />
           {mode === 'edit' && (
-            <WorkspaceKindFormImageRedirect
-              redirect={image.redirect || emptyImage.redirect}
+            <WorkspaceKindFormRedirect
+              redirect={image.redirect || { to: '' }}
               setRedirect={(redirect) => setImage({ ...image, redirect })}
+              candidateTargets={candidateTargets}
+              fieldIdPrefix="workspace-kind-image-redirect"
+              targetLabel="Redirect To"
+              entityType="image"
             />
           )}
         </Form>
@@ -173,7 +215,8 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
         <Button
           key="confirm"
           variant="primary"
-          onClick={() => onSubmit(image)}
+          onClick={handleSubmit}
+          isDisabled={hasRedirectError}
           data-testid="image-modal-submit-button"
         >
           {editIndex !== null ? 'Save' : 'Add'}

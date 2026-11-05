@@ -1,10 +1,19 @@
+import yaml from 'js-yaml';
 import {
   buildActivityRuleMatch,
   getResources,
   convertFormDataToUpdate,
   formatSeconds,
   getActivityRuleMatchLabels,
+  getRedirectMessageError,
+  normalizeRedirect,
+  REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import { convertToFormData } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindForm';
+
+jest.mock('monaco-yaml', () => ({
+  configureMonacoYaml: jest.fn(),
+}));
 import { mockPodConfig } from '~/__mocks__/mockResources';
 import { WorkspaceKindFormData, WorkspaceKindPodConfigValue, ImagePullPolicy } from '~/app/types';
 import {
@@ -15,6 +24,9 @@ import {
   V1PullPolicy,
   V1ResourceList,
   WorkspacekindsActivityRuleMatch,
+  OptionsOptionRedirect,
+  OptionsRedirectMessageLevel,
+  V1Beta1RedirectMessageLevel,
 } from '~/generated/data-contracts';
 
 const buildMockApiUpdate = (
@@ -447,6 +459,195 @@ describe('convertFormDataToUpdate', () => {
     expect(result.podTemplate.volumeMountPaths).toEqual({ home: '/home/jovyan' });
   });
 
+  it('should convert podConfig redirect to API format when present', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: 'Upgraded to pod-2',
+      },
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.podConfig.values[0].redirect).toEqual({
+      to: 'pod-2',
+      message: {
+        level: 'Info',
+        text: 'Upgraded to pod-2',
+      },
+    });
+  });
+
+  it('should omit podConfig redirect when to is empty or undefined', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: '',
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.podConfig.values[0].redirect).toBeUndefined();
+  });
+
+  it('should omit redirect message when text is empty or whitespace-only', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: '   ',
+      },
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.podConfig.values[0].redirect).toEqual({
+      to: 'pod-2',
+    });
+  });
+
+  it('should preserve podConfig redirect with message through Form -> YAML -> Form round trip', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+        text: 'Deprecation notice: use pod-2 instead',
+      },
+    };
+    const original = buildMockApiUpdate();
+
+    // Form -> YAML
+    const updateObj = convertFormDataToUpdate(formData, original);
+    const yamlStr = yaml.dump(updateObj, { noRefs: true });
+
+    // YAML -> Form
+    const parsed = yaml.load(yamlStr) as WorkspacekindsWorkspaceKindUpdate;
+    const roundTrippedFormData = convertToFormData(parsed);
+
+    expect(roundTrippedFormData.podConfig.values![0].redirect).toEqual({
+      to: 'pod-2',
+      message: {
+        level: 'Warning',
+        text: 'Deprecation notice: use pod-2 instead',
+      },
+    });
+  });
+
+  it('should preserve podConfig target-only redirect through Form -> YAML -> Form round trip', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+    };
+    const original = buildMockApiUpdate();
+
+    // Form -> YAML
+    const updateObj = convertFormDataToUpdate(formData, original);
+    const yamlStr = yaml.dump(updateObj, { noRefs: true });
+
+    // YAML -> Form
+    const parsed = yaml.load(yamlStr) as WorkspacekindsWorkspaceKindUpdate;
+    const roundTrippedFormData = convertToFormData(parsed);
+
+    expect(roundTrippedFormData.podConfig.values![0].redirect).toEqual({
+      to: 'pod-2',
+      message: undefined,
+    });
+  });
+
+  it('should preserve podConfig redirect on initial load and reopen workflow', () => {
+    const apiUpdate = buildMockApiUpdate();
+    apiUpdate.podTemplate.options.podConfig.values[0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: V1Beta1RedirectMessageLevel.RedirectMessageLevelInfo,
+        text: 'Redirected to pod-2',
+      },
+    };
+
+    const formData = convertToFormData(apiUpdate);
+
+    expect(formData.podConfig.values![0].redirect).toEqual({
+      to: 'pod-2',
+      message: {
+        level: 'Info',
+        text: 'Redirected to pod-2',
+      },
+    });
+  });
+
+  it('should preserve untouched image redirect message text without trimming', () => {
+    const formData = buildMockFormData();
+    formData.imageConfig.values![0].redirect = {
+      to: 'img-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: ' x',
+      },
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.imageConfig.values[0].redirect).toEqual({
+      to: 'img-2',
+      message: {
+        level: 'Info',
+        text: ' x',
+      },
+    });
+  });
+
+  it('should preserve untouched image redirect message with leading whitespace through Form -> YAML -> Form round trip', () => {
+    const formData = buildMockFormData();
+    formData.imageConfig.values![0].redirect = {
+      to: 'img-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: ' x',
+      },
+    };
+    const original = buildMockApiUpdate();
+
+    // Form -> YAML
+    const updateObj = convertFormDataToUpdate(formData, original);
+    const yamlStr = yaml.dump(updateObj, { noRefs: true });
+
+    // YAML -> Form
+    const parsed = yaml.load(yamlStr) as WorkspacekindsWorkspaceKindUpdate;
+    const roundTrippedFormData = convertToFormData(parsed);
+
+    expect(roundTrippedFormData.imageConfig.values![0].redirect).toEqual({
+      to: 'img-2',
+      message: {
+        level: 'Info',
+        text: ' x',
+      },
+    });
+  });
+
+  it('should preserve podConfig redirect message text with leading whitespace without trimming', () => {
+    const formData = buildMockFormData();
+    formData.podConfig.values![0].redirect = {
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: ' x',
+      },
+    };
+    const original = buildMockApiUpdate();
+    const result = convertFormDataToUpdate(formData, original);
+
+    expect(result.podTemplate.options.podConfig.values[0].redirect).toEqual({
+      to: 'pod-2',
+      message: {
+        level: 'Info',
+        text: ' x',
+      },
+    });
+  });
+
   it('should format seconds below 60 as whole seconds', () => {
     expect(formatSeconds(0)).toBe('0 seconds');
     expect(formatSeconds(1)).toBe('1 second');
@@ -648,5 +849,195 @@ describe('buildActivityRuleMatch', () => {
     expect(buildActivityRuleMatch({ podConfigLabels: { cpu: '100m' } })).toEqual([
       { matchPodConfig: { selector: { matchLabels: { cpu: '100m' } } } },
     ]);
+  });
+});
+
+describe('getRedirectMessageError', () => {
+  it('returns undefined when redirect is missing or has no target', () => {
+    expect(getRedirectMessageError(undefined)).toBeUndefined();
+    expect(getRedirectMessageError({ to: '' })).toBeUndefined();
+  });
+
+  it('returns undefined when message text is missing or whitespace-only', () => {
+    expect(getRedirectMessageError({ to: 'pod-2' })).toBeUndefined();
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '' },
+      }),
+    ).toBeUndefined();
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '    ' },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for a valid message', () => {
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: 'Valid message',
+        },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('counts runes on raw un-trimmed text, allowing " x" as 2 characters', () => {
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: ' x' },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('rejects message with less than 2 runes', () => {
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: 'a' },
+      }),
+    ).toBe('Message text must be at least 2 characters.');
+
+    // Astral-plane Unicode character (1 rune, though UTF-16 length is 2)
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '\u{20000}' },
+      }),
+    ).toBe('Message text must be at least 2 characters.');
+  });
+
+  it('accepts multi-byte Unicode letters when rune count >= 2', () => {
+    // 2 astral-plane Unicode letters (2 runes, though UTF-16 length is 4)
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: '\u{20000}\u{20001}',
+        },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('accepts 600 supplementary-plane Unicode letters (rune count 600, UTF-16 length 1200)', () => {
+    const astral600 = '\u{20000}'.repeat(600);
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: astral600 },
+      }),
+    ).toBeUndefined();
+  });
+
+  it('rejects characters not matching the allowlist regex', () => {
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: 'hello \u{1F9AD}',
+        }, // emoji 🦭
+      }),
+    ).toBe(REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE);
+
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: 'price $100',
+        },
+      }),
+    ).toBe(REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE);
+
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+          text: '<script>alert(1)</script>',
+        },
+      }),
+    ).toBe(REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE);
+  });
+
+  it('enforces maxLength of 1024 runes', () => {
+    const valid1024 = 'a'.repeat(1024);
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: valid1024 },
+      }),
+    ).toBeUndefined();
+
+    const invalid1025 = 'a'.repeat(1025);
+    expect(
+      getRedirectMessageError({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: invalid1025 },
+      }),
+    ).toBe('Message text cannot exceed 1024 characters.');
+  });
+});
+
+describe('normalizeRedirect', () => {
+  it('returns undefined when redirect is missing or has an empty target', () => {
+    expect(normalizeRedirect(undefined)).toBeUndefined();
+    expect(normalizeRedirect({ to: '' })).toBeUndefined();
+  });
+
+  it('omits message property entirely when message is missing or whitespace-only', () => {
+    expect(normalizeRedirect({ to: 'pod-2' })).toEqual({ to: 'pod-2' });
+    expect(
+      normalizeRedirect({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo, text: '' },
+      }),
+    ).toEqual({ to: 'pod-2' });
+    expect(
+      normalizeRedirect({
+        to: 'pod-2',
+        message: { level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning, text: '   ' },
+      }),
+    ).toEqual({ to: 'pod-2' });
+  });
+
+  it('defaults level to Info when level is omitted', () => {
+    expect(
+      normalizeRedirect({
+        to: 'pod-2',
+        message: { text: 'Valid message' } as unknown as OptionsOptionRedirect['message'],
+      }),
+    ).toEqual({
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+        text: 'Valid message',
+      },
+    });
+  });
+
+  it('preserves existing level and verbatim text without trimming', () => {
+    expect(
+      normalizeRedirect({
+        to: 'pod-2',
+        message: {
+          level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+          text: ' x',
+        },
+      }),
+    ).toEqual({
+      to: 'pod-2',
+      message: {
+        level: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+        text: ' x',
+      },
+    });
   });
 });

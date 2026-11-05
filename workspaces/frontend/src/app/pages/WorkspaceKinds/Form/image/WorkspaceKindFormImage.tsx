@@ -55,23 +55,27 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
     setDeleteIndex(i);
   }, []);
 
-  const handleAddOrEditSubmit = useCallback(() => {
-    const currentValues = imageConfig.values ?? [];
-    if (editIndex !== null) {
-      const updated = [...currentValues];
-      updated[editIndex] = image;
-      updateImageConfig({ ...imageConfig, values: updated });
-    } else {
-      const images = [...currentValues, image];
-      if (images.length === 1) {
-        updateImageConfig({ default: image.id, values: [...currentValues, image] });
-        setDefaultId(image.id);
+  const handleAddOrEditSubmit = useCallback(
+    (submittedImage?: WorkspaceKindImageConfigValue) => {
+      const imgToSave = submittedImage ?? image;
+      const currentValues = imageConfig.values ?? [];
+      if (editIndex !== null) {
+        const updated = [...currentValues];
+        updated[editIndex] = imgToSave;
+        updateImageConfig({ ...imageConfig, values: updated });
       } else {
-        updateImageConfig({ ...imageConfig, values: [...currentValues, image] });
+        const images = [...currentValues, imgToSave];
+        if (images.length === 1) {
+          updateImageConfig({ default: imgToSave.id, values: [...currentValues, imgToSave] });
+          setDefaultId(imgToSave.id);
+        } else {
+          updateImageConfig({ ...imageConfig, values: [...currentValues, imgToSave] });
+        }
       }
-    }
-    clearForm();
-  }, [clearForm, editIndex, image, imageConfig, updateImageConfig]);
+      clearForm();
+    },
+    [clearForm, editIndex, image, imageConfig, updateImageConfig],
+  );
 
   const handleEdit = useCallback(
     (index: number) => {
@@ -150,6 +154,7 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
           image={image}
           setImage={setImage}
           mode={mode}
+          imageOptions={imageConfig.values ?? []}
         />
         <Modal
           isOpen={isDeleteModalOpen}

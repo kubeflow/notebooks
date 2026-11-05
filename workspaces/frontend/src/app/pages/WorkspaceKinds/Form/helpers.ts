@@ -8,7 +8,9 @@ import {
 } from '~/app/types';
 import {
   OptionsOptionLabel,
+  OptionsOptionRedirect,
   OptionsPodConfigValue,
+  OptionsRedirectMessageLevel,
   V1Beta1OptionRedirect,
   V1Beta1RedirectMessageLevel,
   V1PullPolicy,
@@ -278,18 +280,84 @@ export const formatSeconds = (seconds: number): string => {
   return `${seconds} second${seconds !== 1 ? 's' : ''}`;
 };
 
-const convertRedirectToApi = (
-  redirect: WorkspaceKindPodConfigValue['redirect'],
-): V1Beta1OptionRedirect | undefined => {
+export const REDIRECT_MESSAGE_LEVEL_OPTIONS = [
+  { value: 'please choose', label: 'Select one', disabled: true },
+  {
+    value: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+    label: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+    disabled: false,
+  },
+  {
+    value: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+    label: OptionsRedirectMessageLevel.RedirectMessageLevelWarning,
+    disabled: false,
+  },
+  {
+    value: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
+    label: OptionsRedirectMessageLevel.RedirectMessageLevelDanger,
+    disabled: false,
+  },
+];
+
+export const REDIRECT_MESSAGE_ALLOWED_CHARS_REGEX = /^[\p{L}\p{M}\p{N}\-_.,'":?!@#%^*()~+/ ]*$/u;
+export const REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE =
+  'Only letters (any language), numbers, spaces, and the characters - _ . , \' " : ? ! @ # % ^ * ( ) ~ + / are allowed';
+
+export const getRedirectMessageError = (redirect?: OptionsOptionRedirect): string | undefined => {
+  if (!redirect?.to || !redirect.message?.text) {
+    return undefined;
+  }
+  const rawText = redirect.message.text;
+  if (rawText.trim().length === 0) {
+    return undefined;
+  }
+  if (!REDIRECT_MESSAGE_ALLOWED_CHARS_REGEX.test(rawText)) {
+    return REDIRECT_MESSAGE_ALLOWED_CHARS_MESSAGE;
+  }
+  const runeLength = Array.from(rawText).length;
+  if (runeLength < 2) {
+    return 'Message text must be at least 2 characters.';
+  }
+  if (runeLength > 1024) {
+    return 'Message text cannot exceed 1024 characters.';
+  }
+  return undefined;
+};
+
+export const normalizeRedirect = (
+  redirect?: OptionsOptionRedirect,
+): OptionsOptionRedirect | undefined => {
   if (!redirect?.to) {
     return undefined;
   }
+  const rawText = redirect.message?.text;
+  if (!rawText || rawText.trim().length === 0) {
+    return {
+      to: redirect.to,
+    };
+  }
   return {
     to: redirect.to,
-    message: redirect.message
+    message: {
+      level: redirect.message?.level || OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+      text: rawText,
+    },
+  };
+};
+
+const convertRedirectToApi = (
+  redirect: WorkspaceKindPodConfigValue['redirect'],
+): V1Beta1OptionRedirect | undefined => {
+  const normalized = normalizeRedirect(redirect);
+  if (!normalized) {
+    return undefined;
+  }
+  return {
+    to: normalized.to,
+    message: normalized.message
       ? {
-          level: redirect.message.level as unknown as V1Beta1RedirectMessageLevel,
-          text: redirect.message.text,
+          level: normalized.message.level as unknown as V1Beta1RedirectMessageLevel,
+          text: normalized.message.text,
         }
       : undefined,
   };
