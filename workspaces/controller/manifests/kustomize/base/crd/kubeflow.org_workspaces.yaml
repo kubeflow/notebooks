@@ -292,7 +292,8 @@ spec:
                     description: |-
                       the end time of the last successful probe (UNIX epoch in milliseconds)
                        - not updated when a probe fails
-                       - used to determine when the next probe should run
+                       - informational only, probe scheduling is based on `lastProbe`
+                       - reset to 0 when the Workspace enters the Running state
                     example: 1704067200000
                     format: int64
                     type: integer

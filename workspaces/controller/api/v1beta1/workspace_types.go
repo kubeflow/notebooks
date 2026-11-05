@@ -251,7 +251,8 @@ type WorkspaceActivity struct {
 
 	// the end time of the last successful probe (UNIX epoch in milliseconds)
 	//  - not updated when a probe fails
-	//  - used to determine when the next probe should run
+	//  - informational only, probe scheduling is based on `lastProbe`
+	//  - reset to 0 when the Workspace enters the Running state
 	// +kubebuilder:default=0
 	// +kubebuilder:example=1704067200000
 	LastUpdate int64 `json:"lastUpdate"`
