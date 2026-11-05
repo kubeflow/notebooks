@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
@@ -20,10 +20,6 @@ import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-i
 import { WorkspaceKindImagePort } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 
-// ---------------------------------------------------------------------------
-// Port modal
-// ---------------------------------------------------------------------------
-
 interface PortModalProps {
   isOpen: boolean;
   existingPort: WorkspaceKindImagePort | null;
@@ -32,13 +28,6 @@ interface PortModalProps {
   onClose: () => void;
   onSubmit: (port: WorkspaceKindImagePort) => void;
 }
-
-const emptyPort = (): WorkspaceKindImagePort => ({
-  id: '',
-  displayName: '',
-  port: 8888,
-  protocol: 'HTTP',
-});
 
 const PortModal: React.FC<PortModalProps> = ({
   isOpen,
@@ -56,16 +45,9 @@ const PortModal: React.FC<PortModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      if (existingPort) {
-        setId(existingPort.id);
-        setDisplayName(existingPort.displayName);
-        setPortInput(String(existingPort.port));
-      } else {
-        const defaults = emptyPort();
-        setId(defaults.id);
-        setDisplayName(defaults.displayName);
-        setPortInput(String(defaults.port));
-      }
+      setId(existingPort?.id ?? '');
+      setDisplayName(existingPort?.displayName ?? '');
+      setPortInput(existingPort ? String(existingPort.port) : '8888');
       setDisplayNameTouched(false);
       setPortTouched(false);
     }
@@ -82,10 +64,6 @@ const PortModal: React.FC<PortModalProps> = ({
   const showDisplayNameError = displayNameTouched && !isDisplayNameValid;
   const showPortError = portTouched && !isPortValid;
   const showDuplicatePortError = portTouched && isDuplicatePort;
-
-  const handleSubmit = useCallback(() => {
-    onSubmit({ id, displayName, port: portNum, protocol: 'HTTP' });
-  }, [id, displayName, portNum, onSubmit]);
 
   return (
     <Modal
@@ -176,7 +154,7 @@ const PortModal: React.FC<PortModalProps> = ({
         <Button
           variant="primary"
           isDisabled={!canSubmit}
-          onClick={handleSubmit}
+          onClick={() => onSubmit({ id, displayName, port: portNum, protocol: 'HTTP' })}
           data-testid="port-modal-submit-button"
         >
           {existingPort ? 'Save' : 'Add'}
@@ -188,10 +166,6 @@ const PortModal: React.FC<PortModalProps> = ({
     </Modal>
   );
 };
-
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
 
 interface WorkspaceKindFormImagePortProps {
   ports: WorkspaceKindImagePort[];
@@ -205,37 +179,6 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
 
-  const handleEdit = useCallback((index: number) => {
-    setEditIndex(index);
-    setIsModalOpen(true);
-  }, []);
-
-  const handleRemove = useCallback(
-    (index: number) => {
-      setPorts(ports.filter((_, i) => i !== index));
-    },
-    [ports, setPorts],
-  );
-
-  const handleModalClose = useCallback(() => {
-    setIsModalOpen(false);
-    setEditIndex(null);
-  }, []);
-
-  const handleModalSubmit = useCallback(
-    (port: WorkspaceKindImagePort) => {
-      if (editIndex !== null) {
-        setPorts(ports.map((p, i) => (i === editIndex ? port : p)));
-      } else {
-        setPorts([...ports, port]);
-      }
-      setIsModalOpen(false);
-      setEditIndex(null);
-    },
-    [editIndex, ports, setPorts],
-  );
-
-  // IDs and port numbers already taken, excluding the entry being edited
   const existingIds = ports.filter((_, i) => i !== editIndex).map((p) => p.id);
   const existingPortNumbers = ports.filter((_, i) => i !== editIndex).map((p) => p.port);
   const editingPort = editIndex !== null && editIndex < ports.length ? ports[editIndex] : null;
@@ -287,7 +230,10 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
                         variant="plain"
                         aria-label={`Edit port ${p.id}`}
                         icon={<PencilAltIcon />}
-                        onClick={() => handleEdit(index)}
+                        onClick={() => {
+                          setEditIndex(index);
+                          setIsModalOpen(true);
+                        }}
                         data-testid={`port-edit-${index}`}
                       />
                     </FlexItem>
@@ -297,7 +243,7 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
                         aria-label={`Remove port ${p.id}`}
                         icon={<TrashAltIcon />}
                         isDisabled={ports.length <= 1}
-                        onClick={() => handleRemove(index)}
+                        onClick={() => setPorts(ports.filter((_, i) => i !== index))}
                         data-testid={`port-remove-${index}`}
                       />
                     </FlexItem>
@@ -324,8 +270,19 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
         existingPort={editingPort}
         existingIds={existingIds}
         existingPorts={existingPortNumbers}
-        onClose={handleModalClose}
-        onSubmit={handleModalSubmit}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditIndex(null);
+        }}
+        onSubmit={(port) => {
+          if (editIndex !== null) {
+            setPorts(ports.map((p, i) => (i === editIndex ? port : p)));
+          } else {
+            setPorts([...ports, port]);
+          }
+          setIsModalOpen(false);
+          setEditIndex(null);
+        }}
       />
     </FormFieldGroupExpandable>
   );
