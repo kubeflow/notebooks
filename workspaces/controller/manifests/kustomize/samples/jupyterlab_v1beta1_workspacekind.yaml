@@ -160,7 +160,7 @@ spec:
       ##  - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing
       ##    ClusterRole simply grants nothing until that ClusterRole is created
       ##  - changes take effect immediately, Workspaces do NOT need to be restarted,
-      #     and removing an entry deletes the corresponding RoleBinding
+      ##    and removing an entry deletes the corresponding RoleBinding
       ##  - each element of the array is a map with the following keys:
       ##     - name: the name of a ClusterRole
       ##
