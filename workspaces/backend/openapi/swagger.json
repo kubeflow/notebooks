@@ -6850,7 +6850,7 @@
             "type": "object",
             "properties": {
                 "removePathPrefix": {
-                    "description": "if the path prefix is stripped from incoming HTTP requests\n - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix\n   is stripped from incoming requests, the application sees the request\n   as if it was made to '/...'\n - this only works if the application serves RELATIVE URLs for its assets\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "description": "if the path prefix is stripped from incoming HTTP requests\n - if true, the '/workspace/connect/{namespace}/{name}/{port_id}/' path prefix\n   is stripped from incoming requests, the application sees the request\n   as if it was made to '/...'\n - this only works if the application serves RELATIVE URLs for its assets\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
                     "type": "boolean"
                 },
                 "requestHeaders": {

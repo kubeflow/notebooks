@@ -239,7 +239,7 @@ spec:
         httpProxy:
 
           ## if the path prefix is stripped from incoming HTTP requests
-          ##  - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix
+          ##  - if true, the '/workspace/connect/{namespace}/{name}/{port_id}/' path prefix
           ##    is stripped from incoming requests, the application sees the request
           ##    as if it was made to '/...'
           ##  - this only works if the application serves RELATIVE URLs for its assets
@@ -249,8 +249,9 @@ spec:
           ## header manipulation rules for incoming HTTP requests
           ##  - sets the `spec.http[].headers.request` of the Istio VirtualService
           ##    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
-          ##  - the following string templates are available:
-          ##      - `.PathPrefix`: the path prefix of the Workspace (e.g. '/workspace/connect/{profile_name}/{workspace_name}/')
+          ##  - the following go template functions are available in the values:
+          ##      - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+          ##        (e.g. '/workspace/connect/{namespace}/{name}/{port_id}/')
           ##
           requestHeaders: {}
 

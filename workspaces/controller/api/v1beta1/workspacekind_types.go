@@ -540,7 +540,7 @@ type WorkspaceKindVolumeMountPaths struct {
 
 type HTTPProxy struct {
 	// if the path prefix is stripped from incoming HTTP requests
-	//  - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix
+	//  - if true, the '/workspace/connect/{namespace}/{name}/{port_id}/' path prefix
 	//    is stripped from incoming requests, the application sees the request
 	//    as if it was made to '/...'
 	//  - this only works if the application serves RELATIVE URLs for its assets
