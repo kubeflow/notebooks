@@ -6564,7 +6564,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "minProbeIntervalSeconds": {
-                    "description": "the minimum duration in seconds that must elapse between two consecutive probes.\n- Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).\n- Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
+                    "description": "the minimum duration in seconds between a failed probe and the next probe\n - acts as a rate-limiter for failed (or timed out) probes: the controller\n   waits at least this long after a failed probe before retrying\n - after a successful probe, ` + "`" + `probeIntervalSeconds` + "`" + ` is used instead\n - must be less than or equal to ` + "`" + `probeIntervalSeconds` + "`" + `, note that when only\n   ` + "`" + `probeIntervalSeconds` + "`" + ` is set, it must be at least the default of this field (300)\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 },
                 "podExec": {

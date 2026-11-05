@@ -458,9 +458,12 @@ type WorkspaceKindClusterRole struct {
 //
 // +kubebuilder:validation:XValidation:message="minProbeIntervalSeconds must be less than or equal to probeIntervalSeconds",rule="self.minProbeIntervalSeconds <= self.probeIntervalSeconds"
 type ActivityProbe struct {
-	// the minimum duration in seconds that must elapse between two consecutive probes.
-	// - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
-	// - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
+	// the minimum duration in seconds between a failed probe and the next probe
+	//  - acts as a rate-limiter for failed (or timed out) probes: the controller
+	//    waits at least this long after a failed probe before retrying
+	//  - after a successful probe, `probeIntervalSeconds` is used instead
+	//  - must be less than or equal to `probeIntervalSeconds`, note that when only
+	//    `probeIntervalSeconds` is set, it must be at least the default of this field (300)
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=31536000
 	// +kubebuilder:default:=300
