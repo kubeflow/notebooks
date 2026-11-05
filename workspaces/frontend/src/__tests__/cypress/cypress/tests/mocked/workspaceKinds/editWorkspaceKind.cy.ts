@@ -706,6 +706,120 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.assertPodConfigDisplayName(podConfigToEdit.displayName);
     });
 
+    describe('Pod configuration redirects', () => {
+      it('should configure, validate, and persist pod configuration redirect through Form, YAML, and save', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        cy.interceptApi(
+          'PUT /api/:apiVersion/workspacekinds/:kind',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+          mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+        ).as('updateWorkspaceKind');
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+
+        // small_cpu is at index 1 and has no redirect configured initially
+        editWorkspaceKind.clickPodConfigTableRowKebab(1);
+        editWorkspaceKind.clickEditPodConfig();
+        editWorkspaceKind.assertPodConfigModalVisible(true);
+
+        // Expand Redirect section
+        editWorkspaceKind.expandPodConfigRedirectSection();
+
+        // 1. Select target first to reveal message inputs
+        editWorkspaceKind.selectPodConfigRedirectTo('medium_cpu');
+
+        // 2. Validate 1-character message: shows error and disables Save button
+        editWorkspaceKind.typePodConfigRedirectMessage('x');
+        editWorkspaceKind.assertPodConfigRedirectMessageErrorVisible(true);
+        editWorkspaceKind.assertPodConfigSaveEnabled(false);
+
+        // 3. Enter valid message and submit modal
+        const messageText = 'Use medium CPU configuration instead';
+        editWorkspaceKind.typePodConfigRedirectMessage(messageText);
+        editWorkspaceKind.assertPodConfigRedirectMessageErrorVisible(false);
+        editWorkspaceKind.assertPodConfigSaveEnabled(true);
+        editWorkspaceKind.submitPodConfigModal();
+        editWorkspaceKind.assertPodConfigModalVisible(false);
+
+        // 4. Form -> YAML tab switch preserves redirect
+        editWorkspaceKind.clickYamlTab();
+        editWorkspaceKind.assertYamlEditorVisible();
+
+        // 5. YAML -> Form tab switch preserves redirect
+        editWorkspaceKind.clickFormTab();
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickPodConfigTableRowKebab(1);
+        editWorkspaceKind.clickEditPodConfig();
+        editWorkspaceKind.assertPodConfigModalVisible(true);
+        editWorkspaceKind.expandPodConfigRedirectSection();
+        editWorkspaceKind.findPodConfigRedirectToSelect().should('have.value', 'medium_cpu');
+        editWorkspaceKind.assertPodConfigRedirectMessage(messageText);
+
+        // 6. Changing redirect target and message level preserves message text
+        editWorkspaceKind.selectPodConfigRedirectTo('large_cpu');
+        editWorkspaceKind.selectPodConfigRedirectMsgLvl('Warning');
+        editWorkspaceKind.assertPodConfigRedirectMessage(messageText);
+        editWorkspaceKind.submitPodConfigModal();
+        editWorkspaceKind.assertPodConfigModalVisible(false);
+
+        // 7. Save main form and assert on PUT request payload
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@updateWorkspaceKind').then((interception) => {
+          expect(interception.request.method).to.equal('PUT');
+          const podConfigValues =
+            interception.request.body.data.podTemplate.options.podConfig.values;
+          const smallCpu = podConfigValues.find((v: { id: string }) => v.id === 'small_cpu');
+          expect(smallCpu.redirect).to.deep.equal({
+            to: 'large_cpu',
+            message: {
+              level: 'Warning',
+              text: messageText,
+            },
+          });
+        });
+      });
+
+      it('should remove an existing pod configuration redirect and save', () => {
+        const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+        cy.interceptApi(
+          'PUT /api/:apiVersion/workspacekinds/:kind',
+          { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+          mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+        ).as('updateWorkspaceKind');
+
+        visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+        editWorkspaceKind.expandPodConfigSection();
+
+        // tiny_cpu is at index 0 and has an existing redirect to small_cpu
+        editWorkspaceKind.clickPodConfigTableRowKebab(0);
+        editWorkspaceKind.clickEditPodConfig();
+        editWorkspaceKind.assertPodConfigModalVisible(true);
+
+        editWorkspaceKind.expandPodConfigRedirectSection();
+        editWorkspaceKind.findPodConfigRedirectToSelect().should('have.value', 'small_cpu');
+
+        // Remove redirect by selecting empty option (No redirect)
+        editWorkspaceKind.selectPodConfigRedirectTo('');
+        editWorkspaceKind.submitPodConfigModal();
+        editWorkspaceKind.assertPodConfigModalVisible(false);
+
+        // Save main form and assert PUT payload has redirect omitted
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@updateWorkspaceKind').then((interception) => {
+          expect(interception.request.method).to.equal('PUT');
+          const podConfigValues =
+            interception.request.body.data.podTemplate.options.podConfig.values;
+          const tinyCpu = podConfigValues.find((v: { id: string }) => v.id === 'tiny_cpu');
+          expect(tinyCpu.redirect).to.equal(undefined);
+        });
+      });
+    });
+
     describe('Node selector in pod config modal', () => {
       it('should display node selector section in add pod config modal', () => {
         const { mockWorkspaceKind } = setupEditWorkspaceKind();
