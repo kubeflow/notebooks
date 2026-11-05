@@ -5675,7 +5675,11 @@ spec:
             description: WorkspaceKindStatus defines the observed state of WorkspaceKind
             properties:
               podTemplateOptions:
-                description: metrics for podTemplate options
+                description: |-
+                  metrics for podTemplate options
+                   - Workspaces are counted by the option ids in their `spec.podTemplate.options`,
+                     so a Workspace with a pending redirect is still counted under its old option
+                   - only options currently defined in this WorkspaceKind are listed
                 properties:
                   imageConfig:
                     description: metrics about the imageConfig options

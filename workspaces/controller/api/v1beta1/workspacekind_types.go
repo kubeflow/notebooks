@@ -960,6 +960,9 @@ type WorkspaceKindStatus struct {
 	Workspaces int32 `json:"workspaces"`
 
 	// metrics for podTemplate options
+	//  - Workspaces are counted by the option ids in their `spec.podTemplate.options`,
+	//    so a Workspace with a pending redirect is still counted under its old option
+	//  - only options currently defined in this WorkspaceKind are listed
 	PodTemplateOptions PodTemplateOptionsMetrics `json:"podTemplateOptions"`
 
 	// status of the spawner icon
