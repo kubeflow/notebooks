@@ -146,8 +146,13 @@ type ActivityRuleSelector struct {
 // +kubebuilder:validation:XValidation:message="must specify at least one effect",rule="has(self.pauseWorkspace)"
 type ActivityRuleEffect struct {
 	// determines if the Workspace should be paused
+	//  - `true`: pause matching Workspaces when they are inactive
+	//  - `false`: exempt matching Workspaces from being paused
+	//  - unset: this rule does not decide, evaluation continues with the next rule
 	//  - the webhook rejects rules with `pauseWorkspace: true`
 	//    when no `activityProbe` is configured
+	//  - the webhook allows at most one rule with an empty `match` that sets
+	//    this effect, and it must be the last such rule
 	// +kubebuilder:validation:Optional
 	PauseWorkspace *bool `json:"pauseWorkspace,omitempty"`
 }

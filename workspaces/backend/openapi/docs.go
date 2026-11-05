@@ -6649,7 +6649,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "pauseWorkspace": {
-                    "description": "determines if the Workspace should be paused\n - the webhook rejects rules with ` + "`" + `pauseWorkspace: true` + "`" + `\n   when no ` + "`" + `activityProbe` + "`" + ` is configured\n+kubebuilder:validation:Optional",
+                    "description": "determines if the Workspace should be paused\n - ` + "`" + `true` + "`" + `: pause matching Workspaces when they are inactive\n - ` + "`" + `false` + "`" + `: exempt matching Workspaces from being paused\n - unset: this rule does not decide, evaluation continues with the next rule\n - the webhook rejects rules with ` + "`" + `pauseWorkspace: true` + "`" + `\n   when no ` + "`" + `activityProbe` + "`" + ` is configured\n - the webhook allows at most one rule with an empty ` + "`" + `match` + "`" + ` that sets\n   this effect, and it must be the last such rule\n+kubebuilder:validation:Optional",
                     "type": "boolean"
                 }
             }
