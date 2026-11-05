@@ -132,6 +132,7 @@ describe('useWorkspaceCountPerKind', () => {
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           statefulSetMetadata: { labels: {}, annotations: {} },
+          serviceAccount: { metadata: { labels: {}, annotations: {} } },
           volumeMountPaths: { home: '/home' },
           options: {
             imageConfig: {
@@ -173,6 +174,7 @@ describe('useWorkspaceCountPerKind', () => {
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           statefulSetMetadata: { labels: {}, annotations: {} },
+          serviceAccount: { metadata: { labels: {}, annotations: {} } },
           volumeMountPaths: { home: '/home' },
           options: {
             imageConfig: {
@@ -247,6 +249,7 @@ describe('useWorkspaceCountPerKind', () => {
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           statefulSetMetadata: { labels: {}, annotations: {} },
+          serviceAccount: { metadata: { labels: {}, annotations: {} } },
           volumeMountPaths: { home: '/home' },
           options: {
             imageConfig: {
@@ -266,6 +269,7 @@ describe('useWorkspaceCountPerKind', () => {
         podTemplate: {
           podMetadata: { labels: {}, annotations: {} },
           statefulSetMetadata: { labels: {}, annotations: {} },
+          serviceAccount: { metadata: { labels: {}, annotations: {} } },
           volumeMountPaths: { home: '/home' },
           options: {
             imageConfig: {
@@ -341,6 +345,7 @@ describe('useWorkspaceCountPerKind', () => {
       podTemplate: {
         podMetadata: { labels: {}, annotations: {} },
         statefulSetMetadata: { labels: {}, annotations: {} },
+        serviceAccount: { metadata: { labels: {}, annotations: {} } },
         volumeMountPaths: { home: '/home' },
         options: {
           imageConfig: {

@@ -462,6 +462,16 @@ export const buildMockWorkspaceKind = (
         myWorkspaceKindStatefulSetAnnotation: 'my-value',
       },
     },
+    serviceAccount: {
+      metadata: {
+        labels: {
+          myWorkspaceKindServiceAccountLabel: 'my-value',
+        },
+        annotations: {
+          myWorkspaceKindServiceAccountAnnotation: 'my-value',
+        },
+      },
+    },
     volumeMountPaths: {
       home: '/home/jovyan',
     },

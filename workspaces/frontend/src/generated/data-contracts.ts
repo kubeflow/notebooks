@@ -4027,7 +4027,7 @@ export interface V1Beta1ImagePort {
   displayName?: string;
   /**
    * the id of the port
-   *  - this is NOT used as the Container or Service port name, but as part of the HTTP path
+   *  - this is used as the Container and Service port name, in addition to the HTTP URL path
    * +kubebuilder:example="jupyterlab"
    */
   id: string;
@@ -4482,18 +4482,51 @@ export interface V1Beta1WorkspaceKindPort {
 export interface V1Beta1WorkspaceKindServiceAccount {
   /**
    * the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)
-   *  - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding, so the
-   *    permissions only apply inside the Namespace of the Workspace
-   *  - removing an entry deletes the corresponding RoleBinding
+   *  - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding,
+   *    so the permissions only apply inside the Namespace of the Workspace
    *  - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing
    *    ClusterRole simply grants nothing until that ClusterRole is created
-   *  - changes take effect immediately, Workspaces do NOT need to be restarted
+   *  - changes take effect immediately, Workspaces do NOT need to be restarted,
+   *    and removing an entry deletes the corresponding RoleBinding
    * +kubebuilder:validation:Optional
    * +listType:="map"
    * +listMapKey:="name"
    * +kubebuilder:example={{name: "kubeflow-edit"}}
    */
   clusterRoles?: V1Beta1WorkspaceKindClusterRole[];
+  /**
+   * metadata for the ServiceAccount of each Workspace (MUTABLE)
+   *  - labels and annotations applied to the ServiceAccount object itself
+   *  - for example to configure cloud Workload Identity:
+   *    - EKS IRSA:  "eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role"
+   *    - GKE:       "iam.gke.io/gcp-service-account: my-gsa@my-project.iam.gserviceaccount.com"
+   *    - Azure:     "azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000"
+   *                 (NOTE: azure also requires the `azure.workload.identity/use: "true"` label
+   *                  on the Pod, set that in `podMetadata.labels` above)
+   *  - changes are applied to the ServiceAccounts of existing Workspaces without a restart,
+   *    but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the
+   *    ServiceAccount when a Pod is created, so running Workspaces must be restarted
+   *    for changes to take effect
+   *  - removing a key here removes it from the ServiceAccounts of existing Workspaces,
+   *    if the controller was the last to change its value (ownership is tracked
+   *    with `metadata.managedFields`), regardless of who originally added the key
+   * +kubebuilder:validation:Optional
+   * +kubebuilder:example={annotations: {"eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"}}
+   */
+  metadata?: V1Beta1WorkspaceKindServiceAccountMetadata;
+}
+
+export interface V1Beta1WorkspaceKindServiceAccountMetadata {
+  /**
+   * annotations to be applied to the Workspace ServiceAccount resource
+   * +kubebuilder:validation:Optional
+   */
+  annotations?: Record<string, string>;
+  /**
+   * labels to be applied to the Workspace ServiceAccount resource
+   * +kubebuilder:validation:Optional
+   */
+  labels?: Record<string, string>;
 }
 
 export interface V1Beta1WorkspaceKindSpawner {
@@ -4616,12 +4649,22 @@ export interface WorkspacekindsPodTemplate {
   /** TODO: remove once frontend migrates to the new listValues endpoint for both create/update and wsk admin views */
   options: OptionsPodTemplateOptions;
   podMetadata: WorkspacekindsPodMetadata;
+  serviceAccount: WorkspacekindsServiceAccount;
   statefulSetMetadata: WorkspacekindsStatefulSetMetadata;
   volumeMountPaths: WorkspacekindsPodVolumeMountPaths;
 }
 
 export interface WorkspacekindsPodVolumeMountPaths {
   home: string;
+}
+
+export interface WorkspacekindsServiceAccount {
+  metadata: WorkspacekindsServiceAccountMetadata;
+}
+
+export interface WorkspacekindsServiceAccountMetadata {
+  annotations: Record<string, string>;
+  labels: Record<string, string>;
 }
 
 export interface WorkspacekindsStatefulSetMetadata {
