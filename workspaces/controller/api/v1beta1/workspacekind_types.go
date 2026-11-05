@@ -337,7 +337,9 @@ type WorkspaceKindMainContainer struct {
 	//  - these apply to ALL Workspaces of this WorkspaceKind, regardless of the selected pod config
 	//  - a pod config may override (by `name`) or add to these with its own `spec.extraEnv`
 	//  - the following go template functions are available:
-	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,
+	//       or an empty string if the selected imageConfig has no port with that id
+	//       (port ids are NOT validated by the webhook)
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example:={{name: "NB_PREFIX", value: "{{ httpPathPrefix \"jupyterlab\" }}"}}
 	// +listType:="map"
@@ -558,14 +560,18 @@ type HTTPProxy struct {
 type IstioHeaderOperations struct {
 	// overwrite the headers specified by key with the given values
 	//  - the following go template functions are available in the values:
-	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,
+	//       or an empty string if the selected imageConfig has no port with that id
+	//       (port ids are NOT validated by the webhook)
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ httpPathPrefix 'rstudio' }}" }
 	Set map[string]string `json:"set,omitempty"`
 
 	// append the given values to the headers specified by keys (will create a comma-separated list of values)
 	//  - the following go template functions are available in the values:
-	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,
+	//       or an empty string if the selected imageConfig has no port with that id
+	//       (port ids are NOT validated by the webhook)
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example:={ "My-Header": "value-to-append" }
 	Add map[string]string `json:"add,omitempty"`
@@ -738,7 +744,9 @@ type PodConfigSpec struct {
 	//  - like all pod config `spec` fields, this can NOT be changed while the pod config is used by
 	//    any Workspace, instead, create a new pod config value and redirect the old one to it
 	//  - the following go template functions are available:
-	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,
+	//       or an empty string if the selected imageConfig has no port with that id
+	//       (port ids are NOT validated by the webhook)
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example:={{name: "PJRT_DEVICE", value: "CPU"}}
 	// +listType:="map"
