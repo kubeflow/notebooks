@@ -306,13 +306,20 @@ const (
 // WorkspaceActivityRules defines the evaluation state for activity-based rules
 type WorkspaceActivityRules struct {
 	// rule evaluation state for the pauseWorkspace effect
+	//  - unset when no activity rule matches the Workspace,
+	//    or the matching rule has `pauseWorkspace: false`
 	// +kubebuilder:validation:Optional
 	PauseWorkspace *WorkspaceActivityPauseRule `json:"pauseWorkspace,omitempty"`
 }
 
 // WorkspaceActivityPauseRule defines the evaluation state for the activity-based pauseWorkspace effect
 type WorkspaceActivityPauseRule struct {
-	// the time after which if the rule is evaluated the Workspace would be paused (UNIX epoch in milliseconds)
+	// the time after which the Workspace is considered inactive by the matching rule
+	// (UNIX epoch in milliseconds)
+	//  - calculated as `lastActivity` + `secondsSinceActive` of the matching rule
+	//  - the Workspace is only paused once this has passed, it has been running for
+	//    at least `minRunningSeconds`, AND a fresh probe confirms it is still inactive,
+	//    so it may stay running for some time after this
 	//  - set to 0 when lastActivity is unknown (<= 0), indicating eligibility cannot be computed / not applicable
 	//  - the controller will not pause a Workspace when eligibleAfter is 0
 	// +kubebuilder:default=0
