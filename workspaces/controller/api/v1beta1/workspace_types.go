@@ -216,9 +216,8 @@ type WorkspaceStatus struct {
 	// if the current Pod does not reflect the current "desired" state
 	//  - true if any `spec.podTemplate.options` have a redirect
 	//    and so will be patched on the next restart
-	//  - true if the WorkspaceKind has changed one of its common `podTemplate` fields
-	//    like `podMetadata`, `podSpec.mainContainer.livenessProbe`,
-	//    `podSpec.mainContainer.extraEnv`, or `podSpec.mainContainer.securityContext`
+	//  - TODO: also set this when the WorkspaceKind changes one of its
+	//    common `podTemplate` fields (not implemented yet)
 	// +kubebuilder:default=false
 	PendingRestart bool `json:"pendingRestart"`
 
