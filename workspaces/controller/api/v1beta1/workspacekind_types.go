@@ -891,6 +891,11 @@ type FilterRuleEffectAPI struct {
 	Hide *bool `json:"hide,omitempty"`
 
 	// return the matched item but reject any workspace create/update which selects it
+	//  - if `hide` is also true, `hide` takes precedence and the item is
+	//    omitted from API responses
+	//  - on update, a denied imageConfig/podConfig option is only rejected if it
+	//    is being changed to, so existing Workspaces keep their current option,
+	//    a denied WorkspaceKind is rejected on every update
 	// +kubebuilder:validation:Optional
 	Deny *bool `json:"deny,omitempty"`
 
