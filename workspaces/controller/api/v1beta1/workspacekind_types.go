@@ -564,7 +564,7 @@ type IstioHeaderOperations struct {
 	//       or an empty string if the selected imageConfig has no port with that id
 	//       (port ids are NOT validated by the webhook)
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ httpPathPrefix 'rstudio' }}" }
+	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ httpPathPrefix \"rstudio\" }}" }
 	Set map[string]string `json:"set,omitempty"`
 
 	// append the given values to the headers specified by keys (will create a comma-separated list of values)

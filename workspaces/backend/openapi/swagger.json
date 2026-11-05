@@ -7002,7 +7002,7 @@
                     }
                 },
                 "set": {
-                    "description": "overwrite the headers specified by key with the given values\n - the following go template functions are available in the values:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,\n      or an empty string if the selected imageConfig has no port with that id\n      (port ids are NOT validated by the webhook)\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ httpPathPrefix 'rstudio' }}\" }",
+                    "description": "overwrite the headers specified by key with the given values\n - the following go template functions are available in the values:\n    - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,\n      or an empty string if the selected imageConfig has no port with that id\n      (port ids are NOT validated by the webhook)\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ httpPathPrefix \\\"rstudio\\\" }}\" }",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"

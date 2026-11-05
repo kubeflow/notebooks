@@ -5380,7 +5380,7 @@ spec:
                                           or an empty string if the selected imageConfig has no port with that id
                                           (port ids are NOT validated by the webhook)
                                   example:
-                                    X-RStudio-Root-Path: '{{ httpPathPrefix ''rstudio''
+                                    X-RStudio-Root-Path: '{{ httpPathPrefix "rstudio"
                                       }}'
                                   type: object
                               type: object
