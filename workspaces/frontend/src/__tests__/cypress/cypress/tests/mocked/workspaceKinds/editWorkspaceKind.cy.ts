@@ -1799,4 +1799,621 @@ describe('Edit workspace kind', () => {
       cy.get('@getWorkspaceKind.all').should('have.length', 0);
     });
   });
+
+  describe('Port configuration', () => {
+    it('should show existing ports table when editing an image', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.assertPortsTableVisible();
+      editWorkspaceKind.assertPortRowCount(1);
+      editWorkspaceKind.assertPortIdCell(0, 'http');
+      editWorkspaceKind.assertPortNumberCell(0, '8888');
+      editWorkspaceKind.assertPortProtocolCell(0, 'HTTP');
+    });
+
+    it('should open the port modal when clicking Add Port', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+
+      editWorkspaceKind.assertPortModalVisible(true);
+      editWorkspaceKind.findPortIdInput().should('have.value', '');
+      editWorkspaceKind.findPortDisplayNameInput().should('have.value', '');
+      editWorkspaceKind.findPortNumberInput().should('have.value', '8888');
+    });
+
+    it('should add a second port and display both rows', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortModalVisible(false);
+      editWorkspaceKind.assertPortRowCount(2);
+      editWorkspaceKind.assertPortIdCell(1, 'jupyter');
+      editWorkspaceKind.assertPortNumberCell(1, '8889');
+    });
+
+    it('should open edit port modal with existing values populated', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickPortEdit(0);
+
+      editWorkspaceKind.assertPortModalVisible(true);
+      editWorkspaceKind.findPortIdInput().should('have.value', 'http');
+      editWorkspaceKind.findPortIdInput().should('be.disabled');
+      editWorkspaceKind.findPortNumberInput().should('have.value', '8888');
+    });
+
+    it('should update port display name when editing', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickPortEdit(0);
+      editWorkspaceKind.typePortDisplayName('JupyterLab');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortModalVisible(false);
+      editWorkspaceKind.assertPortDisplayNameCell(0, 'JupyterLab');
+    });
+
+    it('should disable Remove button when only one port exists', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.assertPortRemoveDisabled(0, true);
+    });
+
+    it('should enable Remove buttons when two ports exist', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortRemoveDisabled(0, false);
+      editWorkspaceKind.assertPortRemoveDisabled(1, false);
+    });
+
+    it('should remove a port from the table', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortRowCount(2);
+      editWorkspaceKind.clickPortRemove(1);
+      editWorkspaceKind.assertPortRowCount(1);
+      editWorkspaceKind.assertPortIdCell(0, 'http');
+    });
+
+    it('should disable submit when duplicate ID is entered', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('http');
+
+      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      cy.contains('ID must be unique').should('be.visible');
+    });
+
+    it('should disable submit when duplicate port number is entered', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8888');
+
+      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      cy.contains('Port number is already in use').should('be.visible');
+    });
+
+    it('should disable submit when port number is out of range', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('0');
+
+      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      cy.contains('Port must be between 1 and 65535').should('be.visible');
+    });
+
+    it('should disable submit when display name is 1 character', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.typePortDisplayName('X');
+
+      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      cy.contains('Display name must be at least 2 characters').should('be.visible');
+    });
+
+    it('should enable submit when display name is empty', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+
+      editWorkspaceKind.assertPortModalSubmitDisabled(false);
+    });
+
+    it('should not show errors on initial open of add port modal', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+
+      cy.contains('Port must be between 1 and 65535').should('not.exist');
+      cy.contains('Port number is already in use').should('not.exist');
+      cy.contains('Display name must be at least 2 characters').should('not.exist');
+    });
+
+    it('should not show errors on initial open of edit port modal', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickPortEdit(0);
+
+      cy.contains('Port must be between 1 and 65535').should('not.exist');
+      cy.contains('Port number is already in use').should('not.exist');
+      cy.contains('Display name must be at least 2 characters').should('not.exist');
+    });
+
+    it('should cancel port modal without changing ports', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.assertPortRowCount(1);
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.cancelPortModal();
+
+      editWorkspaceKind.assertPortModalVisible(false);
+      editWorkspaceKind.assertPortRowCount(1);
+    });
+
+    it('should edit a middle port among three entries and preserve others', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      // Add two more ports to get three total: http(0), jupyter(1), tf(2)
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('tf');
+      editWorkspaceKind.typePortNumber('6006');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortRowCount(3);
+
+      // Edit the middle entry (index 1)
+      editWorkspaceKind.clickPortEdit(1);
+      editWorkspaceKind.findPortIdInput().should('have.value', 'jupyter');
+      editWorkspaceKind.findPortIdInput().should('be.disabled');
+      editWorkspaceKind.findPortNumberInput().should('have.value', '8889');
+      editWorkspaceKind.typePortDisplayName('JupyterLab');
+      editWorkspaceKind.submitPortModal();
+
+      // Verify row 0 and 2 are unchanged, row 1 updated
+      editWorkspaceKind.assertPortIdCell(0, 'http');
+      editWorkspaceKind.assertPortDisplayNameCell(1, 'JupyterLab');
+      editWorkspaceKind.assertPortIdCell(2, 'tf');
+    });
+
+    it('should remove the first port and preserve remaining order', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      // Build up: http(0), jupyter(1), tf(2)
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('tf');
+      editWorkspaceKind.typePortNumber('6006');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortRowCount(3);
+
+      // Remove the first entry
+      editWorkspaceKind.clickPortRemove(0);
+
+      editWorkspaceKind.assertPortRowCount(2);
+      editWorkspaceKind.assertPortIdCell(0, 'jupyter');
+      editWorkspaceKind.assertPortNumberCell(0, '8889');
+      editWorkspaceKind.assertPortIdCell(1, 'tf');
+      editWorkspaceKind.assertPortNumberCell(1, '6006');
+    });
+
+    it('should remove a middle port and preserve first and last entries', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      // Build up: http(0), jupyter(1), tf(2)
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('tf');
+      editWorkspaceKind.typePortNumber('6006');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortRowCount(3);
+
+      // Remove the middle entry
+      editWorkspaceKind.clickPortRemove(1);
+
+      editWorkspaceKind.assertPortRowCount(2);
+      editWorkspaceKind.assertPortIdCell(0, 'http');
+      editWorkspaceKind.assertPortIdCell(1, 'tf');
+      editWorkspaceKind.assertPortNumberCell(1, '6006');
+    });
+
+    it('should show port error after clearing the port number input', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      // Clear to empty — NaN → invalid port
+      editWorkspaceKind.typePortNumber('{selectall}{del}');
+
+      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      cy.contains('Port must be between 1 and 65535').should('be.visible');
+    });
+
+    it('should preserve HTTP protocol after editing a port', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickPortEdit(0);
+      editWorkspaceKind.typePortDisplayName('HTTP Main');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortProtocolCell(0, 'HTTP');
+    });
+  });
+
+  describe('Port persistence and serialization', () => {
+    it('should include three ports in the PUT request body when saving', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+      ).as('updateWorkspaceKind');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.typePortDisplayName('JupyterLab');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('tf');
+      editWorkspaceKind.typePortNumber('6006');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortRowCount(3);
+      editWorkspaceKind.submitImageModal();
+
+      editWorkspaceKind.clickSubmit();
+
+      cy.wait('@updateWorkspaceKind').then((interception) => {
+        const { ports } =
+          interception.request.body.data.podTemplate.options.imageConfig.values[0].spec;
+        expect(ports).to.have.length(3);
+        expect(ports[0]).to.deep.include({ id: 'http', port: 8888 });
+        expect(ports[1]).to.deep.include({ id: 'jupyter', port: 8889 });
+        expect(ports[2]).to.deep.include({ id: 'tf', port: 6006 });
+        expect(ports[1].displayName).to.equal('JupyterLab');
+      });
+    });
+
+    it('should display all pre-existing ports when loading a WorkspaceKind with multiple ports', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      const multiPortUpdate = buildMockWorkspaceKindUpdate(mockWorkspaceKind);
+      multiPortUpdate.podTemplate.options.imageConfig.values[0].spec.ports = [
+        { id: 'http', port: 8888 },
+        { id: 'jupyter', port: 8889, displayName: 'JupyterLab' },
+        { id: 'tf', port: 6006 },
+      ];
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(multiPortUpdate),
+      ).as('getWorkspaceKindMultiPort');
+
+      editWorkspaceKind.visit(mockWorkspaceKind.name);
+      cy.wait('@getWorkspaceKindMultiPort');
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.assertPortRowCount(3);
+      editWorkspaceKind.assertPortIdCell(0, 'http');
+      editWorkspaceKind.assertPortNumberCell(0, '8888');
+      editWorkspaceKind.assertPortIdCell(1, 'jupyter');
+      editWorkspaceKind.assertPortNumberCell(1, '8889');
+      editWorkspaceKind.assertPortDisplayNameCell(1, 'JupyterLab');
+      editWorkspaceKind.assertPortIdCell(2, 'tf');
+      editWorkspaceKind.assertPortNumberCell(2, '6006');
+    });
+
+    it('should preserve ports when switching Form → YAML tab → Form tab', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.assertPortRowCount(2);
+      editWorkspaceKind.submitImageModal();
+
+      // Form → YAML: form state is serialized to YAML string
+      editWorkspaceKind.clickYamlTab();
+      editWorkspaceKind.assertYamlTabActive();
+
+      // YAML → Form: YAML string is parsed back to form state
+      editWorkspaceKind.clickFormTab();
+      editWorkspaceKind.assertFormTabActive();
+
+      // Ports must survive the serialization round-trip
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.assertPortRowCount(2);
+      editWorkspaceKind.assertPortIdCell(0, 'http');
+      editWorkspaceKind.assertPortNumberCell(0, '8888');
+      editWorkspaceKind.assertPortIdCell(1, 'jupyter');
+      editWorkspaceKind.assertPortNumberCell(1, '8889');
+    });
+
+    it('should preserve optional displayName in the PUT request body', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+      ).as('updateWorkspaceKind');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickPortEdit(0);
+      editWorkspaceKind.typePortDisplayName('HTTP Main');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.submitImageModal();
+      editWorkspaceKind.clickSubmit();
+
+      cy.wait('@updateWorkspaceKind').then((interception) => {
+        const { ports } =
+          interception.request.body.data.podTemplate.options.imageConfig.values[0].spec;
+        expect(ports[0].displayName).to.equal('HTTP Main');
+      });
+    });
+
+    it('should preserve unrelated spawner fields when saving port changes', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+      ).as('updateWorkspaceKind');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.typePortId('jupyter');
+      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.submitPortModal();
+
+      editWorkspaceKind.submitImageModal();
+      editWorkspaceKind.clickSubmit();
+
+      cy.wait('@updateWorkspaceKind').then((interception) => {
+        const body = interception.request.body.data;
+        // Spawner fields unrelated to ports are preserved unchanged
+        expect(body.spawner.displayName).to.equal(mockWorkspaceKind.displayName);
+        expect(body.spawner.description).to.equal(mockWorkspaceKind.description);
+        // Port changes are present
+        const { ports } = body.podTemplate.options.imageConfig.values[0].spec;
+        expect(ports).to.have.length(2);
+        expect(ports[0]).to.deep.include({ id: 'http', port: 8888 });
+        expect(ports[1]).to.deep.include({ id: 'jupyter', port: 8889 });
+      });
+    });
+
+    // The CRD schema requires ports: MinItems=1 (see V1Beta1ImageConfigSpec).
+    // ports: [] is schema-invalid but the client should handle it without crashing.
+    // ports: undefined is a TypeScript type violation; convertToFormData would throw
+    // (v.spec.ports.map is called without a null guard) — these are distinct failure modes.
+    it('should handle an image with an empty ports array from the API gracefully', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      const emptyPortsUpdate = buildMockWorkspaceKindUpdate(mockWorkspaceKind);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (emptyPortsUpdate.podTemplate.options.imageConfig.values[0].spec as any).ports = [];
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(emptyPortsUpdate),
+      ).as('getWorkspaceKindEmptyPorts');
+
+      editWorkspaceKind.visit(mockWorkspaceKind.name);
+      cy.wait('@getWorkspaceKindEmptyPorts');
+
+      editWorkspaceKind.expandImageConfigSection();
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
+
+      // Table is hidden when ports array is empty; Add Port button is still accessible
+      editWorkspaceKind.findPortsTable().should('not.exist');
+      editWorkspaceKind.findAddPortButton().should('be.visible');
+    });
+
+    it('should preserve a single pre-existing port in the PUT request body', () => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(buildMockWorkspaceKindUpdate(mockWorkspaceKind)),
+      ).as('updateWorkspaceKind');
+
+      visitEditWorkspaceKind(mockWorkspaceKind.name);
+
+      // Trigger a save without touching ports — description change makes Save enabled
+      editWorkspaceKind.expandPropertiesSection();
+      editWorkspaceKind.typeDescription('Updated description for single-port test');
+
+      editWorkspaceKind.clickSubmit();
+
+      cy.wait('@updateWorkspaceKind').then((interception) => {
+        const { ports } =
+          interception.request.body.data.podTemplate.options.imageConfig.values[0].spec;
+        expect(ports).to.have.length(1);
+        expect(ports[0]).to.deep.include({ id: 'http', port: 8888 });
+      });
+    });
+  });
 });

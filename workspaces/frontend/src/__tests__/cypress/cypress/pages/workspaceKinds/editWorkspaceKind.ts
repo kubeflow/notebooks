@@ -1214,6 +1214,119 @@ class EditWorkspaceKind {
     cy.findByTestId(`activity-rule-remove-${index}`).click();
   }
 
+  // Port Configuration (inside the image modal)
+  findPortsTable() {
+    return cy.findByTestId('ports-table');
+  }
+
+  assertPortsTableVisible() {
+    this.findPortsTable().should('be.visible');
+  }
+
+  assertPortRowCount(count: number) {
+    this.findPortsTable().find('tbody tr').should('have.length', count);
+  }
+
+  findAddPortButton() {
+    return cy.findByTestId('add-port-button');
+  }
+
+  clickAddPortButton() {
+    this.findAddPortButton().click();
+  }
+
+  findPortModal() {
+    return cy.findByTestId('port-modal');
+  }
+
+  assertPortModalVisible(visible: boolean) {
+    if (visible) {
+      this.findPortModal().should('be.visible');
+    } else {
+      this.findPortModal().should('not.exist');
+    }
+  }
+
+  findPortIdInput() {
+    return cy.findByTestId('port-modal-id-input');
+  }
+
+  findPortDisplayNameInput() {
+    return cy.findByTestId('port-modal-display-name-input');
+  }
+
+  findPortNumberInput() {
+    return cy.findByTestId('port-modal-port-input');
+  }
+
+  findPortModalSubmitButton() {
+    return cy.findByTestId('port-modal-submit-button');
+  }
+
+  findPortModalCancelButton() {
+    return cy.findByTestId('port-modal-cancel-button');
+  }
+
+  typePortId(id: string) {
+    this.findPortIdInput().clear().type(id);
+  }
+
+  typePortDisplayName(name: string) {
+    this.findPortDisplayNameInput().clear().type(name);
+  }
+
+  typePortNumber(value: string) {
+    this.findPortNumberInput().clear().type(value);
+  }
+
+  submitPortModal() {
+    this.findPortModalSubmitButton().click();
+  }
+
+  cancelPortModal() {
+    this.findPortModalCancelButton().click();
+  }
+
+  assertPortModalSubmitDisabled(disabled: boolean) {
+    this.findPortModalSubmitButton().should(disabled ? 'be.disabled' : 'not.be.disabled');
+  }
+
+  findPortEditButton(index: number) {
+    return cy.findByTestId(`port-edit-${index}`);
+  }
+
+  findPortRemoveButton(index: number) {
+    return cy.findByTestId(`port-remove-${index}`);
+  }
+
+  clickPortEdit(index: number) {
+    this.findPortEditButton(index).click();
+  }
+
+  clickPortRemove(index: number) {
+    this.findPortRemoveButton(index).click();
+  }
+
+  assertPortRemoveDisabled(index: number, disabled: boolean) {
+    this.findPortRemoveButton(index).should(disabled ? 'be.disabled' : 'not.be.disabled');
+  }
+
+  assertPortIdCell(index: number, value: string) {
+    cy.findByTestId(`port-id-cell-${index}`).should('have.text', value);
+  }
+
+  assertPortDisplayNameCell(index: number, value: string) {
+    cy.findByTestId(`port-display-name-cell-${index}`).should('have.text', value);
+  }
+
+  assertPortNumberCell(index: number, value: string) {
+    cy.findByTestId(`port-number-cell-${index}`).should('have.text', value);
+  }
+
+  assertPortProtocolCell(index: number, value: string) {
+    cy.findByTestId(`port-protocol-cell-${index}`).should('have.text', value);
+  }
+
   // Action Buttons
   findSubmitButton() {
     return cy.findByTestId('submit-button');

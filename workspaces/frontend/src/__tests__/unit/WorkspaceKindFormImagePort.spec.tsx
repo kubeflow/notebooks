@@ -283,4 +283,194 @@ describe('WorkspaceKindFormImagePort', () => {
     expect(screen.queryByTestId('ports-table')).not.toBeInTheDocument();
     expect(screen.getByTestId('add-port-button')).toBeInTheDocument();
   });
+
+  // 16. (regression) Add modal opens with no validation errors visible — touched state starts false.
+  it('shows no validation errors immediately on opening the add modal', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('add-port-button'));
+
+    expect(screen.queryByText('Port must be between 1 and 65535')).not.toBeInTheDocument();
+    expect(screen.queryByText('Port number is already in use')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Display name must be at least 2 characters'),
+    ).not.toBeInTheDocument();
+  });
+
+  // 17. (regression) Edit modal opens with no validation errors visible — touched state resets on reopen.
+  it('shows no validation errors immediately on opening the edit modal', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('port-edit-0'));
+
+    expect(screen.queryByText('Port must be between 1 and 65535')).not.toBeInTheDocument();
+    expect(screen.queryByText('Port number is already in use')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Display name must be at least 2 characters'),
+    ).not.toBeInTheDocument();
+  });
+
+  // 18. Valid boundary: port 1 is accepted.
+  it('enables submit when port number is 1 (lower boundary)', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('add-port-button'));
+    await user.type(screen.getByTestId('port-modal-id-input'), 'low');
+    await user.clear(screen.getByTestId('port-modal-port-input'));
+    await user.type(screen.getByTestId('port-modal-port-input'), '1');
+
+    expect(screen.getByTestId('port-modal-submit-button')).not.toBeDisabled();
+  });
+
+  // 19. Valid boundary: port 65535 is accepted.
+  it('enables submit when port number is 65535 (upper boundary)', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('add-port-button'));
+    await user.type(screen.getByTestId('port-modal-id-input'), 'high');
+    await user.clear(screen.getByTestId('port-modal-port-input'));
+    await user.type(screen.getByTestId('port-modal-port-input'), '65535');
+
+    expect(screen.getByTestId('port-modal-submit-button')).not.toBeDisabled();
+  });
+
+  // 20. Invalid boundary: port 65536 is rejected.
+  it('disables submit when port number is 65536 (out of range)', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('add-port-button'));
+    await user.type(screen.getByTestId('port-modal-id-input'), 'overflow');
+    await user.clear(screen.getByTestId('port-modal-port-input'));
+    await user.type(screen.getByTestId('port-modal-port-input'), '65536');
+
+    expect(screen.getByTestId('port-modal-submit-button')).toBeDisabled();
+    expect(screen.getByText('Port must be between 1 and 65535')).toBeInTheDocument();
+  });
+
+  // 21. Duplicate port check in EDIT mode: the port's own number is excluded from uniqueness check.
+  it('allows saving with the same port number when editing an existing port', async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkspaceKindFormImagePort
+        ports={[makePort({ id: 'http', port: 8888 })]}
+        setPorts={setPorts}
+      />,
+    );
+
+    await user.click(screen.getByTestId('port-edit-0'));
+    // Port input should already show 8888 — keeping it unchanged should still be valid
+    expect(screen.getByTestId('port-modal-submit-button')).not.toBeDisabled();
+    expect(screen.queryByText('Port number is already in use')).not.toBeInTheDocument();
+  });
+
+  // 22. Duplicate ID check in EDIT mode: the port's own ID is excluded from uniqueness check.
+  it('the edited port ID is excluded from the uniqueness check', async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkspaceKindFormImagePort
+        ports={[makePort({ id: 'http', port: 8888 }), makePort({ id: 'jupyter', port: 8889 })]}
+        setPorts={setPorts}
+      />,
+    );
+
+    // Edit the second port: its own id 'jupyter' should NOT be flagged as duplicate
+    await user.click(screen.getByTestId('port-edit-1'));
+
+    expect(screen.queryByText('ID must be unique')).not.toBeInTheDocument();
+    expect(screen.getByTestId('port-modal-submit-button')).not.toBeDisabled();
+  });
+
+  // 23. Cancelling an edit does not call setPorts.
+  it('cancelling the edit modal does not call setPorts', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('port-edit-0'));
+    await user.click(screen.getByTestId('port-modal-cancel-button'));
+
+    expect(setPorts).not.toHaveBeenCalled();
+  });
+
+  // 24. State resets after interacting with error state, cancelling, then reopening.
+  it('shows no errors after: trigger error → cancel → reopen modal', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    // Trigger a port error
+    await user.click(screen.getByTestId('add-port-button'));
+    await user.clear(screen.getByTestId('port-modal-port-input'));
+    await user.type(screen.getByTestId('port-modal-port-input'), '0');
+    expect(screen.getByText('Port must be between 1 and 65535')).toBeInTheDocument();
+
+    // Cancel and reopen
+    await user.click(screen.getByTestId('port-modal-cancel-button'));
+    await user.click(screen.getByTestId('add-port-button'));
+
+    expect(screen.queryByText('Port must be between 1 and 65535')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Display name must be at least 2 characters'),
+    ).not.toBeInTheDocument();
+  });
+
+  // 25. Remove the first port from a two-port config.
+  it('removes the first port and keeps the second', async () => {
+    const user = userEvent.setup();
+    const ports = [makePort({ id: 'http', port: 8888 }), makePort({ id: 'jupyter', port: 8889 })];
+    render(<WorkspaceKindFormImagePort ports={ports} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('port-remove-0'));
+
+    expect(setPorts).toHaveBeenCalledWith([makePort({ id: 'jupyter', port: 8889 })]);
+  });
+
+  // 26. Remove the last port from a two-port config.
+  it('removes the last port and keeps the first', async () => {
+    const user = userEvent.setup();
+    const ports = [makePort({ id: 'http', port: 8888 }), makePort({ id: 'jupyter', port: 8889 })];
+    render(<WorkspaceKindFormImagePort ports={ports} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('port-remove-1'));
+
+    expect(setPorts).toHaveBeenCalledWith([makePort({ id: 'http', port: 8888 })]);
+  });
+
+  // 27. Edit the middle port of three and leave the other two unchanged.
+  it('edits the middle port of three and leaves first and last unchanged', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={threePortConfig()} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('port-edit-1'));
+    await user.clear(screen.getByTestId('port-modal-display-name-input'));
+    await user.type(screen.getByTestId('port-modal-display-name-input'), 'JupLab');
+    await user.click(screen.getByTestId('port-modal-submit-button'));
+
+    expect(setPorts).toHaveBeenCalledWith([
+      makePort({ id: 'http', displayName: 'HTTP', port: 8888 }),
+      { id: 'jupyter', displayName: 'JupLab', port: 8889, protocol: 'HTTP' },
+      makePort({ id: 'tensorboard', displayName: 'TensorBoard', port: 6006 }),
+    ]);
+  });
+
+  // 29. Empty displayName serializes as empty string in the form payload (helpers.ts converts to undefined).
+  it('calls setPorts with empty string displayName when display name is left blank', async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
+
+    await user.click(screen.getByTestId('add-port-button'));
+    await user.type(screen.getByTestId('port-modal-id-input'), 'jupyter');
+    await user.clear(screen.getByTestId('port-modal-port-input'));
+    await user.type(screen.getByTestId('port-modal-port-input'), '8889');
+    // displayName left empty
+    await user.click(screen.getByTestId('port-modal-submit-button'));
+
+    expect(setPorts).toHaveBeenCalledWith([
+      makePort({ id: 'http', port: 8888 }),
+      { id: 'jupyter', displayName: '', port: 8889, protocol: 'HTTP' },
+    ]);
+  });
 });

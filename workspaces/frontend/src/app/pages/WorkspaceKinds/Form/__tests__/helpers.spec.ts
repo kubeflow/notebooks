@@ -311,6 +311,33 @@ describe('convertFormDataToUpdate', () => {
     expect(ports[2]).toEqual({ id: 'tensorboard', displayName: 'TensorBoard', port: 6006 });
   });
 
+  it('should omit displayName from port payload when the form value is an empty string', () => {
+    const formData = buildMockFormData({
+      imageConfig: {
+        default: 'img-1',
+        values: [
+          {
+            id: 'img-1',
+            displayName: 'Image One',
+            description: 'First image',
+            hidden: false,
+            labels: [],
+            image: 'registry.io/img:v1',
+            imagePullPolicy: ImagePullPolicy.IfNotPresent,
+            ports: [{ id: 'http', displayName: '', port: 8888, protocol: 'HTTP' as const }],
+            restrictions: { deny: false },
+          },
+        ],
+      },
+    });
+    const original = buildMockApiUpdate();
+
+    const result = convertFormDataToUpdate(formData, original);
+    const [imgResult] = result.podTemplate.options.imageConfig.values;
+
+    expect(imgResult.spec.ports[0].displayName).toBeUndefined();
+  });
+
   it('should map pod config values with resources correctly', () => {
     const formData = buildMockFormData();
     const original = buildMockApiUpdate();
