@@ -553,5 +553,30 @@ describe('applyFilters', () => {
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe(1);
     });
+
+    describe('with multiselect filter values', () => {
+      it('matches when the selected value equals the second element of the array getter', () => {
+        const filterValues = { name: ['my-workspace'] };
+        const result = applyFilters(dualNameData, filterValues, dualNameGetters);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(1);
+      });
+
+      it('matches case-insensitively against array getter values', () => {
+        const filterValues = { name: ['MY-WORKSPACE'] };
+        const result = applyFilters(dualNameData, filterValues, dualNameGetters);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe(1);
+      });
+
+      it('returns no results when the selected value matches neither element of the array getter', () => {
+        const filterValues = { name: ['no-match'] };
+        const result = applyFilters(dualNameData, filterValues, dualNameGetters);
+
+        expect(result).toHaveLength(0);
+      });
+    });
   });
 });
