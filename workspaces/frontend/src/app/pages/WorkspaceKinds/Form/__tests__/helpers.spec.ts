@@ -271,6 +271,73 @@ describe('convertFormDataToUpdate', () => {
     expect(img.spec.ports).toEqual([{ id: 'http', port: 8888, displayName: 'HTTP' }]);
   });
 
+  it('should preserve all ports when an image has multiple ports', () => {
+    const formData = buildMockFormData({
+      imageConfig: {
+        default: 'img-1',
+        values: [
+          {
+            id: 'img-1',
+            displayName: 'Image One',
+            description: 'First image',
+            hidden: false,
+            labels: [],
+            image: 'registry.io/img:v1',
+            imagePullPolicy: ImagePullPolicy.IfNotPresent,
+            ports: [
+              { id: 'jupyter', displayName: 'JupyterLab', port: 8888, protocol: 'HTTP' as const },
+              { id: 'mlflow', displayName: 'MLflow', port: 5000, protocol: 'HTTP' as const },
+              {
+                id: 'tensorboard',
+                displayName: 'TensorBoard',
+                port: 6006,
+                protocol: 'HTTP' as const,
+              },
+            ],
+            restrictions: { deny: false },
+          },
+        ],
+      },
+    });
+    const original = buildMockApiUpdate();
+
+    const result = convertFormDataToUpdate(formData, original);
+    const [imgResult] = result.podTemplate.options.imageConfig.values;
+    const { ports } = imgResult.spec;
+
+    expect(ports).toHaveLength(3);
+    expect(ports[0]).toEqual({ id: 'jupyter', displayName: 'JupyterLab', port: 8888 });
+    expect(ports[1]).toEqual({ id: 'mlflow', displayName: 'MLflow', port: 5000 });
+    expect(ports[2]).toEqual({ id: 'tensorboard', displayName: 'TensorBoard', port: 6006 });
+  });
+
+  it('should omit displayName from port payload when the form value is an empty string', () => {
+    const formData = buildMockFormData({
+      imageConfig: {
+        default: 'img-1',
+        values: [
+          {
+            id: 'img-1',
+            displayName: 'Image One',
+            description: 'First image',
+            hidden: false,
+            labels: [],
+            image: 'registry.io/img:v1',
+            imagePullPolicy: ImagePullPolicy.IfNotPresent,
+            ports: [{ id: 'http', displayName: '', port: 8888, protocol: 'HTTP' as const }],
+            restrictions: { deny: false },
+          },
+        ],
+      },
+    });
+    const original = buildMockApiUpdate();
+
+    const result = convertFormDataToUpdate(formData, original);
+    const [imgResult] = result.podTemplate.options.imageConfig.values;
+
+    expect(imgResult.spec.ports[0].displayName).toBeUndefined();
+  });
+
   it('should map pod config values with resources correctly', () => {
     const formData = buildMockFormData();
     const original = buildMockApiUpdate();

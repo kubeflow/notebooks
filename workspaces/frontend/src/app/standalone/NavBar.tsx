@@ -107,7 +107,6 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
                     onOpenChange={(isOpen) => setUserMenuOpen(isOpen)}
                     toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
                       <MenuToggle
-                        aria-label="User menu"
                         id="user-menu-toggle"
                         data-testid="user-menu-toggle-button"
                         ref={toggleRef}

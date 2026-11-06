@@ -1,11 +1,171 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
+  Form,
 } from '@patternfly/react-core/dist/esm/components/Form';
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from '@patternfly/react-core/dist/esm/components/Modal';
+import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table/dist/esm/components/Table';
+import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
+import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
+import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
+import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { WorkspaceKindImagePort } from '~/app/types';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
+
+interface PortModalProps {
+  isOpen: boolean;
+  existingPort: WorkspaceKindImagePort | null;
+  existingIds: string[];
+  existingPorts: number[];
+  onClose: () => void;
+  onSubmit: (port: WorkspaceKindImagePort) => void;
+}
+
+const PortModal: React.FC<PortModalProps> = ({
+  isOpen,
+  existingPort,
+  existingIds,
+  existingPorts,
+  onClose,
+  onSubmit,
+}) => {
+  const [id, setId] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [displayNameTouched, setDisplayNameTouched] = useState(false);
+  const [portInput, setPortInput] = useState('8888');
+  const [portTouched, setPortTouched] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setId(existingPort?.id ?? '');
+      setDisplayName(existingPort?.displayName ?? '');
+      setPortInput(existingPort ? String(existingPort.port) : '8888');
+      setDisplayNameTouched(false);
+      setPortTouched(false);
+    }
+  }, [isOpen, existingPort]);
+
+  const portNum = Number(portInput);
+  const isDuplicateId = id !== '' && existingIds.includes(id);
+  const isDuplicatePort = existingPorts.includes(portNum);
+  const isDisplayNameValid = displayName === '' || displayName.length >= 2;
+  const isPortValid = Number.isInteger(portNum) && portNum >= 1 && portNum <= 65535;
+  const canSubmit =
+    id !== '' && !isDuplicateId && isPortValid && !isDuplicatePort && isDisplayNameValid;
+
+  const showDisplayNameError = displayNameTouched && !isDisplayNameValid;
+  const showPortError = portTouched && !isPortValid;
+  const showDuplicatePortError = portTouched && isDuplicatePort;
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      variant="small"
+      data-testid="port-modal"
+      aria-labelledby="port-modal-title"
+    >
+      <ModalHeader title={existingPort ? 'Edit Port' : 'Add Port'} labelId="port-modal-title" />
+      <ModalBody>
+        <Form>
+          <ThemeAwareFormGroupWrapper
+            label="ID"
+            isRequired
+            fieldId="port-modal-id"
+            helperTextNode={isDuplicateId ? <span>ID must be unique</span> : undefined}
+          >
+            <TextInput
+              isRequired
+              type="text"
+              id="port-modal-id"
+              data-testid="port-modal-id-input"
+              value={id}
+              isDisabled={!!existingPort}
+              onChange={(_, val) => setId(val)}
+              validated={isDuplicateId ? 'error' : 'default'}
+            />
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            label="Display Name"
+            fieldId="port-modal-display-name"
+            helperTextNode={
+              showDisplayNameError ? (
+                <span>Display name must be at least 2 characters</span>
+              ) : undefined
+            }
+          >
+            <TextInput
+              type="text"
+              id="port-modal-display-name"
+              data-testid="port-modal-display-name-input"
+              value={displayName}
+              onChange={(_, val) => {
+                setDisplayName(val);
+                setDisplayNameTouched(true);
+              }}
+              validated={showDisplayNameError ? 'error' : 'default'}
+            />
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper
+            label="Port"
+            isRequired
+            fieldId="port-modal-port"
+            helperTextNode={
+              showPortError ? (
+                <span>Port must be between 1 and 65535</span>
+              ) : showDuplicatePortError ? (
+                <span>Port number is already in use</span>
+              ) : undefined
+            }
+          >
+            <TextInput
+              isRequired
+              type="number"
+              id="port-modal-port"
+              data-testid="port-modal-port-input"
+              value={portInput}
+              onChange={(_, val) => {
+                setPortInput(val);
+                setPortTouched(true);
+              }}
+              validated={showPortError || showDuplicatePortError ? 'error' : 'default'}
+            />
+          </ThemeAwareFormGroupWrapper>
+          <ThemeAwareFormGroupWrapper label="Protocol" fieldId="port-modal-protocol">
+            <TextInput
+              isDisabled
+              type="text"
+              id="port-modal-protocol"
+              data-testid="port-modal-protocol-input"
+              value="HTTP"
+            />
+          </ThemeAwareFormGroupWrapper>
+        </Form>
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          variant="primary"
+          isDisabled={!canSubmit}
+          onClick={() => onSubmit({ id, displayName, port: portNum, protocol: 'HTTP' })}
+          data-testid="port-modal-submit-button"
+        >
+          {existingPort ? 'Save' : 'Add'}
+        </Button>
+        <Button variant="link" onClick={onClose} data-testid="port-modal-cancel-button">
+          Cancel
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+};
 
 interface WorkspaceKindFormImagePortProps {
   ports: WorkspaceKindImagePort[];
@@ -16,15 +176,16 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
   ports,
   setPorts,
 }) => {
-  const currentPort = ports[0] || {
-    displayName: 'default',
-    id: 'default',
-    port: 8888,
-    protocol: 'HTTP',
-  };
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+
+  const existingIds = ports.filter((_, i) => i !== editIndex).map((p) => p.id);
+  const existingPortNumbers = ports.filter((_, i) => i !== editIndex).map((p) => p.port);
+  const editingPort = editIndex !== null && editIndex < ports.length ? ports[editIndex] : null;
 
   return (
     <FormFieldGroupExpandable
+      isExpanded
       toggleAriaLabel="Port Details"
       header={
         <FormFieldGroupHeader
@@ -32,49 +193,97 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
             text: 'Port Configuration',
             id: 'workspace-kind-image-ports',
           }}
-          titleDescription="Configure which port where this image will serve from"
+          titleDescription="Configure the ports where this image will serve from (at least one required)"
         />
       }
     >
-      <ThemeAwareFormGroupWrapper label="ID" isRequired fieldId="port-id">
-        <TextInput
-          name="id"
-          isRequired
-          type="text"
-          value={currentPort.id}
-          onChange={(_, val) => setPorts([{ ...currentPort, id: val }])}
-          id="port-id"
-        />
-      </ThemeAwareFormGroupWrapper>
-      <ThemeAwareFormGroupWrapper label="Display Name" isRequired fieldId="port-display-name">
-        <TextInput
-          name="displayName"
-          isRequired
-          type="text"
-          value={currentPort.displayName}
-          onChange={(_, val) => setPorts([{ ...currentPort, displayName: val }])}
-          id="port-display-name"
-        />
-      </ThemeAwareFormGroupWrapper>
-      <ThemeAwareFormGroupWrapper label="Port" isRequired fieldId="port-number">
-        <TextInput
-          name="port"
-          isRequired
-          type="number"
-          value={currentPort.port}
-          onChange={(_, val) => setPorts([{ ...currentPort, port: Number(val) }])}
-          id="port-number"
-        />
-      </ThemeAwareFormGroupWrapper>
-      <ThemeAwareFormGroupWrapper label="Protocol" isRequired fieldId="port-protocol">
-        <TextInput
-          name="protocol"
-          isDisabled
-          type="text"
-          value={currentPort.protocol}
-          id="port-protocol"
-        />
-      </ThemeAwareFormGroupWrapper>
+      {ports.length > 0 && (
+        <Table aria-label="Ports table" data-testid="ports-table">
+          <Thead>
+            <Tr>
+              <Th>ID</Th>
+              <Th>Display Name</Th>
+              <Th>Port</Th>
+              <Th>Protocol</Th>
+              <Th screenReaderText="Actions" />
+            </Tr>
+          </Thead>
+          <Tbody>
+            {ports.map((p, index) => (
+              <Tr key={p.id} data-testid={`port-row-${index}`}>
+                <Td dataLabel="ID" data-testid={`port-id-cell-${index}`}>
+                  {p.id}
+                </Td>
+                <Td dataLabel="Display Name" data-testid={`port-display-name-cell-${index}`}>
+                  {p.displayName || '-'}
+                </Td>
+                <Td dataLabel="Port" data-testid={`port-number-cell-${index}`}>
+                  {p.port}
+                </Td>
+                <Td dataLabel="Protocol" data-testid={`port-protocol-cell-${index}`}>
+                  {p.protocol}
+                </Td>
+                <Td isActionCell>
+                  <Flex spaceItems={{ default: 'spaceItemsXs' }} flexWrap={{ default: 'nowrap' }}>
+                    <FlexItem>
+                      <Button
+                        variant="plain"
+                        aria-label={`Edit port ${p.id}`}
+                        icon={<PencilAltIcon />}
+                        onClick={() => {
+                          setEditIndex(index);
+                          setIsModalOpen(true);
+                        }}
+                        data-testid={`port-edit-${index}`}
+                      />
+                    </FlexItem>
+                    <FlexItem>
+                      <Button
+                        variant="plain"
+                        aria-label={`Remove port ${p.id}`}
+                        icon={<TrashAltIcon />}
+                        isDisabled={ports.length <= 1}
+                        onClick={() => setPorts(ports.filter((_, i) => i !== index))}
+                        data-testid={`port-remove-${index}`}
+                      />
+                    </FlexItem>
+                  </Flex>
+                </Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      )}
+      <Button
+        variant="link"
+        icon={<PlusCircleIcon />}
+        onClick={() => {
+          setEditIndex(null);
+          setIsModalOpen(true);
+        }}
+        data-testid="add-port-button"
+      >
+        Add Port
+      </Button>
+      <PortModal
+        isOpen={isModalOpen}
+        existingPort={editingPort}
+        existingIds={existingIds}
+        existingPorts={existingPortNumbers}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditIndex(null);
+        }}
+        onSubmit={(port) => {
+          if (editIndex !== null) {
+            setPorts(ports.map((p, i) => (i === editIndex ? port : p)));
+          } else {
+            setPorts([...ports, port]);
+          }
+          setIsModalOpen(false);
+          setEditIndex(null);
+        }}
+      />
     </FormFieldGroupExpandable>
   );
 };
