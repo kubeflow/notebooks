@@ -13,6 +13,7 @@ import {
   WorkspacesPodVolumeMount,
   V1Toleration,
   WorkspacesWorkspaceListItem,
+  V1Beta1FilterRule,
 } from '~/generated/data-contracts';
 
 export interface WorkspaceColumnDefinition {
@@ -125,10 +126,16 @@ export interface ActivityRuleEntry extends WorkspacekindsActivityRule {
   id: string;
 }
 
+export interface FilterRuleEntry extends V1Beta1FilterRule {
+  /** Stable UI identity; excluded from API and YAML serialization. */
+  id: string;
+}
+
 export interface WorkspaceKindFormData {
   properties: WorkspaceKindProperties;
   imageConfig: WorkspaceKindImageConfigData;
   podConfig: WorkspaceKindPodConfigData;
   podTemplate: WorkspaceKindPodTemplateData;
   activityRules?: ActivityRuleEntry[];
+  filterRules?: FilterRuleEntry[];
 }
