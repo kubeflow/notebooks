@@ -412,6 +412,10 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.typeImageDescription('A new test image');
       editWorkspaceKind.typeImageUrl('quay.io/test/new-image:v1.0.0');
 
+      // A new image starts with no ports; add one so the Save button is enabled.
+      editWorkspaceKind.clickAddPortButton();
+      editWorkspaceKind.selectPortId(0, 'http');
+
       editWorkspaceKind.submitImageModal();
 
       editWorkspaceKind.assertImageModalVisible(false);
@@ -1816,7 +1820,7 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.assertPortProtocolCell(0, 'HTTP');
     });
 
-    it('should open the port modal when clicking Add Port', () => {
+    it('should add a new inline row when clicking Add Port', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -1826,10 +1830,11 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickAddPortButton();
 
-      editWorkspaceKind.assertPortModalVisible(true);
-      editWorkspaceKind.findPortIdInput().should('have.value', '');
-      editWorkspaceKind.findPortDisplayNameInput().should('have.value', '');
-      editWorkspaceKind.findPortNumberInput().should('have.value', '8888');
+      // A new row appears immediately with an empty ID select and default port 8888.
+      editWorkspaceKind.assertPortRowCount(2);
+      editWorkspaceKind.findPortIdSelect(1).should('have.value', '');
+      editWorkspaceKind.findPortDisplayNameInput(1).should('have.value', '');
+      editWorkspaceKind.findPortNumberInput(1).should('have.value', '8888');
     });
 
     it('should add a second port and display both rows', () => {
@@ -1841,17 +1846,15 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
 
-      editWorkspaceKind.assertPortModalVisible(false);
       editWorkspaceKind.assertPortRowCount(2);
       editWorkspaceKind.assertPortIdCell(1, 'jupyter');
       editWorkspaceKind.assertPortNumberCell(1, '8889');
     });
 
-    it('should open edit port modal with existing values populated', () => {
+    it('should show existing port values in inline inputs', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -1859,15 +1862,12 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
 
-      editWorkspaceKind.clickPortEdit(0);
-
-      editWorkspaceKind.assertPortModalVisible(true);
-      editWorkspaceKind.findPortIdInput().should('have.value', 'http');
-      editWorkspaceKind.findPortIdInput().should('be.disabled');
-      editWorkspaceKind.findPortNumberInput().should('have.value', '8888');
+      // Pre-existing port at index 0 is always visible inline — no edit button needed.
+      editWorkspaceKind.findPortIdSelect(0).should('have.value', 'http');
+      editWorkspaceKind.findPortNumberInput(0).should('have.value', '8888');
     });
 
-    it('should update port display name when editing', () => {
+    it('should update port display name when editing inline', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -1875,11 +1875,8 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
 
-      editWorkspaceKind.clickPortEdit(0);
-      editWorkspaceKind.typePortDisplayName('JupyterLab');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.typePortDisplayName(0, 'JupyterLab');
 
-      editWorkspaceKind.assertPortModalVisible(false);
       editWorkspaceKind.assertPortDisplayNameCell(0, 'JupyterLab');
     });
 
@@ -1903,10 +1900,8 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.submitPortModal();
 
+      // Both buttons enabled as soon as there are 2 rows (regardless of validity).
       editWorkspaceKind.assertPortRemoveDisabled(0, false);
       editWorkspaceKind.assertPortRemoveDisabled(1, false);
     });
@@ -1920,9 +1915,8 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
 
       editWorkspaceKind.assertPortRowCount(2);
       editWorkspaceKind.clickPortRemove(1);
@@ -1930,7 +1924,7 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.assertPortIdCell(0, 'http');
     });
 
-    it('should disable submit when duplicate ID is entered', () => {
+    it('should disable image Save when duplicate ID is entered', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -1939,13 +1933,14 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('http');
+      // Select the same ID as row 0 → duplicate error.
+      editWorkspaceKind.selectPortId(1, 'http');
 
-      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      editWorkspaceKind.assertImageModalSaveDisabled(true);
       cy.contains('ID must be unique').should('be.visible');
     });
 
-    it('should disable submit when duplicate port number is entered', () => {
+    it('should disable image Save when duplicate port number is entered', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -1954,14 +1949,15 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8888');
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      // Row 0 already uses 8888 — entering the same number triggers a duplicate error.
+      editWorkspaceKind.typePortNumber(1, '8888');
 
-      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      editWorkspaceKind.assertImageModalSaveDisabled(true);
       cy.contains('Port number is already in use').should('be.visible');
     });
 
-    it('should disable submit when port number is out of range', () => {
+    it('should disable image Save when port number is out of range', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -1970,14 +1966,14 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('0');
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '0');
 
-      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      editWorkspaceKind.assertImageModalSaveDisabled(true);
       cy.contains('Port must be between 1 and 65535').should('be.visible');
     });
 
-    it('should disable submit when display name is 1 character', () => {
+    it('should disable image Save when display name is 1 character', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -1986,15 +1982,15 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.typePortDisplayName('X');
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
+      editWorkspaceKind.typePortDisplayName(1, 'X');
 
-      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      editWorkspaceKind.assertImageModalSaveDisabled(true);
       cy.contains('Display name must be at least 2 characters').should('be.visible');
     });
 
-    it('should enable submit when display name is empty', () => {
+    it('should enable image Save when new row has valid ID, port and no display name', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -2003,13 +1999,14 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
+      // display name left empty — valid per CRD (+Optional)
 
-      editWorkspaceKind.assertPortModalSubmitDisabled(false);
+      editWorkspaceKind.assertImageModalSaveDisabled(false);
     });
 
-    it('should not show errors on initial open of add port modal', () => {
+    it('should not show errors for a new inline row before first interaction', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -2019,12 +2016,14 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickAddPortButton();
 
+      // New row is untouched — no field-level errors should be visible.
       cy.contains('Port must be between 1 and 65535').should('not.exist');
       cy.contains('Port number is already in use').should('not.exist');
       cy.contains('Display name must be at least 2 characters').should('not.exist');
+      cy.contains('Port ID is required').should('not.exist');
     });
 
-    it('should not show errors on initial open of edit port modal', () => {
+    it('should not show errors for pre-existing valid ports', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -2032,14 +2031,13 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
 
-      editWorkspaceKind.clickPortEdit(0);
-
+      // The pre-existing port {id:'http', port:8888} is valid — no errors expected.
       cy.contains('Port must be between 1 and 65535').should('not.exist');
       cy.contains('Port number is already in use').should('not.exist');
       cy.contains('Display name must be at least 2 characters').should('not.exist');
     });
 
-    it('should cancel port modal without changing ports', () => {
+    it('should discard inline port changes when image modal is closed without saving', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -2049,12 +2047,16 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.assertPortRowCount(1);
 
+      // Add a row inline — image Save is now disabled (empty row).
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.cancelPortModal();
+      editWorkspaceKind.assertPortRowCount(2);
 
-      editWorkspaceKind.assertPortModalVisible(false);
+      // Cancel the image modal — discards the entire draft including the new row.
+      editWorkspaceKind.cancelImageModal();
+
+      // Reopen the image modal — only the original port should be present.
+      editWorkspaceKind.clickImageTableRowKebab(0);
+      editWorkspaceKind.clickEditImage();
       editWorkspaceKind.assertPortRowCount(1);
     });
 
@@ -2066,28 +2068,23 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
 
-      // Add two more ports to get three total: http(0), jupyter(1), tf(2)
+      // Build up: http(0), jupyter(1), tf(2)
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('tf');
-      editWorkspaceKind.typePortNumber('6006');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(2, 'tf');
+      editWorkspaceKind.typePortNumber(2, '6006');
 
       editWorkspaceKind.assertPortRowCount(3);
 
-      // Edit the middle entry (index 1)
-      editWorkspaceKind.clickPortEdit(1);
-      editWorkspaceKind.findPortIdInput().should('have.value', 'jupyter');
-      editWorkspaceKind.findPortIdInput().should('be.disabled');
-      editWorkspaceKind.findPortNumberInput().should('have.value', '8889');
-      editWorkspaceKind.typePortDisplayName('JupyterLab');
-      editWorkspaceKind.submitPortModal();
+      // Edit the middle entry (index 1) — no edit button, just change inline.
+      editWorkspaceKind.findPortIdSelect(1).should('have.value', 'jupyter');
+      editWorkspaceKind.findPortNumberInput(1).should('have.value', '8889');
+      editWorkspaceKind.typePortDisplayName(1, 'JupyterLab');
 
-      // Verify row 0 and 2 are unchanged, row 1 updated
+      // Verify row 0 and 2 are unchanged, row 1 updated.
       editWorkspaceKind.assertPortIdCell(0, 'http');
       editWorkspaceKind.assertPortDisplayNameCell(1, 'JupyterLab');
       editWorkspaceKind.assertPortIdCell(2, 'tf');
@@ -2103,18 +2100,16 @@ describe('Edit workspace kind', () => {
 
       // Build up: http(0), jupyter(1), tf(2)
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('tf');
-      editWorkspaceKind.typePortNumber('6006');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(2, 'tf');
+      editWorkspaceKind.typePortNumber(2, '6006');
 
       editWorkspaceKind.assertPortRowCount(3);
 
-      // Remove the first entry
+      // Remove the first entry.
       editWorkspaceKind.clickPortRemove(0);
 
       editWorkspaceKind.assertPortRowCount(2);
@@ -2134,18 +2129,16 @@ describe('Edit workspace kind', () => {
 
       // Build up: http(0), jupyter(1), tf(2)
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('tf');
-      editWorkspaceKind.typePortNumber('6006');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(2, 'tf');
+      editWorkspaceKind.typePortNumber(2, '6006');
 
       editWorkspaceKind.assertPortRowCount(3);
 
-      // Remove the middle entry
+      // Remove the middle entry.
       editWorkspaceKind.clickPortRemove(1);
 
       editWorkspaceKind.assertPortRowCount(2);
@@ -2163,15 +2156,15 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      // Clear to empty — NaN → invalid port
-      editWorkspaceKind.typePortNumber('{selectall}{del}');
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      // Clear to empty — 0 is out of range.
+      editWorkspaceKind.findPortNumberInput(1).clear().type('0');
 
-      editWorkspaceKind.assertPortModalSubmitDisabled(true);
+      editWorkspaceKind.assertImageModalSaveDisabled(true);
       cy.contains('Port must be between 1 and 65535').should('be.visible');
     });
 
-    it('should preserve HTTP protocol after editing a port', () => {
+    it('should preserve HTTP protocol after editing a port display name', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -2179,9 +2172,7 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
 
-      editWorkspaceKind.clickPortEdit(0);
-      editWorkspaceKind.typePortDisplayName('HTTP Main');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.typePortDisplayName(0, 'HTTP Main');
 
       editWorkspaceKind.assertPortProtocolCell(0, 'HTTP');
     });
@@ -2204,15 +2195,13 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.typePortDisplayName('JupyterLab');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
+      editWorkspaceKind.typePortDisplayName(1, 'JupyterLab');
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('tf');
-      editWorkspaceKind.typePortNumber('6006');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(2, 'tf');
+      editWorkspaceKind.typePortNumber(2, '6006');
 
       editWorkspaceKind.assertPortRowCount(3);
       editWorkspaceKind.submitImageModal();
@@ -2271,22 +2260,21 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
 
       editWorkspaceKind.assertPortRowCount(2);
       editWorkspaceKind.submitImageModal();
 
-      // Form → YAML: form state is serialized to YAML string
+      // Form → YAML: form state is serialized to YAML string.
       editWorkspaceKind.clickYamlTab();
       editWorkspaceKind.assertYamlTabActive();
 
-      // YAML → Form: YAML string is parsed back to form state
+      // YAML → Form: YAML string is parsed back to form state.
       editWorkspaceKind.clickFormTab();
       editWorkspaceKind.assertFormTabActive();
 
-      // Ports must survive the serialization round-trip
+      // Ports must survive the serialization round-trip.
       editWorkspaceKind.expandImageConfigSection();
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
@@ -2313,9 +2301,8 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
 
-      editWorkspaceKind.clickPortEdit(0);
-      editWorkspaceKind.typePortDisplayName('HTTP Main');
-      editWorkspaceKind.submitPortModal();
+      // Edit display name of the pre-existing port inline — no edit button needed.
+      editWorkspaceKind.typePortDisplayName(0, 'HTTP Main');
 
       editWorkspaceKind.submitImageModal();
       editWorkspaceKind.clickSubmit();
@@ -2343,19 +2330,18 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      editWorkspaceKind.typePortId('jupyter');
-      editWorkspaceKind.typePortNumber('8889');
-      editWorkspaceKind.submitPortModal();
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.typePortNumber(1, '8889');
 
       editWorkspaceKind.submitImageModal();
       editWorkspaceKind.clickSubmit();
 
       cy.wait('@updateWorkspaceKind').then((interception) => {
         const body = interception.request.body.data;
-        // Spawner fields unrelated to ports are preserved unchanged
+        // Spawner fields unrelated to ports are preserved unchanged.
         expect(body.spawner.displayName).to.equal(mockWorkspaceKind.displayName);
         expect(body.spawner.description).to.equal(mockWorkspaceKind.description);
-        // Port changes are present
+        // Port changes are present.
         const { ports } = body.podTemplate.options.imageConfig.values[0].spec;
         expect(ports).to.have.length(2);
         expect(ports[0]).to.deep.include({ id: 'http', port: 8888 });
@@ -2371,8 +2357,7 @@ describe('Edit workspace kind', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
 
       const emptyPortsUpdate = buildMockWorkspaceKindUpdate(mockWorkspaceKind);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (emptyPortsUpdate.podTemplate.options.imageConfig.values[0].spec as any).ports = [];
+      emptyPortsUpdate.podTemplate.options.imageConfig.values[0].spec.ports = [];
       cy.interceptApi(
         'GET /api/:apiVersion/workspacekinds/:kind',
         { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
@@ -2386,9 +2371,11 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickImageTableRowKebab(0);
       editWorkspaceKind.clickEditImage();
 
-      // Table is hidden when ports array is empty; Add Port button is still accessible
+      // Table is hidden when ports array is empty; Add Port button is still accessible.
       editWorkspaceKind.findPortsTable().should('not.exist');
       editWorkspaceKind.findAddPortButton().should('be.visible');
+      // Image Save is disabled because ports.length === 0.
+      editWorkspaceKind.assertImageModalSaveDisabled(true);
     });
 
     it('should preserve a single pre-existing port in the PUT request body', () => {
@@ -2402,7 +2389,7 @@ describe('Edit workspace kind', () => {
 
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
-      // Trigger a save without touching ports — description change makes Save enabled
+      // Trigger a save without touching ports — description change makes Save enabled.
       editWorkspaceKind.expandPropertiesSection();
       editWorkspaceKind.typeDescription('Updated description for single-port test');
 

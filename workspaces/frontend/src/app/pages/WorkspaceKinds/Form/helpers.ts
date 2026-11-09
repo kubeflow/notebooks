@@ -143,14 +143,7 @@ export const emptyImage = {
   imagePullPolicy: ImagePullPolicy.IfNotPresent,
   labels: [] as OptionsOptionLabel[],
   image: '',
-  ports: [
-    {
-      displayName: 'default',
-      id: 'default',
-      port: 8888,
-      protocol: 'HTTP',
-    } as WorkspaceKindImagePort,
-  ],
+  ports: [] as WorkspaceKindImagePort[],
   redirect: {
     to: '',
   },

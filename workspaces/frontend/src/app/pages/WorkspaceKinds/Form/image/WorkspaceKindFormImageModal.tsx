@@ -15,6 +15,7 @@ import {
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
+import { V1Beta1WorkspaceKindPort } from '~/generated/data-contracts';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import {
@@ -33,6 +34,7 @@ interface WorkspaceKindFormImageModalProps {
   image: WorkspaceKindImageConfigValue;
   setImage: (image: WorkspaceKindImageConfigValue) => void;
   imageOptions?: WorkspaceKindImageConfigValue[];
+  declaredPorts?: V1Beta1WorkspaceKindPort[];
 }
 
 export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalProps> = ({
@@ -44,6 +46,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
   image,
   setImage,
   imageOptions,
+  declaredPorts = [],
 }) => {
   const originalId =
     editIndex !== null && imageOptions && imageOptions[editIndex]
@@ -58,14 +61,47 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
     [imageOptions, image.id, originalId],
   );
 
+  const hasPortErrors = (() => {
+    const portList = image.ports ?? [];
+    if (portList.length === 0) {
+      return true;
+    }
+    return portList.some((p, i) => {
+      if (!p.id) {
+        return true;
+      }
+      if (declaredPorts.length > 0 && !declaredPorts.some((dp) => dp.id === p.id)) {
+        return true;
+      }
+      if (portList.some((op, j) => j !== i && op.id === p.id)) {
+        return true;
+      }
+      const portNum = p.port;
+      if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
+        return true;
+      }
+      if (portList.some((op, j) => j !== i && op.port === portNum)) {
+        return true;
+      }
+      if (p.displayName) {
+        const codePoints = Array.from(p.displayName).length;
+        if (codePoints < 2 || codePoints > 64) {
+          return true;
+        }
+      }
+      return false;
+    });
+  })();
+
   const isMissingRedirectTarget =
     Boolean(image.redirect?.to) &&
     !candidateTargets.some((target) => target.id === image.redirect?.to);
   const hasRedirectError =
     Boolean(getRedirectMessageError(image.redirect)) || isMissingRedirectTarget;
+  const isSaveDisabled = hasRedirectError || hasPortErrors;
 
   const handleSubmit = () => {
-    if (hasRedirectError) {
+    if (isSaveDisabled) {
       return;
     }
     const finalRedirect = normalizeRedirect(image.redirect);
@@ -198,6 +234,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
           <WorkspaceKindFormImagePort
             ports={image.ports || []}
             setPorts={(ports) => setImage({ ...image, ports })}
+            declaredPorts={declaredPorts}
           />
           {mode === 'edit' && (
             <WorkspaceKindFormRedirect
@@ -216,7 +253,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
           key="confirm"
           variant="primary"
           onClick={handleSubmit}
-          isDisabled={hasRedirectError}
+          isDisabled={isSaveDisabled}
           data-testid="image-modal-submit-button"
         >
           {editIndex !== null ? 'Save' : 'Add'}

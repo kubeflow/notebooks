@@ -1,187 +1,152 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   FormFieldGroupExpandable,
   FormFieldGroupHeader,
-  Form,
 } from '@patternfly/react-core/dist/esm/components/Form';
-import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from '@patternfly/react-core/dist/esm/components/Modal';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import {
+  FormSelect,
+  FormSelectOption,
+} from '@patternfly/react-core/dist/esm/components/FormSelect';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table/dist/esm/components/Table';
-import { Flex, FlexItem } from '@patternfly/react-core/dist/esm/layouts/Flex';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
-import { PencilAltIcon } from '@patternfly/react-icons/dist/esm/icons/pencil-alt-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { WorkspaceKindImagePort } from '~/app/types';
-import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
-
-interface PortModalProps {
-  isOpen: boolean;
-  existingPort: WorkspaceKindImagePort | null;
-  existingIds: string[];
-  existingPorts: number[];
-  onClose: () => void;
-  onSubmit: (port: WorkspaceKindImagePort) => void;
-}
-
-const PortModal: React.FC<PortModalProps> = ({
-  isOpen,
-  existingPort,
-  existingIds,
-  existingPorts,
-  onClose,
-  onSubmit,
-}) => {
-  const [id, setId] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [displayNameTouched, setDisplayNameTouched] = useState(false);
-  const [portInput, setPortInput] = useState('8888');
-  const [portTouched, setPortTouched] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setId(existingPort?.id ?? '');
-      setDisplayName(existingPort?.displayName ?? '');
-      setPortInput(existingPort ? String(existingPort.port) : '8888');
-      setDisplayNameTouched(false);
-      setPortTouched(false);
-    }
-  }, [isOpen, existingPort]);
-
-  const portNum = Number(portInput);
-  const isDuplicateId = id !== '' && existingIds.includes(id);
-  const isDuplicatePort = existingPorts.includes(portNum);
-  const isDisplayNameValid = displayName === '' || displayName.length >= 2;
-  const isPortValid = Number.isInteger(portNum) && portNum >= 1 && portNum <= 65535;
-  const canSubmit =
-    id !== '' && !isDuplicateId && isPortValid && !isDuplicatePort && isDisplayNameValid;
-
-  const showDisplayNameError = displayNameTouched && !isDisplayNameValid;
-  const showPortError = portTouched && !isPortValid;
-  const showDuplicatePortError = portTouched && isDuplicatePort;
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      variant="small"
-      data-testid="port-modal"
-      aria-labelledby="port-modal-title"
-    >
-      <ModalHeader title={existingPort ? 'Edit Port' : 'Add Port'} labelId="port-modal-title" />
-      <ModalBody>
-        <Form>
-          <ThemeAwareFormGroupWrapper
-            label="ID"
-            isRequired
-            fieldId="port-modal-id"
-            helperTextNode={isDuplicateId ? <span>ID must be unique</span> : undefined}
-          >
-            <TextInput
-              isRequired
-              type="text"
-              id="port-modal-id"
-              data-testid="port-modal-id-input"
-              value={id}
-              isDisabled={!!existingPort}
-              onChange={(_, val) => setId(val)}
-              validated={isDuplicateId ? 'error' : 'default'}
-            />
-          </ThemeAwareFormGroupWrapper>
-          <ThemeAwareFormGroupWrapper
-            label="Display Name"
-            fieldId="port-modal-display-name"
-            helperTextNode={
-              showDisplayNameError ? (
-                <span>Display name must be at least 2 characters</span>
-              ) : undefined
-            }
-          >
-            <TextInput
-              type="text"
-              id="port-modal-display-name"
-              data-testid="port-modal-display-name-input"
-              value={displayName}
-              onChange={(_, val) => {
-                setDisplayName(val);
-                setDisplayNameTouched(true);
-              }}
-              validated={showDisplayNameError ? 'error' : 'default'}
-            />
-          </ThemeAwareFormGroupWrapper>
-          <ThemeAwareFormGroupWrapper
-            label="Port"
-            isRequired
-            fieldId="port-modal-port"
-            helperTextNode={
-              showPortError ? (
-                <span>Port must be between 1 and 65535</span>
-              ) : showDuplicatePortError ? (
-                <span>Port number is already in use</span>
-              ) : undefined
-            }
-          >
-            <TextInput
-              isRequired
-              type="number"
-              id="port-modal-port"
-              data-testid="port-modal-port-input"
-              value={portInput}
-              onChange={(_, val) => {
-                setPortInput(val);
-                setPortTouched(true);
-              }}
-              validated={showPortError || showDuplicatePortError ? 'error' : 'default'}
-            />
-          </ThemeAwareFormGroupWrapper>
-          <ThemeAwareFormGroupWrapper label="Protocol" fieldId="port-modal-protocol">
-            <TextInput
-              isDisabled
-              type="text"
-              id="port-modal-protocol"
-              data-testid="port-modal-protocol-input"
-              value="HTTP"
-            />
-          </ThemeAwareFormGroupWrapper>
-        </Form>
-      </ModalBody>
-      <ModalFooter>
-        <Button
-          variant="primary"
-          isDisabled={!canSubmit}
-          onClick={() => onSubmit({ id, displayName, port: portNum, protocol: 'HTTP' })}
-          data-testid="port-modal-submit-button"
-        >
-          {existingPort ? 'Save' : 'Add'}
-        </Button>
-        <Button variant="link" onClick={onClose} data-testid="port-modal-cancel-button">
-          Cancel
-        </Button>
-      </ModalFooter>
-    </Modal>
-  );
-};
+import { V1Beta1WorkspaceKindPort } from '~/generated/data-contracts';
 
 interface WorkspaceKindFormImagePortProps {
   ports: WorkspaceKindImagePort[];
   setPorts: (ports: WorkspaceKindImagePort[]) => void;
+  declaredPorts?: V1Beta1WorkspaceKindPort[];
 }
+
+type PortErrors = {
+  id?: string;
+  displayName?: string;
+  port?: string;
+};
+
+const validatePort = (
+  p: WorkspaceKindImagePort,
+  index: number,
+  allPorts: WorkspaceKindImagePort[],
+  touchedIndices: Set<number>,
+  declaredPorts: V1Beta1WorkspaceKindPort[],
+): PortErrors => {
+  const errors: PortErrors = {};
+
+  if (!p.id) {
+    errors.id = 'Port ID is required';
+  } else if (declaredPorts.length > 0 && !declaredPorts.some((dp) => dp.id === p.id)) {
+    errors.id = 'ID must reference a declared port';
+  } else if (allPorts.some((op, j) => j !== index && touchedIndices.has(j) && op.id === p.id)) {
+    // Only count touched rows as duplicates — untouched new rows are not yet committed.
+    errors.id = 'ID must be unique';
+  }
+
+  if (p.displayName) {
+    const codePoints = Array.from(p.displayName).length;
+    if (codePoints < 2) {
+      errors.displayName = 'Display name must be at least 2 characters';
+    } else if (codePoints > 64) {
+      errors.displayName = 'Display name cannot exceed 64 characters';
+    }
+  }
+
+  const portNum = p.port;
+  if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
+    errors.port = 'Port must be between 1 and 65535';
+  } else if (
+    allPorts.some((op, j) => j !== index && touchedIndices.has(j) && op.port === portNum)
+  ) {
+    // Only count touched rows as duplicates — untouched new rows are not yet committed.
+    errors.port = 'Port number is already in use';
+  }
+
+  return errors;
+};
 
 export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProps> = ({
   ports,
   setPorts,
+  declaredPorts = [],
 }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
+  // All rows that existed on first render start as touched (they already have data).
+  // Newly added rows become touched on first field interaction.
+  const [touchedRows, setTouchedRows] = useState<Set<number>>(
+    () => new Set(ports.map((_, i) => i)),
+  );
 
-  const existingIds = ports.filter((_, i) => i !== editIndex).map((p) => p.id);
-  const existingPortNumbers = ports.filter((_, i) => i !== editIndex).map((p) => p.port);
-  const editingPort = editIndex !== null && editIndex < ports.length ? ports[editIndex] : null;
+  // Local string state for the port-number text field, so intermediate values (e.g. typing
+  // "8" before "88") don't get coerced to a numeric representation between keystrokes.
+  const [portInputs, setPortInputs] = useState<Record<number, string>>(() => {
+    const init: Record<number, string> = {};
+    ports.forEach((p, i) => {
+      init[i] = String(p.port);
+    });
+    return init;
+  });
+
+  const markTouched = (index: number) => {
+    setTouchedRows((prev) => {
+      if (prev.has(index)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
+  };
+
+  const updatePort = (index: number, update: Partial<WorkspaceKindImagePort>) => {
+    markTouched(index);
+    setPorts(ports.map((p, i) => (i === index ? { ...p, ...update } : p)));
+  };
+
+  const handlePortNumberChange = (index: number, val: string) => {
+    markTouched(index);
+    setPortInputs((prev) => ({ ...prev, [index]: val }));
+    const num = Number(val);
+    // Store the numeric value; non-integer / out-of-range values are caught by validation.
+    setPorts(ports.map((p, i) => (i === index ? { ...p, port: Number.isNaN(num) ? 0 : num } : p)));
+  };
+
+  const addPort = () => {
+    const newIndex = ports.length;
+    setPortInputs((prev) => ({ ...prev, [newIndex]: '8888' }));
+    // New row intentionally not added to touchedRows — errors won't show until first interaction.
+    setPorts([...ports, { id: '', displayName: '', port: 8888, protocol: 'HTTP' }]);
+  };
+
+  const removePort = (index: number) => {
+    // Shift touched indices down past the removed row.
+    setTouchedRows((prev) => {
+      const next = new Set<number>();
+      prev.forEach((i) => {
+        if (i < index) {
+          next.add(i);
+        } else if (i > index) {
+          next.add(i - 1);
+        }
+      });
+      return next;
+    });
+    setPortInputs((prev) => {
+      const next: Record<number, string> = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const ki = Number(k);
+        if (ki < index) {
+          next[ki] = v;
+        } else if (ki > index) {
+          next[ki - 1] = v;
+        }
+      });
+      return next;
+    });
+    setPorts(ports.filter((_, i) => i !== index));
+  };
 
   return (
     <FormFieldGroupExpandable
@@ -209,81 +174,114 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
             </Tr>
           </Thead>
           <Tbody>
-            {ports.map((p, index) => (
-              <Tr key={p.id} data-testid={`port-row-${index}`}>
-                <Td dataLabel="ID" data-testid={`port-id-cell-${index}`}>
-                  {p.id}
-                </Td>
-                <Td dataLabel="Display Name" data-testid={`port-display-name-cell-${index}`}>
-                  {p.displayName || '-'}
-                </Td>
-                <Td dataLabel="Port" data-testid={`port-number-cell-${index}`}>
-                  {p.port}
-                </Td>
-                <Td dataLabel="Protocol" data-testid={`port-protocol-cell-${index}`}>
-                  {p.protocol}
-                </Td>
-                <Td isActionCell>
-                  <Flex spaceItems={{ default: 'spaceItemsXs' }} flexWrap={{ default: 'nowrap' }}>
-                    <FlexItem>
-                      <Button
-                        variant="plain"
-                        aria-label={`Edit port ${p.id}`}
-                        icon={<PencilAltIcon />}
-                        onClick={() => {
-                          setEditIndex(index);
-                          setIsModalOpen(true);
-                        }}
-                        data-testid={`port-edit-${index}`}
-                      />
-                    </FlexItem>
-                    <FlexItem>
-                      <Button
-                        variant="plain"
-                        aria-label={`Remove port ${p.id}`}
-                        icon={<TrashAltIcon />}
-                        isDisabled={ports.length <= 1}
-                        onClick={() => setPorts(ports.filter((_, i) => i !== index))}
-                        data-testid={`port-remove-${index}`}
-                      />
-                    </FlexItem>
-                  </Flex>
-                </Td>
-              </Tr>
-            ))}
+            {ports.map((p, index) => {
+              const isTouched = touchedRows.has(index);
+              const errors = isTouched
+                ? validatePort(p, index, ports, touchedRows, declaredPorts)
+                : {};
+
+              return (
+                <Tr key={index} data-testid={`port-row-${index}`}>
+                  <Td dataLabel="ID" data-testid={`port-id-cell-${index}`}>
+                    {declaredPorts.length > 0 ? (
+                      <>
+                        <FormSelect
+                          value={p.id}
+                          onChange={(_, val) => updatePort(index, { id: val })}
+                          aria-label={`Port ID for row ${index}`}
+                          id={`port-id-select-${index}`}
+                          data-testid={`port-id-select-${index}`}
+                          validated={isTouched && errors.id ? 'error' : 'default'}
+                        >
+                          <FormSelectOption value="" label="Select ID" />
+                          {declaredPorts.map((dp) => (
+                            <FormSelectOption key={dp.id} value={dp.id} label={dp.id} />
+                          ))}
+                        </FormSelect>
+                        {isTouched && errors.id && (
+                          <HelperText>
+                            <HelperTextItem variant="error">{errors.id}</HelperTextItem>
+                          </HelperText>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <TextInput
+                          value={p.id}
+                          onChange={(_, val) => updatePort(index, { id: val })}
+                          type="text"
+                          aria-label={`Port ID for row ${index}`}
+                          id={`port-id-input-${index}`}
+                          data-testid={`port-id-input-${index}`}
+                          validated={isTouched && errors.id ? 'error' : 'default'}
+                        />
+                        {isTouched && errors.id && (
+                          <HelperText>
+                            <HelperTextItem variant="error">{errors.id}</HelperTextItem>
+                          </HelperText>
+                        )}
+                      </>
+                    )}
+                  </Td>
+                  <Td dataLabel="Display Name" data-testid={`port-display-name-cell-${index}`}>
+                    <TextInput
+                      value={p.displayName}
+                      onChange={(_, val) => updatePort(index, { displayName: val })}
+                      type="text"
+                      aria-label={`Display name for row ${index}`}
+                      id={`port-display-name-input-${index}`}
+                      data-testid={`port-display-name-input-${index}`}
+                      validated={isTouched && errors.displayName ? 'error' : 'default'}
+                    />
+                    {isTouched && errors.displayName && (
+                      <HelperText>
+                        <HelperTextItem variant="error">{errors.displayName}</HelperTextItem>
+                      </HelperText>
+                    )}
+                  </Td>
+                  <Td dataLabel="Port" data-testid={`port-number-cell-${index}`}>
+                    <TextInput
+                      value={portInputs[index] ?? String(p.port)}
+                      onChange={(_, val) => handlePortNumberChange(index, val)}
+                      type="number"
+                      aria-label={`Port number for row ${index}`}
+                      id={`port-number-input-${index}`}
+                      data-testid={`port-number-input-${index}`}
+                      validated={isTouched && errors.port ? 'error' : 'default'}
+                    />
+                    {isTouched && errors.port && (
+                      <HelperText>
+                        <HelperTextItem variant="error">{errors.port}</HelperTextItem>
+                      </HelperText>
+                    )}
+                  </Td>
+                  <Td dataLabel="Protocol" data-testid={`port-protocol-cell-${index}`}>
+                    HTTP
+                  </Td>
+                  <Td isActionCell>
+                    <Button
+                      variant="plain"
+                      aria-label={`Remove port ${index}`}
+                      icon={<TrashAltIcon />}
+                      isDisabled={ports.length <= 1}
+                      onClick={() => removePort(index)}
+                      data-testid={`port-remove-${index}`}
+                    />
+                  </Td>
+                </Tr>
+              );
+            })}
           </Tbody>
         </Table>
       )}
       <Button
         variant="link"
         icon={<PlusCircleIcon />}
-        onClick={() => {
-          setEditIndex(null);
-          setIsModalOpen(true);
-        }}
+        onClick={addPort}
         data-testid="add-port-button"
       >
         Add Port
       </Button>
-      <PortModal
-        isOpen={isModalOpen}
-        existingPort={editingPort}
-        existingIds={existingIds}
-        existingPorts={existingPortNumbers}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditIndex(null);
-        }}
-        onSubmit={(port) => {
-          if (editIndex !== null) {
-            setPorts(ports.map((p, i) => (i === editIndex ? port : p)));
-          } else {
-            setPorts([...ports, port]);
-          }
-          setIsModalOpen(false);
-          setEditIndex(null);
-        }}
-      />
     </FormFieldGroupExpandable>
   );
 };

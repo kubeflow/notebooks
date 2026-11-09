@@ -17,6 +17,7 @@ import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/Ex
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
 import { WorkspaceKindImageConfigData, WorkspaceKindImageConfigValue } from '~/app/types';
+import { V1Beta1WorkspaceKindPort } from '~/generated/data-contracts';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormPaginatedTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormPaginatedTable';
 import { WorkspaceKindFormImageModal } from './WorkspaceKindFormImageModal';
@@ -25,12 +26,14 @@ interface WorkspaceKindFormImageProps {
   mode: string;
   imageConfig: WorkspaceKindImageConfigData;
   updateImageConfig: (images: WorkspaceKindImageConfigData) => void;
+  declaredPorts?: V1Beta1WorkspaceKindPort[];
 }
 
 export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
   mode,
   imageConfig,
   updateImageConfig,
+  declaredPorts = [],
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [defaultId, setDefaultId] = useState('');
@@ -155,6 +158,7 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
           setImage={setImage}
           mode={mode}
           imageOptions={imageConfig.values ?? []}
+          declaredPorts={declaredPorts}
         />
         <Modal
           isOpen={isDeleteModalOpen}

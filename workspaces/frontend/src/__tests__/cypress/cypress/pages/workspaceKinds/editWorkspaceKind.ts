@@ -1214,7 +1214,7 @@ class EditWorkspaceKind {
     cy.findByTestId(`activity-rule-remove-${index}`).click();
   }
 
-  // Port Configuration (inside the image modal)
+  // Port Configuration (inline, inside the image modal)
   findPortsTable() {
     return cy.findByTestId('ports-table');
   }
@@ -1235,72 +1235,44 @@ class EditWorkspaceKind {
     this.findAddPortButton().click();
   }
 
-  findPortModal() {
-    return cy.findByTestId('port-modal');
+  // Inline ID field — Select when declaredPorts are present
+  findPortIdSelect(index: number) {
+    return cy.findByTestId(`port-id-select-${index}`);
   }
 
-  assertPortModalVisible(visible: boolean) {
-    if (visible) {
-      this.findPortModal().should('be.visible');
-    } else {
-      this.findPortModal().should('not.exist');
-    }
+  // Inline ID field — TextInput fallback when no declaredPorts
+  findPortIdTextInput(index: number) {
+    return cy.findByTestId(`port-id-input-${index}`);
   }
 
-  findPortIdInput() {
-    return cy.findByTestId('port-modal-id-input');
+  selectPortId(index: number, id: string) {
+    this.findPortIdSelect(index).select(id);
   }
 
-  findPortDisplayNameInput() {
-    return cy.findByTestId('port-modal-display-name-input');
+  typePortIdText(index: number, id: string) {
+    this.findPortIdTextInput(index).clear().type(id);
   }
 
-  findPortNumberInput() {
-    return cy.findByTestId('port-modal-port-input');
+  // Inline display name field
+  findPortDisplayNameInput(index: number) {
+    return cy.findByTestId(`port-display-name-input-${index}`);
   }
 
-  findPortModalSubmitButton() {
-    return cy.findByTestId('port-modal-submit-button');
+  typePortDisplayName(index: number, name: string) {
+    this.findPortDisplayNameInput(index).clear().type(name);
   }
 
-  findPortModalCancelButton() {
-    return cy.findByTestId('port-modal-cancel-button');
+  // Inline port number field
+  findPortNumberInput(index: number) {
+    return cy.findByTestId(`port-number-input-${index}`);
   }
 
-  typePortId(id: string) {
-    this.findPortIdInput().clear().type(id);
-  }
-
-  typePortDisplayName(name: string) {
-    this.findPortDisplayNameInput().clear().type(name);
-  }
-
-  typePortNumber(value: string) {
-    this.findPortNumberInput().clear().type(value);
-  }
-
-  submitPortModal() {
-    this.findPortModalSubmitButton().click();
-  }
-
-  cancelPortModal() {
-    this.findPortModalCancelButton().click();
-  }
-
-  assertPortModalSubmitDisabled(disabled: boolean) {
-    this.findPortModalSubmitButton().should(disabled ? 'be.disabled' : 'not.be.disabled');
-  }
-
-  findPortEditButton(index: number) {
-    return cy.findByTestId(`port-edit-${index}`);
+  typePortNumber(index: number, value: string) {
+    this.findPortNumberInput(index).clear().type(value);
   }
 
   findPortRemoveButton(index: number) {
     return cy.findByTestId(`port-remove-${index}`);
-  }
-
-  clickPortEdit(index: number) {
-    this.findPortEditButton(index).click();
   }
 
   clickPortRemove(index: number) {
@@ -1311,20 +1283,29 @@ class EditWorkspaceKind {
     this.findPortRemoveButton(index).should(disabled ? 'be.disabled' : 'not.be.disabled');
   }
 
+  // Cell assertions check the input value (not text content) since cells now contain inputs.
   assertPortIdCell(index: number, value: string) {
-    cy.findByTestId(`port-id-cell-${index}`).should('have.text', value);
+    cy.findByTestId(`port-id-cell-${index}`)
+      .find('select, input')
+      .first()
+      .should('have.value', value);
   }
 
   assertPortDisplayNameCell(index: number, value: string) {
-    cy.findByTestId(`port-display-name-cell-${index}`).should('have.text', value);
+    cy.findByTestId(`port-display-name-cell-${index}`).find('input').should('have.value', value);
   }
 
   assertPortNumberCell(index: number, value: string) {
-    cy.findByTestId(`port-number-cell-${index}`).should('have.text', value);
+    cy.findByTestId(`port-number-cell-${index}`).find('input').should('have.value', value);
   }
 
   assertPortProtocolCell(index: number, value: string) {
     cy.findByTestId(`port-protocol-cell-${index}`).should('have.text', value);
+  }
+
+  // Image modal Save button — used instead of the removed port-modal-submit-button
+  assertImageModalSaveDisabled(disabled: boolean) {
+    this.findImageModalSubmitButton().should(disabled ? 'be.disabled' : 'not.be.disabled');
   }
 
   // Action Buttons
