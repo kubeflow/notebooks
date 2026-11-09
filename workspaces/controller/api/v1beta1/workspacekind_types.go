@@ -146,8 +146,13 @@ type ActivityRuleSelector struct {
 // +kubebuilder:validation:XValidation:message="must specify at least one effect",rule="has(self.pauseWorkspace)"
 type ActivityRuleEffect struct {
 	// determines if the Workspace should be paused
+	//  - `true`: pause matching Workspaces when they are inactive
+	//  - `false`: exempt matching Workspaces from being paused
+	//  - unset: this rule does not decide, evaluation continues with the next rule
 	//  - the webhook rejects rules with `pauseWorkspace: true`
 	//    when no `activityProbe` is configured
+	//  - the webhook allows at most one rule with an empty `match` that sets
+	//    this effect, and it must be the last such rule
 	// +kubebuilder:validation:Optional
 	PauseWorkspace *bool `json:"pauseWorkspace,omitempty"`
 }
@@ -332,7 +337,9 @@ type WorkspaceKindMainContainer struct {
 	//  - these apply to ALL Workspaces of this WorkspaceKind, regardless of the selected pod config
 	//  - a pod config may override (by `name`) or add to these with its own `spec.extraEnv`
 	//  - the following go template functions are available:
-	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,
+	//       or an empty string if the selected imageConfig has no port with that id
+	//       (port ids are NOT validated by the webhook)
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example:={{name: "NB_PREFIX", value: "{{ httpPathPrefix \"jupyterlab\" }}"}}
 	// +listType:="map"
@@ -458,9 +465,12 @@ type WorkspaceKindClusterRole struct {
 //
 // +kubebuilder:validation:XValidation:message="minProbeIntervalSeconds must be less than or equal to probeIntervalSeconds",rule="self.minProbeIntervalSeconds <= self.probeIntervalSeconds"
 type ActivityProbe struct {
-	// the minimum duration in seconds that must elapse between two consecutive probes.
-	// - Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).
-	// - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
+	// the minimum duration in seconds between a failed probe and the next probe
+	//  - acts as a rate-limiter for failed (or timed out) probes: the controller
+	//    waits at least this long after a failed probe before retrying
+	//  - after a successful probe, `probeIntervalSeconds` is used instead
+	//  - must be less than or equal to `probeIntervalSeconds`, note that when only
+	//    `probeIntervalSeconds` is set, it must be at least the default of this field (300)
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=31536000
 	// +kubebuilder:default:=300
@@ -532,7 +542,7 @@ type WorkspaceKindVolumeMountPaths struct {
 
 type HTTPProxy struct {
 	// if the path prefix is stripped from incoming HTTP requests
-	//  - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix
+	//  - if true, the '/workspace/connect/{namespace}/{name}/{port_id}/' path prefix
 	//    is stripped from incoming requests, the application sees the request
 	//    as if it was made to '/...'
 	//  - this only works if the application serves RELATIVE URLs for its assets
@@ -550,14 +560,18 @@ type HTTPProxy struct {
 type IstioHeaderOperations struct {
 	// overwrite the headers specified by key with the given values
 	//  - the following go template functions are available in the values:
-	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,
+	//       or an empty string if the selected imageConfig has no port with that id
+	//       (port ids are NOT validated by the webhook)
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ httpPathPrefix 'rstudio' }}" }
+	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ httpPathPrefix \"rstudio\" }}" }
 	Set map[string]string `json:"set,omitempty"`
 
 	// append the given values to the headers specified by keys (will create a comma-separated list of values)
 	//  - the following go template functions are available in the values:
-	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,
+	//       or an empty string if the selected imageConfig has no port with that id
+	//       (port ids are NOT validated by the webhook)
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example:={ "My-Header": "value-to-append" }
 	Add map[string]string `json:"add,omitempty"`
@@ -730,7 +744,9 @@ type PodConfigSpec struct {
 	//  - like all pod config `spec` fields, this can NOT be changed while the pod config is used by
 	//    any Workspace, instead, create a new pod config value and redirect the old one to it
 	//  - the following go template functions are available:
-	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
+	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port,
+	//       or an empty string if the selected imageConfig has no port with that id
+	//       (port ids are NOT validated by the webhook)
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:example:={{name: "PJRT_DEVICE", value: "CPU"}}
 	// +listType:="map"
@@ -883,6 +899,11 @@ type FilterRuleEffectAPI struct {
 	Hide *bool `json:"hide,omitempty"`
 
 	// return the matched item but reject any workspace create/update which selects it
+	//  - if `hide` is also true, `hide` takes precedence and the item is
+	//    omitted from API responses
+	//  - on update, a denied imageConfig/podConfig option is only rejected if it
+	//    is being changed to, so existing Workspaces keep their current option,
+	//    a denied WorkspaceKind is rejected on every update
 	// +kubebuilder:validation:Optional
 	Deny *bool `json:"deny,omitempty"`
 
@@ -939,6 +960,9 @@ type WorkspaceKindStatus struct {
 	Workspaces int32 `json:"workspaces"`
 
 	// metrics for podTemplate options
+	//  - Workspaces are counted by the option ids in their `spec.podTemplate.options`,
+	//    so a Workspace with a pending redirect is still counted under its old option
+	//  - only options currently defined in this WorkspaceKind are listed
 	PodTemplateOptions PodTemplateOptionsMetrics `json:"podTemplateOptions"`
 
 	// status of the spawner icon

@@ -87,7 +87,11 @@ type WorkspacePodMetadata struct {
 type WorkspacePodVolumes struct {
 	// the name of the PVC to mount as the home volume
 	//  - this PVC must already exist in the Namespace
-	//  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+	//  - the access modes of this PVC are NOT validated, but it must be
+	//    mountable by the Workspace Pod, e.g. ReadWriteOnce (if only used by
+	//    one Workspace at a time) or ReadWriteMany
+	//  - the backend API only allows PVCs with the
+	//    `workspaces.kubeflow.org/can-mount: "true"` label
 	//  - the mount path is defined in the WorkspaceKind under
 	//    `spec.podTemplate.volumeMountPaths.home`
 	// +kubebuilder:validation:Optional
@@ -100,8 +104,11 @@ type WorkspacePodVolumes struct {
 	// additional PVCs to mount
 	//  - these PVC must already exist in the Namespace
 	//  - the same PVC can be mounted multiple times with different `mountPaths`
-	//  - if `readOnly` is false, the PVC must be RWX (ReadWriteMany, ReadWriteOnce)
-	//  - if `readOnly` is true, the PVC must be ReadOnlyMany
+	//  - the access modes of these PVCs are NOT validated, but they must be
+	//    mountable by the Workspace Pod (e.g. ReadWriteMany if shared between
+	//    Workspaces, ReadOnlyMany is sufficient if `readOnly` is true)
+	//  - the backend API only allows PVCs with the
+	//    `workspaces.kubeflow.org/can-mount: "true"` label
 	// +kubebuilder:validation:Optional
 	// +listType:="map"
 	// +listMapKey:="mountPath"
@@ -209,9 +216,8 @@ type WorkspaceStatus struct {
 	// if the current Pod does not reflect the current "desired" state
 	//  - true if any `spec.podTemplate.options` have a redirect
 	//    and so will be patched on the next restart
-	//  - true if the WorkspaceKind has changed one of its common `podTemplate` fields
-	//    like `podMetadata`, `podSpec.mainContainer.livenessProbe`,
-	//    `podSpec.mainContainer.extraEnv`, or `podSpec.mainContainer.securityContext`
+	//  - TODO: also set this when the WorkspaceKind changes one of its
+	//    common `podTemplate` fields (not implemented yet)
 	// +kubebuilder:default=false
 	PendingRestart bool `json:"pendingRestart"`
 
@@ -236,17 +242,23 @@ type WorkspaceStatus struct {
 
 type WorkspaceActivity struct {
 	// the last time activity was observed on the Workspace (UNIX epoch in milliseconds)
-	//  - this is the value returned by the activity probe, not the time the probe was run
-	//  - the activity probe is authoritative: on success, the probe result unconditionally
-	//    overwrites this timestamp (the controller does not validate monotonicity or clamp to wall-clock time)
+	//  - updated by each successful activity probe, based on what the probe reports:
+	//     - activity (e.g. `has_activity: true` or empty output): the time the probe completed
+	//     - a `last_activity` timestamp: that timestamp
+	//     - no activity (`has_activity: false`): unchanged, but initialized to
+	//       `status.lastRunningTime` if it was not previously set
+	//  - the activity probe is authoritative: the controller does not validate
+	//    monotonicity or clamp to wall-clock time
 	//  - not updated when a probe fails
+	//  - reset to 0 when the Workspace enters the Running state
 	// +kubebuilder:default=0
 	// +kubebuilder:example=1704067200000
 	LastActivity int64 `json:"lastActivity"`
 
 	// the end time of the last successful probe (UNIX epoch in milliseconds)
 	//  - not updated when a probe fails
-	//  - used to determine when the next probe should run
+	//  - informational only, probe scheduling is based on `lastProbe`
+	//  - reset to 0 when the Workspace enters the Running state
 	// +kubebuilder:default=0
 	// +kubebuilder:example=1704067200000
 	LastUpdate int64 `json:"lastUpdate"`
@@ -294,13 +306,20 @@ const (
 // WorkspaceActivityRules defines the evaluation state for activity-based rules
 type WorkspaceActivityRules struct {
 	// rule evaluation state for the pauseWorkspace effect
+	//  - unset when no activity rule matches the Workspace,
+	//    or the matching rule has `pauseWorkspace: false`
 	// +kubebuilder:validation:Optional
 	PauseWorkspace *WorkspaceActivityPauseRule `json:"pauseWorkspace,omitempty"`
 }
 
 // WorkspaceActivityPauseRule defines the evaluation state for the activity-based pauseWorkspace effect
 type WorkspaceActivityPauseRule struct {
-	// the time after which if the rule is evaluated the Workspace would be paused (UNIX epoch in milliseconds)
+	// the time after which the Workspace is considered inactive by the matching rule
+	// (UNIX epoch in milliseconds)
+	//  - calculated as `lastActivity` + `secondsSinceActive` of the matching rule
+	//  - the Workspace is only paused once this has passed, it has been running for
+	//    at least `minRunningSeconds`, AND a fresh probe confirms it is still inactive,
+	//    so it may stay running for some time after this
 	//  - set to 0 when lastActivity is unknown (<= 0), indicating eligibility cannot be computed / not applicable
 	//  - the controller will not pause a Workspace when eligibleAfter is 0
 	// +kubebuilder:default=0
