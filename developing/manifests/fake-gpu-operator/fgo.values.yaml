@@ -1,0 +1,26 @@
+# Helm values for the run-ai/fake-gpu-operator (FGO) in the Tilt dev cluster.
+#
+# FGO simulates NVIDIA GPUs at the Kubernetes API level: a device-plugin
+# DaemonSet advertises `nvidia.com/gpu` capacity on labeled nodes and injects a
+# fake `nvidia-smi` into GPU pods. No driver and no hardware are required, so
+# GPU workspaces (e.g. the `big_gpu` podConfig) schedule and run locally.
+#
+# Consumed by developing/scripts/setup-fake-gpu-operator.sh (ENABLE_FAKE_GPU=true).
+
+# A single node pool named "integration", matched to the worker(s) via the
+# `run.ai/simulated-gpu-node-pool=integration` node label the setup script
+# applies. We advertise one A100 so the sample `big_gpu` podConfig
+# (limits: nvidia.com/gpu: 1) can schedule.
+topology:
+  nodePools:
+    integration:
+      gpuProduct: NVIDIA-A100-SXM4-40GB
+      gpuCount: 1
+      gpuMemory: 40960  # MiB
+  nodePoolLabelKey: run.ai/simulated-gpu-node-pool
+
+# builtinProfiles ships the gpu-profile ConfigMaps FGO's fake `nvidia-smi`
+# reads for the products above. Left at its chart default (true); stated here
+# to document that the in-pod tooling relies on it.
+builtinProfiles:
+  enabled: true

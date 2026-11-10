@@ -116,6 +116,9 @@ ENABLE_PROMETHEUS=true make tilt-up
 
 # OPTION 3: run with metrics-server enabled (kubectl top verification)
 ENABLE_METRICS_SERVER=true make tilt-up
+
+# OPTION 4: run with simulated GPUs enabled (schedule GPU workspaces without hardware)
+ENABLE_FAKE_GPU=true make tilt-up
 ```
 
 What this does:
@@ -239,6 +242,40 @@ Example log entry:
     "upstream": "10.244.1.9:4000"
 }
 ```
+
+### Tilt - Simulating GPUs
+
+The sample WorkspaceKinds ship a `big_gpu` podConfig that requests `nvidia.com/gpu: 1`, but the local Kind cluster advertises no GPU capacity, so GPU workspaces stay `Pending` forever. Setting `ENABLE_FAKE_GPU=true` installs the [fake-gpu-operator](https://github.com/run-ai/fake-gpu-operator) (FGO), which simulates GPUs at the Kubernetes API level — no driver and no hardware:
+
+```bash
+cd developing
+ENABLE_FAKE_GPU=true make tilt-up
+```
+
+This labels the worker node, installs FGO (via Helm) into the `gpu-operator` namespace, and makes the worker advertise one simulated GPU. `helm` must be installed for this path; the default `make tilt-up` does not require it.
+
+The GPU workspace options are already defined on the sample WorkspaceKinds, which Tilt does not apply automatically. Apply them, then create a GPU workspace (`spec.podTemplate.options.podConfig: big_gpu`) via the UI spawner or `kubectl`:
+
+```bash
+kubectl apply -k workspaces/controller/manifests/kustomize/samples
+```
+
+Verify:
+
+```bash
+# 1. The worker advertises GPU capacity
+kubectl get nodes -o custom-columns=NAME:.metadata.name,GPU:'.status.capacity.nvidia\.com/gpu'
+
+# 2. FGO's pods are running
+kubectl get pods -n gpu-operator
+
+# 3. A GPU workspace pod schedules (not Pending) and sees a fake GPU
+kubectl exec <workspace-pod> -- nvidia-smi
+```
+
+> [!NOTE]
+>
+> FGO provides a fake `nvidia-smi` and `nvidia.com/gpu` scheduling only — there is no real device. Do not co-install it alongside a real NVIDIA GPU operator or device plugin.
 
 ### Tilt - Clean Up
 
