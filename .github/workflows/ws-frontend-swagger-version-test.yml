@@ -1,0 +1,35 @@
+name: Frontend Swagger Version Check
+
+permissions:
+  contents: read
+
+# TODO: Move this check to pull_request_target after the migration to main.
+# That will let the check use trusted repository code for stronger fork security.
+on:
+  pull_request:
+    branches:
+      - notebooks-v2
+      - main
+    paths:
+      - workspaces/frontend/scripts/swagger.version
+
+jobs:
+  verify-swagger-version:
+    name: Verify Swagger Revision
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Fetch target branch
+        run: |
+          git fetch origin \
+            "+refs/heads/${GITHUB_BASE_REF}:refs/remotes/origin/${GITHUB_BASE_REF}"
+
+      - name: Verify Swagger revision
+        run: |
+          ./workspaces/frontend/scripts/verify-swagger-version.sh \
+            "refs/remotes/origin/${GITHUB_BASE_REF}"
