@@ -23,7 +23,7 @@ import {
   normalizeRedirect,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormRedirect } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormRedirect';
-import { WorkspaceKindFormImagePort } from './WorkspaceKindFormImagePort';
+import { WorkspaceKindFormImagePort, validatePort } from './WorkspaceKindFormImagePort';
 
 interface WorkspaceKindFormImageModalProps {
   mode: string;
@@ -66,31 +66,10 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
     if (portList.length === 0) {
       return true;
     }
-    return portList.some((p, i) => {
-      if (!p.id) {
-        return true;
-      }
-      if (declaredPorts.length > 0 && !declaredPorts.some((dp) => dp.id === p.id)) {
-        return true;
-      }
-      if (portList.some((op, j) => j !== i && op.id === p.id)) {
-        return true;
-      }
-      const portNum = p.port;
-      if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
-        return true;
-      }
-      if (portList.some((op, j) => j !== i && op.port === portNum)) {
-        return true;
-      }
-      if (p.displayName) {
-        const codePoints = Array.from(p.displayName).length;
-        if (codePoints < 2 || codePoints > 64) {
-          return true;
-        }
-      }
-      return false;
-    });
+    const allTouched = new Set(portList.map((_, i) => i));
+    return portList.some(
+      (p, i) => Object.keys(validatePort(p, i, portList, allTouched, declaredPorts)).length > 0,
+    );
   })();
 
   const isMissingRedirectTarget =

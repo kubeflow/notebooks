@@ -1224,7 +1224,7 @@ class EditWorkspaceKind {
   }
 
   assertPortRowCount(count: number) {
-    this.findPortsTable().find('tbody tr').should('have.length', count);
+    this.findPortsTable().find('[data-testid^="port-row-"]').should('have.length', count);
   }
 
   findAddPortButton() {
@@ -1283,20 +1283,16 @@ class EditWorkspaceKind {
     this.findPortRemoveButton(index).should(disabled ? 'be.disabled' : 'not.be.disabled');
   }
 
-  // Cell assertions check the input value (not text content) since cells now contain inputs.
   assertPortIdCell(index: number, value: string) {
-    cy.findByTestId(`port-id-cell-${index}`)
-      .find('select, input')
-      .first()
-      .should('have.value', value);
+    this.findPortIdSelect(index).should('have.value', value);
   }
 
   assertPortDisplayNameCell(index: number, value: string) {
-    cy.findByTestId(`port-display-name-cell-${index}`).find('input').should('have.value', value);
+    this.findPortDisplayNameInput(index).should('have.value', value);
   }
 
   assertPortNumberCell(index: number, value: string) {
-    cy.findByTestId(`port-number-cell-${index}`).find('input').should('have.value', value);
+    this.findPortNumberInput(index).should('have.value', value);
   }
 
   assertPortProtocolCell(index: number, value: string) {

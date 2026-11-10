@@ -9,7 +9,11 @@ import {
   WorkspaceKindImageConfigValue,
   ImagePullPolicy,
 } from '~/app/types';
-import { OptionsRedirectMessageLevel } from '~/generated/data-contracts';
+import {
+  OptionsRedirectMessageLevel,
+  V1Beta1ImagePortProtocol,
+  V1Beta1WorkspaceKindPort,
+} from '~/generated/data-contracts';
 
 jest.mock('mod-arch-kubeflow', () => ({
   useThemeContext: () => ({ isMUITheme: false }),
@@ -48,6 +52,14 @@ const mockPodConfigs: WorkspaceKindPodConfigValue[] = [
   },
 ];
 
+const mockDeclaredPorts: V1Beta1WorkspaceKindPort[] = [
+  {
+    id: 'jupyter-server',
+    defaultDisplayName: 'JupyterLab',
+    protocol: V1Beta1ImagePortProtocol.ImagePortProtocolHTTP,
+  },
+];
+
 const mockImages: WorkspaceKindImageConfigValue[] = [
   {
     id: 'jupyter-minimal',
@@ -57,6 +69,7 @@ const mockImages: WorkspaceKindImageConfigValue[] = [
     hidden: false,
     imagePullPolicy: ImagePullPolicy.IfNotPresent,
     restrictions: { deny: false },
+    ports: [{ id: 'jupyter-server', displayName: 'JupyterLab', port: 8888, protocol: 'HTTP' }],
   },
   {
     id: 'jupyter-scipy',
@@ -128,6 +141,7 @@ const setupImageHarness = (
         image={image}
         setImage={setImage}
         imageOptions={availableImages}
+        declaredPorts={mockDeclaredPorts}
       />
     );
   };

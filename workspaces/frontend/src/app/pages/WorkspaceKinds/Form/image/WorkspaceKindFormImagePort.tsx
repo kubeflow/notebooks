@@ -1,8 +1,4 @@
 import React, { useState } from 'react';
-import {
-  FormFieldGroupExpandable,
-  FormFieldGroupHeader,
-} from '@patternfly/react-core/dist/esm/components/Form';
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import {
@@ -11,10 +7,10 @@ import {
 } from '@patternfly/react-core/dist/esm/components/FormSelect';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table/dist/esm/components/Table';
-import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-icon';
 import { WorkspaceKindImagePort } from '~/app/types';
 import { V1Beta1WorkspaceKindPort } from '~/generated/data-contracts';
+import { EditableTableSection } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 
 interface WorkspaceKindFormImagePortProps {
   ports: WorkspaceKindImagePort[];
@@ -28,7 +24,7 @@ type PortErrors = {
   port?: string;
 };
 
-const validatePort = (
+export const validatePort = (
   p: WorkspaceKindImagePort,
   index: number,
   allPorts: WorkspaceKindImagePort[],
@@ -149,18 +145,14 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
   };
 
   return (
-    <FormFieldGroupExpandable
+    <EditableTableSection
+      title="Port Configuration"
+      description="Configure the ports where this image will serve from (at least one required)"
+      buttonLabel="Port"
+      addButtonTestId="add-port-button"
       isExpanded
-      toggleAriaLabel="Port Details"
-      header={
-        <FormFieldGroupHeader
-          titleText={{
-            text: 'Port Configuration',
-            id: 'workspace-kind-image-ports',
-          }}
-          titleDescription="Configure the ports where this image will serve from (at least one required)"
-        />
-      }
+      onAdd={addPort}
+      showRowCount={false}
     >
       {ports.length > 0 && (
         <Table aria-label="Ports table" data-testid="ports-table">
@@ -274,14 +266,6 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
           </Tbody>
         </Table>
       )}
-      <Button
-        variant="link"
-        icon={<PlusCircleIcon />}
-        onClick={addPort}
-        data-testid="add-port-button"
-      >
-        Add Port
-      </Button>
-    </FormFieldGroupExpandable>
+    </EditableTableSection>
   );
 };
