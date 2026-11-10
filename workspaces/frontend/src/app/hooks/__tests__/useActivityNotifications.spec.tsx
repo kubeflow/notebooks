@@ -33,6 +33,19 @@ const buildRunningWorkspace = (
     },
   });
 
+// The controller reports eligibleAfter: 0 when lastActivity is unknown (e.g. before the first probe).
+const buildUnknownDeadlineWorkspace = (name: string): WorkspacesWorkspaceListItem =>
+  buildMockWorkspace({
+    name,
+    namespace: 'default',
+    state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+    activity: {
+      lastActivity: 0,
+      lastUpdate: 0,
+      rules: { pauseWorkspace: { eligibleAfter: 0 } },
+    },
+  });
+
 beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(new Date('2025-06-15T12:00:00Z'));
@@ -167,6 +180,63 @@ describe('useActivityNotifications', () => {
 
     const reappeared = [buildRunningWorkspace('ws-1', 10 * MINUTE)];
     rerender({ ws: reappeared });
+    expect(mockWarning).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fire toast when a new workspace appears with eligibleAfter 0', () => {
+    const initial = [buildRunningWorkspace('ws-1', 20 * MINUTE)];
+    const { rerender } = renderHook(
+      ({ ws }: { ws: WorkspacesWorkspaceListItem[] }) => useActivityNotifications(ws),
+      { initialProps: { ws: initial } },
+    );
+
+    const withNewWorkspace = [
+      buildRunningWorkspace('ws-1', 20 * MINUTE),
+      buildUnknownDeadlineWorkspace('ws-new'),
+    ];
+    rerender({ ws: withNewWorkspace });
+
+    expect(mockWarning).not.toHaveBeenCalled();
+  });
+
+  it('does not fire toast on repeated refreshes while eligibleAfter stays 0', () => {
+    const { rerender } = renderHook(
+      ({ ws }: { ws: WorkspacesWorkspaceListItem[] }) => useActivityNotifications(ws),
+      { initialProps: { ws: [] as WorkspacesWorkspaceListItem[] } },
+    );
+
+    rerender({ ws: [buildUnknownDeadlineWorkspace('ws-new')] });
+    rerender({ ws: [buildUnknownDeadlineWorkspace('ws-new')] });
+    rerender({ ws: [buildUnknownDeadlineWorkspace('ws-new')] });
+
+    expect(mockWarning).not.toHaveBeenCalled();
+  });
+
+  it('fires one toast when an unknown deadline becomes critical', () => {
+    const { rerender } = renderHook(
+      ({ ws }: { ws: WorkspacesWorkspaceListItem[] }) => useActivityNotifications(ws),
+      { initialProps: { ws: [] as WorkspacesWorkspaceListItem[] } },
+    );
+
+    rerender({ ws: [buildUnknownDeadlineWorkspace('ws-new')] });
+    expect(mockWarning).not.toHaveBeenCalled();
+
+    rerender({ ws: [buildRunningWorkspace('ws-new', 3 * MINUTE)] });
+    expect(mockWarning).toHaveBeenCalledTimes(1);
+    expect(mockWarning).toHaveBeenCalledWith(expect.stringContaining('ws-new'));
+  });
+
+  it('does not re-fire toast on repeated refreshes at the same level', () => {
+    const { rerender } = renderHook(
+      ({ ws }: { ws: WorkspacesWorkspaceListItem[] }) => useActivityNotifications(ws),
+      { initialProps: { ws: [] as WorkspacesWorkspaceListItem[] } },
+    );
+
+    rerender({ ws: [buildUnknownDeadlineWorkspace('ws-new')] });
+    rerender({ ws: [buildRunningWorkspace('ws-new', 3 * MINUTE)] });
+    rerender({ ws: [buildRunningWorkspace('ws-new', 2 * MINUTE)] });
+    rerender({ ws: [buildRunningWorkspace('ws-new', -1 * MINUTE)] });
+
     expect(mockWarning).toHaveBeenCalledTimes(1);
   });
 });

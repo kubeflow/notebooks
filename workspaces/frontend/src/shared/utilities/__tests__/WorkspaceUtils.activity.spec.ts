@@ -7,6 +7,7 @@ import {
 } from '~/shared/utilities/WorkspaceUtils';
 
 const MINUTE = 60 * 1000;
+const DAY = 24 * 60 * MINUTE;
 
 beforeEach(() => {
   jest.useFakeTimers();
@@ -65,6 +66,30 @@ describe('getActivityStatus', () => {
         },
       });
       expect(getActivityStatus(workspace).warningLevel).toBe(ActivityWarningLevel.Critical);
+    });
+
+    it('returns Critical when eligibleAfter is long overdue', () => {
+      const workspace = buildMockWorkspace({
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+        activity: {
+          lastActivity: Date.now() - 2 * DAY,
+          lastUpdate: Date.now() - 10 * MINUTE,
+          rules: { pauseWorkspace: { eligibleAfter: Date.now() - DAY } },
+        },
+      });
+      expect(getActivityStatus(workspace).warningLevel).toBe(ActivityWarningLevel.Critical);
+    });
+
+    it('returns None when eligibleAfter is 0 (deadline unknown)', () => {
+      const workspace = buildMockWorkspace({
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+        activity: {
+          lastActivity: 0,
+          lastUpdate: 0,
+          rules: { pauseWorkspace: { eligibleAfter: 0 } },
+        },
+      });
+      expect(getActivityStatus(workspace).warningLevel).toBe(ActivityWarningLevel.None);
     });
 
     it('returns Critical at exactly 5 minutes boundary', () => {
@@ -180,6 +205,18 @@ describe('getActivityStatus', () => {
       });
       expect(getActivityStatus(workspace).timeRemainingMs).toBe(-5 * MINUTE);
     });
+
+    it('returns null when eligibleAfter is 0 (deadline unknown)', () => {
+      const workspace = buildMockWorkspace({
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+        activity: {
+          lastActivity: 0,
+          lastUpdate: 0,
+          rules: { pauseWorkspace: { eligibleAfter: 0 } },
+        },
+      });
+      expect(getActivityStatus(workspace).timeRemainingMs).toBeNull();
+    });
   });
 
   describe('actionMessage', () => {
@@ -189,6 +226,18 @@ describe('getActivityStatus', () => {
           lastActivity: Date.now() - 10 * MINUTE,
           lastUpdate: Date.now() - 10 * MINUTE,
           rules: { pauseWorkspace: { eligibleAfter: Date.now() + 10 * MINUTE } },
+        },
+      });
+      expect(getActivityStatus(workspace).actionMessage).toBe('paused');
+    });
+
+    it('returns "paused" when eligibleAfter is 0 (deadline unknown)', () => {
+      const workspace = buildMockWorkspace({
+        state: V1Beta1WorkspaceState.WorkspaceStateRunning,
+        activity: {
+          lastActivity: 0,
+          lastUpdate: 0,
+          rules: { pauseWorkspace: { eligibleAfter: 0 } },
         },
       });
       expect(getActivityStatus(workspace).actionMessage).toBe('paused');
