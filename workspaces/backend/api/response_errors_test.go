@@ -18,9 +18,12 @@ package api
 
 import (
 	"encoding/json"
+	"encoding/json/jsontext"
+	jsonv2 "encoding/json/v2"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -304,6 +307,77 @@ var _ = Describe("Error Response Functions", func() {
 
 				expectedErrorResponse := buildExpectedValidationResponse(tc.msg, tc.valErrs, tc.k8sCauses, httpStatusCodeUnprocessableEntityStr)
 				Expect(envelope.Error.ErrorResponse).To(Equal(expectedErrorResponse))
+			})
+		}
+	})
+
+	Describe("failedValidationResponse with SemanticError field errors", func() {
+		var httpStatusCodeUnprocessableEntityStr = strconv.Itoa(http.StatusUnprocessableEntity)
+
+		type responseFixtureData struct {
+			Paused bool   `json:"paused"`
+			Name   string `json:"name"`
+		}
+		type responseFixtureEnvelope struct {
+			Data responseFixtureData `json:"data"`
+		}
+		root := reflect.TypeFor[responseFixtureEnvelope]()
+
+		type testCase struct {
+			description             string
+			semanticErr             *jsonv2.SemanticError
+			expectedValidationError ValidationError
+		}
+
+		testCases := []testCase{
+			{
+				description: "should return 422 with correct structure for a type mismatch error",
+				semanticErr: &jsonv2.SemanticError{
+					JSONPointer: "/data/paused",
+					JSONKind:    jsontext.KindString,
+					GoType:      reflect.TypeFor[bool](),
+				},
+				expectedValidationError: ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data.paused",
+					Message: `Invalid value: "string": got JSON string, but field requires boolean`,
+				},
+			},
+			{
+				description: "should return 422 with correct structure for a number-to-string mismatch",
+				semanticErr: &jsonv2.SemanticError{
+					JSONPointer: "/data/name",
+					JSONKind:    jsontext.KindNumber,
+					GoType:      reflect.TypeFor[string](),
+				},
+				expectedValidationError: ValidationError{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data.name",
+					Message: `Invalid value: "number": got JSON number, but field requires string`,
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			It(tc.description, func() {
+				fieldErrs := FieldErrorsFromSemanticError(tc.semanticErr, root)
+				app.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
+
+				Expect(w.Code).To(Equal(http.StatusUnprocessableEntity))
+
+				var envelope ErrorEnvelope
+				err := json.Unmarshal(w.Body.Bytes(), &envelope)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(envelope.Error).NotTo(BeNil())
+				Expect(envelope.Error.ErrorResponse).To(Equal(ErrorResponse{
+					Code:    httpStatusCodeUnprocessableEntityStr,
+					Message: errMsgRequestBodyInvalid,
+					Cause: &ErrorCause{
+						ValidationErrors: []ValidationError{tc.expectedValidationError},
+					},
+				}))
 			})
 		}
 	})
