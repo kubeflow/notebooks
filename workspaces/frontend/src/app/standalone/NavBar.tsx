@@ -96,6 +96,7 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
                       updatePreferredNamespace({ name: String(selection) });
                     }
                   }}
+                  toggleProps={{ id: 'namespace-select-toggle' }}
                 />
               </ToolbarItem>
             </ToolbarGroup>
