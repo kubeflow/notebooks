@@ -124,7 +124,7 @@ def get_notebook_last_activity(notebook):
     return annotations.get(LAST_ACTIVITY_ANNOTATION, "")
 
 
-def notebook_dict_from_k8s_obj(notebook):
+def notebook_dict_from_k8s_obj(notebook, events=None):
     cntr = notebook["spec"]["template"]["spec"]["containers"][0]
     server_type = None
     if notebook["metadata"].get("annotations"):
@@ -143,6 +143,6 @@ def notebook_dict_from_k8s_obj(notebook):
         "gpus": process_gpus(cntr),
         "memory": cntr["resources"]["requests"]["memory"],
         "volumes": [v["name"] for v in cntr["volumeMounts"]],
-        "status": status.process_status(notebook),
+        "status": status.process_status(notebook, events),
         "metadata": notebook["metadata"],
     }

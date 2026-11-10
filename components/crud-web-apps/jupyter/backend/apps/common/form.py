@@ -1,3 +1,4 @@
+import copy
 import json
 
 from kubeflow.kubeflow.crud_backend import logging
@@ -10,6 +11,13 @@ log = logging.getLogger(__name__)
 SERVER_TYPE_ANNOTATION = "notebooks.kubeflow.org/server-type"
 HEADERS_ANNOTATION = "notebooks.kubeflow.org/http-headers-request-set"
 URI_REWRITE_ANNOTATION = "notebooks.kubeflow.org/http-rewrite-uri"
+
+# The config section of each server type's images
+SERVER_TYPE_IMAGE_FIELDS = {
+    "jupyter": "image",
+    "group-one": "imageGroupOne",
+    "group-two": "imageGroupTwo",
+}
 
 
 def get_form_value(body, defaults, body_field, defaults_field=None,
@@ -111,6 +119,21 @@ def set_server_type(notebook, body, defaults):
         notebook_annotations[URI_REWRITE_ANNOTATION] = "/"
     if server_type == "group-two":
         notebook_annotations[HEADERS_ANNOTATION] = rstudio_header
+
+
+def set_notebook_readiness_probe(notebook, body, defaults):
+    """Give the container the readiness probe of its server type, if the
+    config has one: the Notebook is then ready once its server accepts
+    connections, not when the container starts."""
+    annotations = notebook["metadata"].get("annotations") or {}
+    server_type = annotations.get(SERVER_TYPE_ANNOTATION, "jupyter")
+    image_field = SERVER_TYPE_IMAGE_FIELDS.get(server_type)
+    probe = (defaults.get(image_field) or {}).get("readinessProbe")
+    if not probe:
+        return
+
+    container = notebook["spec"]["template"]["spec"]["containers"][0]
+    container["readinessProbe"] = copy.deepcopy(probe)
 
 
 def set_notebook_cpu(notebook, body, defaults):

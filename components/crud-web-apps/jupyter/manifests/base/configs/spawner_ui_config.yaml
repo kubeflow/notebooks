@@ -47,6 +47,13 @@ spawnerFormDefaults:
     - ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-tensorflow-full:latest
     - ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-tensorflow-cuda-full:latest
 
+    # the readiness probe of the container: the Notebook is ready, and can be
+    # connected to, once its server accepts connections on port 8888
+    readinessProbe:
+      tcpSocket:
+        port: 8888
+      periodSeconds: 5
+
   ################################################################
   # VSCode-like Container Images (Group 1)
   #
@@ -65,6 +72,12 @@ spawnerFormDefaults:
     # the list of available container images in the dropdown
     options:
     - ghcr.io/kubeflow/kubeflow/notebook-servers/codeserver-python:latest
+
+    # the readiness probe of the container (see the image section)
+    readinessProbe:
+      tcpSocket:
+        port: 8888
+      periodSeconds: 5
 
   ################################################################
   # RStudio-like Container Images (Group 2)
@@ -86,6 +99,12 @@ spawnerFormDefaults:
     # the list of available container images in the dropdown
     options:
     - ghcr.io/kubeflow/kubeflow/notebook-servers/rstudio-tidyverse:latest
+
+    # the readiness probe of the container (see the image section)
+    readinessProbe:
+      tcpSocket:
+        port: 8888
+      periodSeconds: 5
 
   ################################################################
   # CPU Resources
