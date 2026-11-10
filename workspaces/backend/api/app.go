@@ -137,5 +137,5 @@ func (a *App) Routes() http.Handler {
 
 	handler := gzhttp.GzipHandler(router)
 
-	return a.recoverPanic(a.enableCORS(handler))
+	return a.recoverPanic(a.enableCORS(a.withRequestTimeout(handler)))
 }
