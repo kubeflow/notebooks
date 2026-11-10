@@ -17,6 +17,12 @@ import {
 import { UndoIcon } from '@patternfly/react-icons/dist/esm/icons/undo-icon';
 import { useNotification } from 'mod-arch-core';
 import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
+import { WorkspaceKindRedirectValidationSummary } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindRedirectValidationSummary';
+import {
+  validateRedirects,
+  validateYamlRedirects,
+  RedirectValidationError,
+} from '~/app/pages/WorkspaceKinds/Form/redirectValidation';
 import useWorkspaceKindByName from '~/app/hooks/useWorkspaceKindByName';
 import { useTypedNavigate, useTypedParams } from '~/app/routerHelper';
 import { useCurrentRouteKey } from '~/app/hooks/useCurrentRouteKey';
@@ -265,7 +271,57 @@ export const WorkspaceKindForm: React.FC = () => {
     }
   }, []);
 
+  const [redirectEditRequest, setRedirectEditRequest] = useState<RedirectValidationError>();
+  const clearRedirectEditRequest = useCallback(() => setRedirectEditRequest(undefined), []);
+  const yamlRedirectValidation = useMemo(
+    () =>
+      validateYamlRedirects({
+        value: mode === 'create' ? yamlValue : editYamlValue,
+        isCreate: mode === 'create',
+      }),
+    [mode, yamlValue, editYamlValue],
+  );
+  const formRedirectErrors = useMemo(() => validateRedirects(data), [data]);
+  const isYamlActive = mode === 'create' || activeTabKey === YAML_TAB_KEY;
+  const redirectErrors = isYamlActive ? yamlRedirectValidation.errors : formRedirectErrors;
+  const hasInvalidRedirects =
+    redirectErrors.length > 0 || (isYamlActive && Boolean(yamlRedirectValidation.parseError));
+  const editInvalidRedirect = useCallback(
+    (error: RedirectValidationError) => {
+      if (activeTabKey === YAML_TAB_KEY) {
+        try {
+          const parsed: unknown = yaml.load(editYamlValue);
+          if (!isValidWorkspaceKindUpdate(parsed)) {
+            setYamlParseError('Invalid WorkspaceKind update structure.');
+            return;
+          }
+          const update = parsed as WorkspacekindsWorkspaceKindUpdate;
+          const converted = convertToFormData(update);
+          replaceData(converted);
+          lastApiObjectRef.current = update;
+          setYamlParseError(null);
+          setActiveTabKey(FORM_TAB_KEY);
+        } catch (cause) {
+          setYamlParseError(cause instanceof Error ? cause.message : 'Invalid YAML');
+          return;
+        }
+      }
+      setRedirectEditRequest(error);
+    },
+    [activeTabKey, editYamlValue, replaceData],
+  );
+
   const handleSubmit = useCallback(async () => {
+    const currentErrors =
+      mode === 'create' || activeTabKey === YAML_TAB_KEY
+        ? validateYamlRedirects({
+            value: mode === 'create' ? yamlValue : editYamlValue,
+            isCreate: mode === 'create',
+          })
+        : { errors: validateRedirects(data), parseError: undefined };
+    if (currentErrors.errors.length || currentErrors.parseError) {
+      return;
+    }
     setIsSubmitting(true);
     // TODO: Complete handleCreate with API call to create a new WS kind
     try {
@@ -362,13 +418,16 @@ export const WorkspaceKindForm: React.FC = () => {
 
   const hasChanges = useMemo(() => {
     if (mode === 'edit' && activeTabKey === YAML_TAB_KEY) {
-      return editYamlValue !== originalYaml;
+      return (
+        editYamlValue !== originalYaml ||
+        (originalFormData !== null && !isEqual(data, originalFormData))
+      );
     }
     return originalFormData !== null && !isEqual(data, originalFormData);
   }, [mode, activeTabKey, editYamlValue, originalYaml, data, originalFormData]);
 
   const canSubmit = useMemo(() => {
-    if (isSubmitting) {
+    if (isSubmitting || hasInvalidRedirects) {
       return false;
     }
     if (mode === 'create') {
@@ -378,7 +437,15 @@ export const WorkspaceKindForm: React.FC = () => {
       return hasChanges && yamlParseError === null;
     }
     return validated === 'success' && hasChanges;
-  }, [isSubmitting, validated, mode, hasChanges, activeTabKey, yamlParseError]);
+  }, [
+    isSubmitting,
+    hasInvalidRedirects,
+    validated,
+    mode,
+    hasChanges,
+    activeTabKey,
+    yamlParseError,
+  ]);
 
   const cancel = useCallback(() => {
     navigate('workspaceKinds');
@@ -427,6 +494,17 @@ export const WorkspaceKindForm: React.FC = () => {
       </PageGroup>
       <PageSection isFilled>
         <Stack hasGutter>
+          <WorkspaceKindRedirectValidationSummary
+            errors={redirectErrors}
+            onEdit={mode === 'edit' ? editInvalidRedirect : undefined}
+          />
+          {isYamlActive &&
+            (mode === 'create' ? yamlValue : editYamlValue) &&
+            yamlRedirectValidation.parseError && (
+              <div role="alert" data-testid="redirect-structure-error">
+                {yamlRedirectValidation.parseError}
+              </div>
+            )}
           {mode === 'create' && (
             <StackItem style={{ height: '100%' }}>
               <WorkspaceKindFileUpload
@@ -480,6 +558,15 @@ export const WorkspaceKindForm: React.FC = () => {
                     </StackItem>
                     <StackItem>
                       <WorkspaceKindFormImage
+                        redirectErrors={formRedirectErrors.filter(
+                          (error) => error.optionType === 'imageConfig',
+                        )}
+                        editRequest={
+                          redirectEditRequest?.optionType === 'imageConfig'
+                            ? redirectEditRequest.index
+                            : undefined
+                        }
+                        onEditRequestHandled={clearRedirectEditRequest}
                         mode={mode}
                         imageConfig={data.imageConfig}
                         updateImageConfig={(imageInput) => {
@@ -489,6 +576,15 @@ export const WorkspaceKindForm: React.FC = () => {
                     </StackItem>
                     <StackItem>
                       <WorkspaceKindFormPodConfig
+                        redirectErrors={formRedirectErrors.filter(
+                          (error) => error.optionType === 'podConfig',
+                        )}
+                        editRequest={
+                          redirectEditRequest?.optionType === 'podConfig'
+                            ? redirectEditRequest.index
+                            : undefined
+                        }
+                        onEditRequestHandled={clearRedirectEditRequest}
                         mode={mode}
                         podConfig={data.podConfig}
                         updatePodConfig={(podConfig) => {

@@ -1,6 +1,10 @@
 class CreateWorkspaceKind {
   readonly CREATE_WORKSPACE_KIND_ROUTE = '/workspacekinds/create';
 
+  assertRedirectSummary(text: string) {
+    cy.findByTestId('redirect-validation-summary').should('be.visible').and('contain.text', text);
+  }
+
   visit() {
     cy.visit(this.CREATE_WORKSPACE_KIND_ROUTE);
     this.wait();

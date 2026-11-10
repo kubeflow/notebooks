@@ -17,6 +17,7 @@ import {
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
 
 export interface WorkspaceKindFormRedirectProps {
+  validationError?: string;
   redirect?: OptionsOptionRedirect;
   setRedirect: (obj: OptionsOptionRedirect) => void;
   candidateTargets: { id: string; displayName?: string }[];
@@ -26,6 +27,7 @@ export interface WorkspaceKindFormRedirectProps {
 }
 
 export const WorkspaceKindFormRedirect: React.FC<WorkspaceKindFormRedirectProps> = ({
+  validationError,
   redirect = { to: '' },
   setRedirect,
   candidateTargets,
@@ -62,123 +64,132 @@ export const WorkspaceKindFormRedirect: React.FC<WorkspaceKindFormRedirectProps>
   ) : undefined;
 
   return (
-    <FormFieldGroupExpandable
-      toggleAriaLabel="Redirect"
-      header={
-        <FormFieldGroupHeader
-          titleText={{
-            text: 'Redirect',
-            id: fieldIdPrefix,
-          }}
-        />
-      }
-      data-testid={`${fieldIdPrefix}-section`}
-    >
-      <ThemeAwareFormGroupWrapper
-        label={targetLabel}
-        fieldId={`${fieldIdPrefix}-to`}
-        helperTextNode={helperTextNode}
-      >
-        <FormSelect
-          id={`${fieldIdPrefix}-to`}
-          data-testid={`${fieldIdPrefix}-to-select`}
-          aria-label={targetLabel}
-          value={redirect.to || ''}
-          onChange={(_, val) => {
-            if (!val) {
-              setRedirect({ to: '' });
-            } else {
-              setRedirect({
-                ...redirect,
-                to: val,
-                message: redirect.message || {
-                  level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
-                  text: '',
-                },
-              });
-            }
-          }}
-        >
-          <FormSelectOption key="none" value="" label="Select one (No redirect)" />
-          {isMissingTarget && (
-            <FormSelectOption
-              key={`missing-${redirect.to}`}
-              value={redirect.to}
-              label={`${redirect.to} (Missing)`}
-            />
-          )}
-          {candidateTargets.map((target) => (
-            <FormSelectOption
-              key={target.id}
-              value={target.id}
-              label={target.displayName ? `${target.displayName} (${target.id})` : target.id}
-            />
-          ))}
-        </FormSelect>
-      </ThemeAwareFormGroupWrapper>
-
-      {Boolean(redirect.to) && (
-        <>
-          <ThemeAwareFormGroupWrapper
-            label="Redirect Message Level"
-            fieldId={`${fieldIdPrefix}-msg-lvl`}
-          >
-            <FormSelect
-              id={`${fieldIdPrefix}-msg-lvl`}
-              data-testid={`${fieldIdPrefix}-msg-lvl-select`}
-              aria-label="Redirect Message Level"
-              value={
-                redirect.message?.level || OptionsRedirectMessageLevel.RedirectMessageLevelInfo
-              }
-              onChange={(_, val) =>
-                setRedirect({
-                  ...redirect,
-                  message: {
-                    text: redirect.message?.text || '',
-                    level: val as OptionsRedirectMessageLevel,
-                  },
-                })
-              }
-            >
-              {REDIRECT_MESSAGE_LEVEL_OPTIONS.map((option, index) => (
-                <FormSelectOption
-                  isDisabled={option.disabled}
-                  key={index}
-                  value={option.value}
-                  label={option.label}
-                />
-              ))}
-            </FormSelect>
-          </ThemeAwareFormGroupWrapper>
-
-          <ThemeAwareFormGroupWrapper
-            label="Text"
-            fieldId={`${fieldIdPrefix}-message-text`}
-            helperTextNode={textHelperText}
-            hasError={hasTextError}
-          >
-            <TextInput
-              name={`${fieldIdPrefix}-message-text`}
-              type="text"
-              id={`${fieldIdPrefix}-message-text`}
-              data-testid={`${fieldIdPrefix}-message-text-input`}
-              value={redirect.message?.text || ''}
-              validated={hasTextError ? 'error' : 'default'}
-              onChange={(_, val) =>
-                setRedirect({
-                  ...redirect,
-                  message: {
-                    level:
-                      redirect.message?.level ||
-                      OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
-                    text: val,
-                  },
-                })
-              }
-            />
-          </ThemeAwareFormGroupWrapper>
-        </>
+    <>
+      {validationError && (
+        <HelperText>
+          <HelperTextItem variant="error" data-testid="redirect-validation-error">
+            {validationError}
+          </HelperTextItem>
+        </HelperText>
       )}
-    </FormFieldGroupExpandable>
+      <FormFieldGroupExpandable
+        toggleAriaLabel="Redirect"
+        header={
+          <FormFieldGroupHeader
+            titleText={{
+              text: 'Redirect',
+              id: fieldIdPrefix,
+            }}
+          />
+        }
+        data-testid={`${fieldIdPrefix}-section`}
+      >
+        <ThemeAwareFormGroupWrapper
+          label={targetLabel}
+          fieldId={`${fieldIdPrefix}-to`}
+          helperTextNode={helperTextNode}
+        >
+          <FormSelect
+            id={`${fieldIdPrefix}-to`}
+            data-testid={`${fieldIdPrefix}-to-select`}
+            aria-label={targetLabel}
+            value={redirect.to || ''}
+            onChange={(_, val) => {
+              if (!val) {
+                setRedirect({ to: '' });
+              } else {
+                setRedirect({
+                  ...redirect,
+                  to: val,
+                  message: redirect.message || {
+                    level: OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+                    text: '',
+                  },
+                });
+              }
+            }}
+          >
+            <FormSelectOption key="none" value="" label="Select one (No redirect)" />
+            {isMissingTarget && (
+              <FormSelectOption
+                key={`missing-${redirect.to}`}
+                value={redirect.to}
+                label={`${redirect.to} (Missing)`}
+              />
+            )}
+            {candidateTargets.map((target) => (
+              <FormSelectOption
+                key={target.id}
+                value={target.id}
+                label={target.displayName ? `${target.displayName} (${target.id})` : target.id}
+              />
+            ))}
+          </FormSelect>
+        </ThemeAwareFormGroupWrapper>
+
+        {Boolean(redirect.to) && (
+          <>
+            <ThemeAwareFormGroupWrapper
+              label="Redirect Message Level"
+              fieldId={`${fieldIdPrefix}-msg-lvl`}
+            >
+              <FormSelect
+                id={`${fieldIdPrefix}-msg-lvl`}
+                data-testid={`${fieldIdPrefix}-msg-lvl-select`}
+                aria-label="Redirect Message Level"
+                value={
+                  redirect.message?.level || OptionsRedirectMessageLevel.RedirectMessageLevelInfo
+                }
+                onChange={(_, val) =>
+                  setRedirect({
+                    ...redirect,
+                    message: {
+                      text: redirect.message?.text || '',
+                      level: val as OptionsRedirectMessageLevel,
+                    },
+                  })
+                }
+              >
+                {REDIRECT_MESSAGE_LEVEL_OPTIONS.map((option, index) => (
+                  <FormSelectOption
+                    isDisabled={option.disabled}
+                    key={index}
+                    value={option.value}
+                    label={option.label}
+                  />
+                ))}
+              </FormSelect>
+            </ThemeAwareFormGroupWrapper>
+
+            <ThemeAwareFormGroupWrapper
+              label="Text"
+              fieldId={`${fieldIdPrefix}-message-text`}
+              helperTextNode={textHelperText}
+              hasError={hasTextError}
+            >
+              <TextInput
+                name={`${fieldIdPrefix}-message-text`}
+                type="text"
+                id={`${fieldIdPrefix}-message-text`}
+                data-testid={`${fieldIdPrefix}-message-text-input`}
+                value={redirect.message?.text || ''}
+                validated={hasTextError ? 'error' : 'default'}
+                onChange={(_, val) =>
+                  setRedirect({
+                    ...redirect,
+                    message: {
+                      level:
+                        redirect.message?.level ||
+                        OptionsRedirectMessageLevel.RedirectMessageLevelInfo,
+                      text: val,
+                    },
+                  })
+                }
+              />
+            </ThemeAwareFormGroupWrapper>
+          </>
+        )}
+      </FormFieldGroupExpandable>
+    </>
   );
 };

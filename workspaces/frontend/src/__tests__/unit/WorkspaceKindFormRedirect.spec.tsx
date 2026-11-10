@@ -652,3 +652,32 @@ describe('WorkspaceKindFormRedirect', () => {
     });
   });
 });
+
+describe('redirect cycles in modal drafts', () => {
+  it('blocks an image cycle and allows recovery by removing the redirect', async () => {
+    const images = mockImages.map((image, index) => ({
+      ...image,
+      redirect: index === 1 ? { to: mockImages[0].id } : undefined,
+    }));
+    const { user, onSubmit } = setupImageHarness({ redirect: { to: mockImages[1].id } }, images);
+    expect(screen.getByTestId('redirect-validation-error')).toHaveTextContent(
+      'jupyter-minimal → jupyter-scipy → jupyter-minimal',
+    );
+    expect(screen.getByTestId('image-modal-submit-button')).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /Redirect/ }));
+    await user.selectOptions(screen.getByTestId('workspace-kind-image-redirect-to-select'), '');
+    await user.click(screen.getByTestId('image-modal-submit-button'));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ redirect: undefined }));
+  });
+  it('blocks a longer pod cycle in an unsaved redirect', () => {
+    const configs = mockPodConfigs.map((config, index) => ({
+      ...config,
+      redirect: index === 1 ? { to: 'large' } : index === 2 ? { to: 'small' } : undefined,
+    }));
+    setupPodConfigHarness({ redirect: { to: 'medium' } }, configs);
+    expect(screen.getByTestId('redirect-validation-error')).toHaveTextContent(
+      'small → medium → large → small',
+    );
+    expect(screen.getByTestId('pod-config-modal-submit-button')).toBeDisabled();
+  });
+});

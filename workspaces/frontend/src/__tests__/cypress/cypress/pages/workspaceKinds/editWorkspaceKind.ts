@@ -1,4 +1,61 @@
 class EditWorkspaceKind {
+  assertRedirectSummary(text?: string) {
+    if (text) {
+      cy.findByTestId('redirect-validation-summary').should('be.visible').and('contain.text', text);
+    } else {
+      cy.findByTestId('redirect-validation-summary').should('not.exist');
+    }
+  }
+
+  editInvalidRedirect({ type, index }: { type: 'imageConfig' | 'podConfig'; index: number }) {
+    cy.findByTestId(`edit-redirect-${type}-${index}`).click();
+  }
+
+  assertRedirectRowError({
+    type,
+    index,
+    text,
+  }: {
+    type: 'image' | 'pod-config';
+    index: number;
+    text: string;
+  }) {
+    cy.findByTestId(
+      `${type === 'image' ? 'images' : 'pod-configs'}-table-redirect-error-${index}`,
+    ).should('contain.text', text);
+  }
+
+  chooseRedirect({ type, target }: { type: 'image' | 'pod-config'; target: string }) {
+    cy.findByTestId(`workspace-kind-${type}-redirect-section`)
+      .findByRole('button', { name: /Redirect/ })
+      .then((button) => {
+        if (button.attr('aria-expanded') === 'false') {
+          cy.wrap(button).click();
+        }
+      });
+    cy.findByTestId(`workspace-kind-${type}-redirect-to-select`).select(target);
+  }
+
+  assertModalCycle({ type, path }: { type: 'image' | 'pod-config'; path: string }) {
+    cy.findByTestId('redirect-validation-error').should('be.visible').and('contain.text', path);
+    cy.findByTestId(`${type}-modal-submit-button`).should('be.disabled');
+  }
+
+  replaceYaml(value: string) {
+    // Monaco handles paste without auto-indenting each line of the document.
+    this.findYamlEditor()
+      .findByRole('textbox')
+      .first()
+      .type(Cypress.platform === 'darwin' ? '{meta+a}' : '{ctrl+a}', { force: true })
+      .then(($input) => {
+        const clipboardData = new DataTransfer();
+        clipboardData.setData('text/plain', value);
+        $input[0].dispatchEvent(
+          new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }),
+        );
+      });
+  }
+
   readonly EDIT_WORKSPACE_KIND_ROUTE = '/workspacekinds/:kind/edit';
 
   visit(kind: string) {
