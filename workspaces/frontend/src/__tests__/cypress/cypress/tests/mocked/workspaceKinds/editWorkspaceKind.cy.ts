@@ -415,6 +415,7 @@ describe('Edit workspace kind', () => {
       // A new image starts with no ports; add one so the Save button is enabled.
       editWorkspaceKind.clickAddPortButton();
       editWorkspaceKind.selectPortId(0, 'http');
+      editWorkspaceKind.typePortNumber(0, '8888');
 
       editWorkspaceKind.submitImageModal();
 
