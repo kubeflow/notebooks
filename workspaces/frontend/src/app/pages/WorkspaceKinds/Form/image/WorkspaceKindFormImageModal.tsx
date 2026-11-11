@@ -21,9 +21,10 @@ import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupW
 import {
   getRedirectMessageError,
   normalizeRedirect,
+  validatePort,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormRedirect } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormRedirect';
-import { WorkspaceKindFormImagePort, validatePort } from './WorkspaceKindFormImagePort';
+import { WorkspaceKindFormImagePort } from './WorkspaceKindFormImagePort';
 
 interface WorkspaceKindFormImageModalProps {
   mode: string;

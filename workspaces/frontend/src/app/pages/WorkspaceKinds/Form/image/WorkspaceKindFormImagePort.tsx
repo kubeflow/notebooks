@@ -11,58 +11,13 @@ import { TrashAltIcon } from '@patternfly/react-icons/dist/esm/icons/trash-alt-i
 import { WorkspaceKindImagePort } from '~/app/types';
 import { V1Beta1WorkspaceKindPort } from '~/generated/data-contracts';
 import { EditableTableSection } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
+import { validatePort } from '~/app/pages/WorkspaceKinds/Form/helpers';
 
 interface WorkspaceKindFormImagePortProps {
   ports: WorkspaceKindImagePort[];
   setPorts: (ports: WorkspaceKindImagePort[]) => void;
   declaredPorts?: V1Beta1WorkspaceKindPort[];
 }
-
-type PortErrors = {
-  id?: string;
-  displayName?: string;
-  port?: string;
-};
-
-export const validatePort = (
-  p: WorkspaceKindImagePort,
-  index: number,
-  allPorts: WorkspaceKindImagePort[],
-  touchedIndices: Set<number>,
-  declaredPorts: V1Beta1WorkspaceKindPort[],
-): PortErrors => {
-  const errors: PortErrors = {};
-
-  if (!p.id) {
-    errors.id = 'Port ID is required';
-  } else if (declaredPorts.length > 0 && !declaredPorts.some((dp) => dp.id === p.id)) {
-    errors.id = 'ID must reference a declared port';
-  } else if (allPorts.some((op, j) => j !== index && touchedIndices.has(j) && op.id === p.id)) {
-    // Only count touched rows as duplicates — untouched new rows are not yet committed.
-    errors.id = 'ID must be unique';
-  }
-
-  if (p.displayName) {
-    const codePoints = Array.from(p.displayName).length;
-    if (codePoints < 2) {
-      errors.displayName = 'Display name must be at least 2 characters';
-    } else if (codePoints > 64) {
-      errors.displayName = 'Display name cannot exceed 64 characters';
-    }
-  }
-
-  const portNum = p.port;
-  if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
-    errors.port = 'Port must be between 1 and 65535';
-  } else if (
-    allPorts.some((op, j) => j !== index && touchedIndices.has(j) && op.port === portNum)
-  ) {
-    // Only count touched rows as duplicates — untouched new rows are not yet committed.
-    errors.port = 'Port number is already in use';
-  }
-
-  return errors;
-};
 
 export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProps> = ({
   ports,

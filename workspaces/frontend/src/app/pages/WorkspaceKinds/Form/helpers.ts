@@ -13,6 +13,7 @@ import {
   OptionsRedirectMessageLevel,
   V1Beta1OptionRedirect,
   V1Beta1RedirectMessageLevel,
+  V1Beta1WorkspaceKindPort,
   V1PullPolicy,
   V1ResourceList,
   V1Toleration,
@@ -21,6 +22,50 @@ import {
   WorkspacekindsWorkspaceKindUpdate,
 } from '~/generated/data-contracts';
 import { PodResourceEntry } from './podConfig/WorkspaceKindFormResource';
+
+export type PortErrors = {
+  id?: string;
+  displayName?: string;
+  port?: string;
+};
+
+export const validatePort = (
+  p: WorkspaceKindImagePort,
+  index: number,
+  allPorts: WorkspaceKindImagePort[],
+  touchedIndices: Set<number>,
+  declaredPorts: V1Beta1WorkspaceKindPort[],
+): PortErrors => {
+  const errors: PortErrors = {};
+
+  if (!p.id) {
+    errors.id = 'Port ID is required';
+  } else if (declaredPorts.length > 0 && !declaredPorts.some((dp) => dp.id === p.id)) {
+    errors.id = 'ID must reference a declared port';
+  } else if (allPorts.some((op, j) => j !== index && touchedIndices.has(j) && op.id === p.id)) {
+    errors.id = 'ID must be unique';
+  }
+
+  if (p.displayName) {
+    const codePoints = Array.from(p.displayName).length;
+    if (codePoints < 2) {
+      errors.displayName = 'Display name must be at least 2 characters';
+    } else if (codePoints > 64) {
+      errors.displayName = 'Display name cannot exceed 64 characters';
+    }
+  }
+
+  const portNum = p.port;
+  if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
+    errors.port = 'Port must be between 1 and 65535';
+  } else if (
+    allPorts.some((op, j) => j !== index && touchedIndices.has(j) && op.port === portNum)
+  ) {
+    errors.port = 'Port number is already in use';
+  }
+
+  return errors;
+};
 
 // Simple ID generator to avoid PatternFly dependency in tests
 export const generateUniqueId = (): string =>
