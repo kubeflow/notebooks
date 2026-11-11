@@ -1817,7 +1817,6 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.assertPortRowCount(1);
       editWorkspaceKind.assertPortIdCell(0, 'http');
       editWorkspaceKind.assertPortNumberCell(0, '8888');
-      editWorkspaceKind.assertPortProtocolCell(0, 'HTTP');
     });
 
     it('should add a new inline row when clicking Add Port', () => {
@@ -2164,7 +2163,7 @@ describe('Edit workspace kind', () => {
       cy.contains('Port must be between 1 and 65535').should('be.visible');
     });
 
-    it('should preserve HTTP protocol after editing a port display name', () => {
+    it('should preserve display name after editing a port display name', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -2174,7 +2173,7 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.typePortDisplayName(0, 'HTTP Main');
 
-      editWorkspaceKind.assertPortProtocolCell(0, 'HTTP');
+      editWorkspaceKind.assertPortDisplayNameCell(0, 'HTTP Main');
     });
   });
 

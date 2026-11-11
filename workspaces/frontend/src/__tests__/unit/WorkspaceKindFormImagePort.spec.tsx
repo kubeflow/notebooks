@@ -64,18 +64,6 @@ describe('WorkspaceKindFormImagePort', () => {
     expect(screen.getByTestId('port-number-input-2')).toHaveValue(6006);
   });
 
-  // 2. Protocol column always shows HTTP (static text, no input).
-  it('renders HTTP in the protocol column', () => {
-    render(
-      <WorkspaceKindFormImagePort
-        ports={[makePort()]}
-        setPorts={setPorts}
-        declaredPorts={declaredPorts}
-      />,
-    );
-    expect(screen.getByTestId('port-protocol-cell-0')).toHaveTextContent('HTTP');
-  });
-
   // 3. Display name falls back to empty string when unset.
   it('renders empty display name when port has no display name', () => {
     const ports = [makePort({ id: 'http', displayName: '' })];

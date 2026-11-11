@@ -1295,10 +1295,6 @@ class EditWorkspaceKind {
     this.findPortNumberInput(index).should('have.value', value);
   }
 
-  assertPortProtocolCell(index: number, value: string) {
-    cy.findByTestId(`port-protocol-cell-${index}`).should('have.text', value);
-  }
-
   // Image modal Save button — used instead of the removed port-modal-submit-button
   assertImageModalSaveDisabled(disabled: boolean) {
     this.findImageModalSubmitButton().should(disabled ? 'be.disabled' : 'not.be.disabled');

@@ -57,11 +57,9 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
   };
 
   const handlePortNumberChange = (index: number, val: string) => {
-    markTouched(index);
     setPortInputs((prev) => ({ ...prev, [index]: val }));
     const num = Number(val);
-    // Store the numeric value; non-integer / out-of-range values are caught by validation.
-    setPorts(ports.map((p, i) => (i === index ? { ...p, port: Number.isNaN(num) ? 0 : num } : p)));
+    updatePort(index, { port: Number.isNaN(num) ? 0 : num });
   };
 
   const addPort = () => {
@@ -116,16 +114,13 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
               <Th>ID</Th>
               <Th>Display Name</Th>
               <Th>Port</Th>
-              <Th>Protocol</Th>
               <Th screenReaderText="Actions" />
             </Tr>
           </Thead>
           <Tbody>
             {ports.map((p, index) => {
               const isTouched = touchedRows.has(index);
-              const errors = isTouched
-                ? validatePort(p, index, ports, touchedRows, declaredPorts)
-                : {};
+              const errors = isTouched ? validatePort(p, index, ports, declaredPorts) : {};
 
               return (
                 <Tr key={index} data-testid={`port-row-${index}`}>
@@ -201,9 +196,6 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
                         <HelperTextItem variant="error">{errors.port}</HelperTextItem>
                       </HelperText>
                     )}
-                  </Td>
-                  <Td dataLabel="Protocol" data-testid={`port-protocol-cell-${index}`}>
-                    HTTP
                   </Td>
                   <Td isActionCell>
                     <Button

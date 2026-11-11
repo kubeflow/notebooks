@@ -67,9 +67,8 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
     if (portList.length === 0) {
       return true;
     }
-    const allTouched = new Set(portList.map((_, i) => i));
     return portList.some(
-      (p, i) => Object.keys(validatePort(p, i, portList, allTouched, declaredPorts)).length > 0,
+      (p, i) => Object.keys(validatePort(p, i, portList, declaredPorts)).length > 0,
     );
   })();
 

@@ -33,7 +33,6 @@ export const validatePort = (
   p: WorkspaceKindImagePort,
   index: number,
   allPorts: WorkspaceKindImagePort[],
-  touchedIndices: Set<number>,
   declaredPorts: V1Beta1WorkspaceKindPort[],
 ): PortErrors => {
   const errors: PortErrors = {};
@@ -42,7 +41,7 @@ export const validatePort = (
     errors.id = 'Port ID is required';
   } else if (declaredPorts.length > 0 && !declaredPorts.some((dp) => dp.id === p.id)) {
     errors.id = 'ID must reference a declared port';
-  } else if (allPorts.some((op, j) => j !== index && touchedIndices.has(j) && op.id === p.id)) {
+  } else if (allPorts.some((op, j) => j !== index && op.id === p.id)) {
     errors.id = 'ID must be unique';
   }
 
@@ -58,9 +57,7 @@ export const validatePort = (
   const portNum = p.port;
   if (!Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
     errors.port = 'Port must be between 1 and 65535';
-  } else if (
-    allPorts.some((op, j) => j !== index && touchedIndices.has(j) && op.port === portNum)
-  ) {
+  } else if (allPorts.some((op, j) => j !== index && op.port === portNum)) {
     errors.port = 'Port number is already in use';
   }
 
