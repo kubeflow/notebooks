@@ -1829,11 +1829,11 @@ describe('Edit workspace kind', () => {
 
       editWorkspaceKind.clickAddPortButton();
 
-      // A new row appears immediately with an empty ID select and default port 8888.
+      // A new row appears immediately with an empty ID select and blank port number.
       editWorkspaceKind.assertPortRowCount(2);
       editWorkspaceKind.findPortIdSelect(1).should('have.value', '');
       editWorkspaceKind.findPortDisplayNameInput(1).should('have.value', '');
-      editWorkspaceKind.findPortNumberInput(1).should('have.value', '8888');
+      editWorkspaceKind.findPortNumberInput(1).should('have.value', '');
     });
 
     it('should add a second port and display both rows', () => {

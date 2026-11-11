@@ -110,7 +110,7 @@ describe('WorkspaceKindFormImagePort', () => {
 
     expect(setPorts).toHaveBeenCalledWith([
       makePort({ id: 'http', port: 8888 }),
-      { id: '', displayName: '', port: 8888, protocol: 'HTTP' },
+      { id: '', displayName: '', port: 0, protocol: 'HTTP' },
     ]);
   });
 

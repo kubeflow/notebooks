@@ -64,9 +64,9 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
 
   const addPort = () => {
     const newIndex = ports.length;
-    setPortInputs((prev) => ({ ...prev, [newIndex]: '8888' }));
+    setPortInputs((prev) => ({ ...prev, [newIndex]: '' }));
     // New row intentionally not added to touchedRows — errors won't show until first interaction.
-    setPorts([...ports, { id: '', displayName: '', port: 8888, protocol: 'HTTP' }]);
+    setPorts([...ports, { id: '', displayName: '', port: 0, protocol: 'HTTP' }]);
   };
 
   const removePort = (index: number) => {
