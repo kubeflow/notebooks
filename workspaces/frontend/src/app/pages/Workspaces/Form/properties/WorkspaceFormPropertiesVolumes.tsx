@@ -312,9 +312,11 @@ export const WorkspaceFormPropertiesVolumes: React.FC<WorkspaceFormPropertiesVol
         <Alert
           variant={AlertVariant.warning}
           isInline
-          title={pvcLoadError}
+          title="Failed to load volume details"
           className="pf-v6-u-mb-sm"
-        />
+        >
+          {pvcLoadError}
+        </Alert>
       )}
       {volumes.length === 0 ? (
         <EmptyState
