@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nbv1beta1 "github.com/kubeflow/notebooks/components/notebook-controller/api/v1beta1"
 )
@@ -84,6 +85,62 @@ var _ = Describe("Notebook controller", func() {
 				}
 				return true, nil
 			}, timeout, interval).Should(BeTrue())
+
+			By("Checking that idle status updates stabilize")
+			apiClient, err := client.New(testEnv.Config, client.Options{Scheme: k8sClient.Scheme()})
+			Expect(err).NotTo(HaveOccurred())
+			statefulSet := &appsv1.StatefulSet{}
+			Expect(apiClient.Get(ctx, notebookLookupKey, statefulSet)).To(Succeed())
+			pod := &v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: Name + "-0", Namespace: Namespace,
+					Labels: map[string]string{"notebook-name": Name},
+					OwnerReferences: []metav1.OwnerReference{
+						*metav1.NewControllerRef(statefulSet, appsv1.SchemeGroupVersion.WithKind("StatefulSet")),
+					},
+				},
+				Spec: v1.PodSpec{Containers: []v1.Container{{Name: Name, Image: "busybox"}}},
+			}
+			Expect(apiClient.Create(ctx, pod)).To(Succeed())
+			transitionTime := metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+			pod.Status = v1.PodStatus{
+				Phase: v1.PodRunning,
+				Conditions: []v1.PodCondition{{
+					Type: v1.PodReady, Status: v1.ConditionTrue, LastTransitionTime: transitionTime,
+				}},
+				ContainerStatuses: []v1.ContainerStatus{{
+					Name: Name, Image: "busybox", Ready: true,
+					State: v1.ContainerState{Running: &v1.ContainerStateRunning{StartedAt: transitionTime}},
+				}},
+			}
+			Expect(apiClient.Status().Update(ctx, pod)).To(Succeed())
+			transitionTime = pod.Status.Conditions[0].LastTransitionTime
+			Eventually(func() []nbv1beta1.NotebookCondition {
+				Expect(apiClient.Get(ctx, notebookLookupKey, createdNotebook)).To(Succeed())
+				return createdNotebook.Status.Conditions
+			}, timeout, interval).Should(Equal([]nbv1beta1.NotebookCondition{{
+				Type: "Ready", Status: "True", LastTransitionTime: transitionTime,
+			}}))
+			Expect(createdNotebook.Status.ContainerState.Running).NotTo(BeNil())
+			notebookVersion := createdNotebook.ResourceVersion
+			Expect(apiClient.Get(ctx, notebookLookupKey, statefulSet)).To(Succeed())
+			statefulSetVersion := statefulSet.ResourceVersion
+			Consistently(func() []string {
+				Expect(apiClient.Get(ctx, notebookLookupKey, createdNotebook)).To(Succeed())
+				Expect(apiClient.Get(ctx, notebookLookupKey, statefulSet)).To(Succeed())
+				return []string{createdNotebook.ResourceVersion, statefulSet.ResourceVersion}
+			}, 3*time.Second, interval).Should(Equal([]string{notebookVersion, statefulSetVersion}))
+
+			By("Propagating a subsequent Pod status change")
+			pod.Status.Conditions[0].Status = v1.ConditionFalse
+			pod.Status.Conditions[0].Reason = "NotReady"
+			Expect(apiClient.Status().Update(ctx, pod)).To(Succeed())
+			Eventually(func() []nbv1beta1.NotebookCondition {
+				Expect(apiClient.Get(ctx, notebookLookupKey, createdNotebook)).To(Succeed())
+				return createdNotebook.Status.Conditions
+			}, timeout, interval).Should(Equal([]nbv1beta1.NotebookCondition{{
+				Type: "Ready", Status: "False", Reason: "NotReady", LastTransitionTime: transitionTime,
+			}}))
 		})
 	})
 })
