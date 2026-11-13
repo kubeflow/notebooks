@@ -17,6 +17,72 @@ import PasswordInput from '~/shared/components/PasswordInput';
 
 export type KeyValueRow = { key: string; value: string };
 
+interface EditableTableSectionProps {
+  title?: string;
+  description?: string;
+  buttonLabel?: string;
+  addButtonTestId?: string;
+  isExpanded?: boolean;
+  onAdd: () => void;
+  children: React.ReactNode;
+  showRowCount?: boolean;
+  rowCount?: number;
+}
+
+export const EditableTableSection: React.FC<EditableTableSectionProps> = ({
+  title = 'Labels',
+  description,
+  buttonLabel = 'Label',
+  addButtonTestId,
+  isExpanded = false,
+  onAdd,
+  children,
+  showRowCount = true,
+  rowCount = 0,
+}) => {
+  const dataTestId = title.toLowerCase().replace(/\s+/g, '-');
+  return (
+    <FormFieldGroupExpandable
+      className="form-label-field-group"
+      toggleAriaLabel={title}
+      data-testid={`${dataTestId}-section`}
+      isExpanded={isExpanded}
+      header={
+        <FormFieldGroupHeader
+          titleText={{
+            text: title,
+            id: `${dataTestId}-title`,
+          }}
+          titleDescription={
+            <>
+              <div>
+                {description ||
+                  'Labels are key/value pairs that are attached to Kubernetes objects.'}
+              </div>
+              {showRowCount && (
+                <div className="pf-u-font-size-sm">
+                  <strong>{rowCount} added</strong>
+                </div>
+              )}
+            </>
+          }
+        />
+      }
+    >
+      {children}
+      <Button
+        variant="link"
+        style={{ width: 'fit-content' }}
+        icon={<PlusCircleIcon />}
+        data-testid={addButtonTestId ?? `add-${dataTestId}-button`}
+        onClick={onAdd}
+      >
+        {`Add ${buttonLabel}`}
+      </Button>
+    </FormFieldGroupExpandable>
+  );
+};
+
 interface EditableTableRowProps {
   data: KeyValueRow;
   columnNames: { key: string; value: string };
@@ -132,35 +198,18 @@ export const EditableRowsTable: React.FC<EditableRowsTableProps> = ({
   minRows = 0,
 }) => {
   const columnNames = { key: 'Key', value: 'Value' };
-
   const dataTestId = title.toLowerCase().replace(/\s+/g, '-');
   const isDeleteDisabled = minRows > 0 && rows.length <= minRows;
 
   return (
-    <FormFieldGroupExpandable
-      className="form-label-field-group"
-      toggleAriaLabel={title}
-      data-testid={`${dataTestId}-section`}
+    <EditableTableSection
+      title={title}
+      description={description}
+      buttonLabel={buttonLabel}
+      addButtonTestId={addButtonTestId}
       isExpanded={isExpanded}
-      header={
-        <FormFieldGroupHeader
-          titleText={{
-            text: title,
-            id: `${dataTestId}-title`,
-          }}
-          titleDescription={
-            <>
-              <div>
-                {description ||
-                  'Labels are key/value pairs that are attached to Kubernetes objects.'}
-              </div>
-              <div className="pf-u-font-size-sm">
-                <strong>{rows.length} added</strong>
-              </div>
-            </>
-          }
-        />
-      }
+      onAdd={() => setRows([...rows, { key: '', value: '' }])}
+      rowCount={rows.length}
     >
       {rows.length !== 0 && (
         <Table aria-label="Editable table" data-testid={`${dataTestId}-table`}>
@@ -191,23 +240,6 @@ export const EditableRowsTable: React.FC<EditableRowsTableProps> = ({
           </Tbody>
         </Table>
       )}
-      <Button
-        variant="link"
-        style={{ width: 'fit-content' }}
-        icon={<PlusCircleIcon />}
-        data-testid={addButtonTestId ?? `add-${dataTestId}-button`}
-        onClick={() => {
-          setRows([
-            ...rows,
-            {
-              key: '',
-              value: '',
-            },
-          ]);
-        }}
-      >
-        {`Add ${buttonLabel}`}
-      </Button>
-    </FormFieldGroupExpandable>
+    </EditableTableSection>
   );
 };

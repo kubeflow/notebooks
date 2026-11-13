@@ -26,3 +26,5 @@ listvalues
 cuda
 rstudio
 fullwidth
+tensorboard
+mlflow
