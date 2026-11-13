@@ -168,6 +168,66 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 		Expect(got).To(BeNil())
 	})
 
+	It("returns ErrWorkspacePodNotRunning when matching pod is Pending", func() {
+		pod := workspacePod("pod-pending", "container-1", nil)
+		pod.Status.Phase = corev1.PodPending
+
+		client := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
+			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
+			Build()
+
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
+		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+
+		Expect(err).To(MatchError(repoCommon.ErrWorkspacePodNotRunning))
+		Expect(got).To(BeNil())
+	})
+
+	It("returns ErrWorkspacePodNotRunning when matching pod is terminating", func() {
+		now := metav1.Now()
+		pod := workspacePod("pod-terminating", "container-1", nil)
+		pod.DeletionTimestamp = &now
+		pod.Finalizers = []string{"workspace.kubeflow.org/test"}
+
+		client := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
+			WithLists(&corev1.PodList{Items: []corev1.Pod{*pod}}).
+			Build()
+
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
+		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+
+		Expect(err).To(MatchError(repoCommon.ErrWorkspacePodNotRunning))
+		Expect(got).To(BeNil())
+	})
+
+	It("ignores terminating pod and selects active running pod when multiple pods exist", func() {
+		now := metav1.Now()
+		terminatingPod := workspacePod("pod-terminating", "container-old", nil)
+		terminatingPod.DeletionTimestamp = &now
+		terminatingPod.Finalizers = []string{"workspace.kubeflow.org/test"}
+
+		runningPod := workspacePod("pod-running", "container-new", corev1.ResourceList{
+			corev1.ResourceCPU: resource.MustParse("200m"),
+		})
+
+		client := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(testWorkspaceCR()).
+			WithLists(&corev1.PodList{Items: []corev1.Pod{*terminatingPod, *runningPod}}).
+			Build()
+
+		repo := newTestMetricsRepository(client, true, resourceUsageCacheMaxCapacity, defaultResourceUsageNegativeCacheTTL, defaultMetricsQueryTimeout)
+		got, err := repo.GetWorkspaceResourceUsage(ctx, "default", "test-workspace")
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(got).NotTo(BeNil())
+		Expect(got.Containers).To(HaveKey("container-new"))
+	})
+
 	It("omits metricsFromMetricsServer when API is not served", func() {
 		pod := workspacePod("pod-3", "container-3", corev1.ResourceList{
 			corev1.ResourceCPU: resource.MustParse("100m"),
@@ -531,14 +591,17 @@ var _ = Describe("MetricsRepository.GetWorkspaceResourceUsage", func() {
 			pod1 := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "pod-1", Namespace: "default", UID: "uid-pod-1", Labels: map[string]string{modelsCommon.LabelWorkspaceName: "ws-1"}},
 				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "c1"}}},
+				Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 			}
 			pod2 := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "pod-2", Namespace: "default", UID: "uid-pod-2", Labels: map[string]string{modelsCommon.LabelWorkspaceName: "ws-2"}},
 				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "c2"}}},
+				Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 			}
 			pod3 := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "pod-3", Namespace: "default", UID: "uid-pod-3", Labels: map[string]string{modelsCommon.LabelWorkspaceName: "ws-3"}},
 				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "c3"}}},
+				Status:     corev1.PodStatus{Phase: corev1.PodRunning},
 			}
 
 			metrics1 := workspacePodMetrics("pod-1", "c1", nil)
@@ -791,6 +854,9 @@ func workspacePod(name, containerName string, requests corev1.ResourceList) *cor
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{c},
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
 		},
 	}
 }
