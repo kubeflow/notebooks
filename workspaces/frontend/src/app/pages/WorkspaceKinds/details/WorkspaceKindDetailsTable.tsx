@@ -70,7 +70,10 @@ export const WorkspaceKindDetailsTable: React.FC<WorkspaceKindDetailsTableProps>
 
   return (
     <Content>
-      <Table aria-label={`workspace-kind-details-${tableKind}`}>
+      <Table
+        aria-label={`workspace-kind-details-${tableKind}`}
+        data-testid={`workspace-kind-details-${tableKind}-table`}
+      >
         <Thead>
           <Tr>
             <Th>Name</Th>
@@ -79,7 +82,7 @@ export const WorkspaceKindDetailsTable: React.FC<WorkspaceKindDetailsTableProps>
         </Thead>
         <Tbody>
           {rowPages[page - 1]?.map((row) => (
-            <Tr key={row.id}>
+            <Tr key={row.id} data-testid={`workspace-kind-details-${tableKind}-row-${row.id}`}>
               <Td>{row.displayName}</Td>
               <Td>
                 {workspaceCountError ? (

@@ -1,7 +1,11 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { createWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/createWorkspace';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { buildMockNamespace, buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
+import {
+  buildMockListValuesData,
+  buildMockNamespace,
+  buildMockWorkspaceKind,
+} from '~/shared/mock/mockBuilder';
 import { interceptListValues } from '~/__tests__/cypress/cypress/utils/testBuilders';
 
 type ImageConfigOption = {
@@ -20,57 +24,50 @@ type PodConfigOption = {
   hidden?: boolean;
 };
 
-const buildWorkspaceKindWithOptions = (overrides: {
-  name?: string;
+const buildListValuesWithOptions = (overrides: {
   defaultImageId?: string;
   imageOptions?: ImageConfigOption[];
   defaultPodConfigId?: string;
   podConfigOptions?: PodConfigOption[];
 }) => {
   const {
-    name = 'jupyterlab',
     defaultImageId = '',
     imageOptions = [],
     defaultPodConfigId = '',
     podConfigOptions = [],
   } = overrides;
 
-  return buildMockWorkspaceKind({
-    name,
-    podTemplate: {
-      ...buildMockWorkspaceKind().podTemplate,
-      options: {
-        imageConfig: {
-          default: defaultImageId,
-          values: imageOptions.map((img) => ({
-            id: img.id,
-            displayName: img.displayName,
-            description: img.description,
-            labels: img.labels || [],
-            hidden: img.hidden || false,
-            restrictions: { deny: false },
-          })),
-        },
-        podConfig: {
-          default: defaultPodConfigId,
-          values: podConfigOptions.map((pc) => ({
-            id: pc.id,
-            displayName: pc.displayName,
-            description: pc.description,
-            labels: pc.labels || [],
-            hidden: pc.hidden || false,
-            restrictions: { deny: false },
-            podMetadata: { labels: {}, annotations: {} },
-            statefulSetMetadata: { labels: {}, annotations: {} },
-          })),
-        },
-      },
+  return buildMockListValuesData({
+    imageConfig: {
+      default: defaultImageId,
+      values: imageOptions.map((img) => ({
+        id: img.id,
+        displayName: img.displayName,
+        description: img.description,
+        labels: img.labels || [],
+        hidden: img.hidden || false,
+        restrictions: { deny: false },
+      })),
+    },
+    podConfig: {
+      default: defaultPodConfigId,
+      values: podConfigOptions.map((pc) => ({
+        id: pc.id,
+        displayName: pc.displayName,
+        description: pc.description,
+        labels: pc.labels || [],
+        hidden: pc.hidden || false,
+        restrictions: { deny: false },
+        podMetadata: { labels: {}, annotations: {} },
+        statefulSetMetadata: { labels: {}, annotations: {} },
+      })),
     },
   });
 };
 
 describe('Workspace Form - Default Selection', () => {
   const mockNamespace = buildMockNamespace({ name: 'default' });
+  const mockWorkspaceKind = buildMockWorkspaceKind();
 
   beforeEach(() => {
     cy.interceptApi(
@@ -82,7 +79,7 @@ describe('Workspace Form - Default Selection', () => {
 
   describe('Auto-selection of defaults', () => {
     it('should auto-select default image when workspace kind selected', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -105,7 +102,8 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -118,7 +116,7 @@ describe('Workspace Form - Default Selection', () => {
     });
 
     it('should auto-select default pod config when workspace kind selected', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -139,7 +137,8 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -153,7 +152,7 @@ describe('Workspace Form - Default Selection', () => {
     });
 
     it('should auto-select both defaults when kind has both defined', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_200',
         imageOptions: [
           {
@@ -179,7 +178,8 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -195,7 +195,7 @@ describe('Workspace Form - Default Selection', () => {
     });
 
     it('should not auto-select when kind has no default image', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: '', // No default (empty string means no match)
         imageOptions: [
           {
@@ -218,7 +218,8 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -234,7 +235,7 @@ describe('Workspace Form - Default Selection', () => {
 
   describe('Default option ordering', () => {
     it('should display default image first in list', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_200', // Third in original list
         imageOptions: [
           {
@@ -262,7 +263,8 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
@@ -275,7 +277,7 @@ describe('Workspace Form - Default Selection', () => {
     });
 
     it('should display "Default" badge on default option', () => {
-      const mockWorkspaceKind = buildWorkspaceKindWithOptions({
+      const listValues = buildListValuesWithOptions({
         defaultImageId: 'jupyterlab_scipy_190',
         imageOptions: [
           {
@@ -298,7 +300,8 @@ describe('Workspace Form - Default Selection', () => {
         { path: { apiVersion: NOTEBOOKS_API_VERSION } },
         mockModArchResponse([mockWorkspaceKind]),
       ).as('getWorkspaceKinds');
-      interceptListValues(mockWorkspaceKind);
+
+      interceptListValues(mockWorkspaceKind, { listValues });
 
       createWorkspace.visit();
       cy.wait('@getWorkspaceKinds');
