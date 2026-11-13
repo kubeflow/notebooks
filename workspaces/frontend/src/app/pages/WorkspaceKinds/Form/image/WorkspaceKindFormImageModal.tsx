@@ -14,6 +14,7 @@ import {
 } from '@patternfly/react-core/dist/esm/components/FormSelect';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { getDraftRedirectError } from '~/app/pages/WorkspaceKinds/Form/redirectValidation';
 import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
@@ -61,8 +62,16 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
   const isMissingRedirectTarget =
     Boolean(image.redirect?.to) &&
     !candidateTargets.some((target) => target.id === image.redirect?.to);
+  const redirectError = getDraftRedirectError({
+    values: imageOptions ?? [],
+    draft: image,
+    editIndex,
+    optionType: 'imageConfig',
+  });
   const hasRedirectError =
-    Boolean(getRedirectMessageError(image.redirect)) || isMissingRedirectTarget;
+    Boolean(getRedirectMessageError(image.redirect)) ||
+    isMissingRedirectTarget ||
+    Boolean(redirectError);
 
   const handleSubmit = () => {
     if (hasRedirectError) {
@@ -201,6 +210,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
           />
           {mode === 'edit' && (
             <WorkspaceKindFormRedirect
+              validationError={redirectError}
               redirect={image.redirect || { to: '' }}
               setRedirect={(redirect) => setImage({ ...image, redirect })}
               candidateTargets={candidateTargets}

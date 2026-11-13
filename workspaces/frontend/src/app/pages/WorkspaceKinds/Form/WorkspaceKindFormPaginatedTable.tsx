@@ -1,3 +1,4 @@
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Table,
@@ -19,10 +20,12 @@ import {
 import { Radio } from '@patternfly/react-core/dist/esm/components/Radio';
 import { Dropdown, DropdownItem } from '@patternfly/react-core/dist/esm/components/Dropdown';
 import { EllipsisVIcon } from '@patternfly/react-icons/dist/esm/icons/ellipsis-v-icon';
+import { RedirectValidationError } from '~/app/pages/WorkspaceKinds/Form/redirectValidation';
 import { WorkspaceKindImageConfigValue } from '~/app/types';
 import { OptionsOptionLabel, OptionsPodConfigValue } from '~/generated/data-contracts';
 
 interface PaginatedTableProps {
+  redirectErrors?: RedirectValidationError[];
   rows: WorkspaceKindImageConfigValue[] | OptionsPodConfigValue[];
   defaultId: string;
   setDefaultId: (id: string) => void;
@@ -41,6 +44,7 @@ const NUM_BASE_COLUMNS = 5;
 
 export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
   rows,
+  redirectErrors = [],
   defaultId,
   setDefaultId,
   handleEdit,
@@ -105,7 +109,7 @@ export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
             <Th aria-label="Actions" />
           </Tr>
         </Thead>
-        {rowPages[page - 1].map((row, pageIndex) => {
+        {(rowPages[page - 1] ?? []).map((row, pageIndex) => {
           const globalIndex = effectivePerPage * (page - 1) + pageIndex;
           const isExpanded = expandedRows.has(row.id);
           const rowContent = (
@@ -121,7 +125,21 @@ export const WorkspaceKindFormPaginatedTable: React.FC<PaginatedTableProps> = ({
                 />
               )}
               <Td>{row.displayName}</Td>
-              <Td>{row.id}</Td>
+              <Td>
+                {row.id}
+                {redirectErrors
+                  .filter((error) => error.index === globalIndex)
+                  .map((error) => (
+                    <HelperText key={error.message}>
+                      <HelperTextItem
+                        variant="error"
+                        data-testid={`${dataTestId}-redirect-error-${globalIndex}`}
+                      >
+                        {error.message}
+                      </HelperTextItem>
+                    </HelperText>
+                  ))}
+              </Td>
               <Td>
                 <Radio
                   className="workspace-kind-form-radio"

@@ -1,3 +1,4 @@
+import { traceRedirects } from '~/app/utils/redirectGraph';
 import {
   OptionsImageConfigValue,
   OptionsPodConfigValue,
@@ -52,42 +53,24 @@ export const resolveRedirectChain = (
   }
 
   const optionsMap = new Map(allOptions.map((opt) => [opt.id, opt]));
-  const visited = new Set<string>([option.id]);
-  const chain: WorkspacesRedirectStep[] = [];
-  let current = option;
-  let cycleDetected = false;
-
-  while (current.redirect) {
-    const targetId = current.redirect.to;
-
-    if (visited.has(targetId)) {
-      cycleDetected = true;
-      break;
-    }
-    visited.add(targetId);
-
-    const targetOption = optionsMap.get(targetId);
-
-    const step: WorkspacesRedirectStep = {
-      source: toOptionInfo(current),
-      target: targetOption ? toOptionInfo(targetOption) : toNotFoundInfo(targetId),
+  // The selected option can contain an unsaved redirect.
+  optionsMap.set(option.id, option);
+  const trace = traceRedirects({ startId: option.id, options: optionsMap });
+  const cycleDetected = Boolean(trace.cycle);
+  const chain: WorkspacesRedirectStep[] = trace.edges.map(({ sourceId, targetId }) => {
+    const source = optionsMap.get(sourceId)!;
+    const target = optionsMap.get(targetId);
+    return {
+      source: toOptionInfo(source),
+      target: target ? toOptionInfo(target) : toNotFoundInfo(targetId),
+      ...(source.redirect?.message && {
+        message: {
+          level: transformRedirectMessageLevel(source.redirect.message.level),
+          text: source.redirect.message.text,
+        },
+      }),
     };
-
-    if (current.redirect.message) {
-      step.message = {
-        level: transformRedirectMessageLevel(current.redirect.message.level),
-        text: current.redirect.message.text,
-      };
-    }
-
-    chain.push(step);
-
-    if (!targetOption) {
-      break;
-    }
-
-    current = targetOption;
-  }
+  });
 
   if (chain.length === 0) {
     return { chain, finalTarget: undefined, cycleDetected };

@@ -16,6 +16,8 @@ import {
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
+import { useRedirectEditRequest } from '~/app/pages/WorkspaceKinds/Form/useRedirectEditRequest';
+import { RedirectValidationError } from '~/app/pages/WorkspaceKinds/Form/redirectValidation';
 import { WorkspaceKindImageConfigData, WorkspaceKindImageConfigValue } from '~/app/types';
 import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormPaginatedTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormPaginatedTable';
@@ -24,11 +26,17 @@ import { WorkspaceKindFormImageModal } from './WorkspaceKindFormImageModal';
 interface WorkspaceKindFormImageProps {
   mode: string;
   imageConfig: WorkspaceKindImageConfigData;
+  redirectErrors?: RedirectValidationError[];
+  editRequest?: number;
+  onEditRequestHandled?: () => void;
   updateImageConfig: (images: WorkspaceKindImageConfigData) => void;
 }
 
 export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
   mode,
+  redirectErrors,
+  editRequest,
+  onEditRequestHandled,
   imageConfig,
   updateImageConfig,
 }) => {
@@ -86,6 +94,13 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
     [imageConfig.values],
   );
 
+  useRedirectEditRequest({
+    index: editRequest,
+    onEdit: handleEdit,
+    onHandled: onEditRequestHandled,
+    expand: setIsExpanded,
+  });
+
   const handleDelete = useCallback(() => {
     if (deleteIndex === null) {
       return;
@@ -132,6 +147,7 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
         {(imageConfig.values ?? []).length > 0 && (
           <div>
             <WorkspaceKindFormPaginatedTable
+              redirectErrors={redirectErrors}
               ariaLabel="Images table"
               dataTestId="images-table"
               rows={imageConfig.values ?? []}
