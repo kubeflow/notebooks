@@ -23,6 +23,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -1625,6 +1626,61 @@ metadata:
 
 			By("verifying the error mentions revision")
 			Expect(rr.Body.String()).To(ContainSubstring("revision"))
+		})
+
+		It("should return 422 with an indexed field path when a value inside an inline Kubernetes struct has wrong type", func() {
+			// "configMap" is a member of an inline struct embedded in corev1.Volume
+			updateBody := `{"data":{"podTemplate":{"podSpec":{"extraVolumes":[{"name":"v","configMap":{"name":"c","items":[{"key":"a","path":"a"},{"key":5,"path":"b"}]}}]}}}}`
+
+			By("executing UpdateWorkspaceKindHandler")
+			rr := doUpdate(wskName, updateBody)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the error response reports array indexes in brackets")
+			var response ErrorEnvelope
+			err := json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).To(BeComparableTo(ErrorEnvelope{Error: &HTTPError{ErrorResponse: ErrorResponse{
+				Code:    strconv.Itoa(http.StatusUnprocessableEntity),
+				Message: errMsgRequestBodyInvalid,
+				Cause: &ErrorCause{ValidationErrors: []ValidationError{{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeTypeInvalid,
+					Field:   "data.podTemplate.podSpec.extraVolumes[0].configMap.items[1].key",
+					Message: `Invalid value: "number": got JSON number, but field requires string`,
+				}}},
+			}}}))
+		})
+
+		It("should return 422 with the underlying reason when a Kubernetes type rejects a value", func() {
+			updateBody := `{"data":{"podTemplate":{"options":{"podConfig":{"values":[{"id":"a","spec":{"resources":{"requests":{"cpu":"lots"}}}}]}}}}}`
+
+			By("executing UpdateWorkspaceKindHandler")
+			rr := doUpdate(wskName, updateBody)
+			rs := rr.Result()
+			defer rs.Body.Close()
+
+			By("verifying the HTTP response status code")
+			Expect(rs.StatusCode).To(Equal(http.StatusUnprocessableEntity), descUnexpectedHTTPStatus, rr.Body.String())
+
+			By("verifying the error response reports the resource.Quantity parse error")
+			var response ErrorEnvelope
+			err := json.Unmarshal(rr.Body.Bytes(), &response)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(response).To(BeComparableTo(ErrorEnvelope{Error: &HTTPError{ErrorResponse: ErrorResponse{
+				Code:    strconv.Itoa(http.StatusUnprocessableEntity),
+				Message: errMsgRequestBodyInvalid,
+				Cause: &ErrorCause{ValidationErrors: []ValidationError{{
+					Origin:  OriginInternal,
+					Type:    field.ErrorTypeInvalid,
+					Field:   "data.podTemplate.options.podConfig.values[0].spec.resources.requests[cpu]",
+					Message: `Invalid value: "string": ` + resource.ErrFormatWrong.Error(),
+				}}},
+			}}}))
 		})
 
 		It("should return 400 for invalid JSON body", func() {
