@@ -6564,11 +6564,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "minProbeIntervalSeconds": {
-                    "description": "the minimum duration in seconds that must elapse between two consecutive probes.\n- Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).\n- Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
+                    "description": "the minimum duration in seconds that must elapse between two consecutive probes.\n- Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).\n- Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+default=300\n+optional",
                     "type": "integer"
                 },
                 "podExec": {
-                    "description": "a script-based probe executed in the Pod\n - this is currently the only supported probe type, so it is required",
+                    "description": "a script-based probe executed in the Pod\n - this is currently the only supported probe type, so it is required\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ActivityProbePodExec"
@@ -6576,7 +6576,7 @@ const docTemplate = `{
                     ]
                 },
                 "probeIntervalSeconds": {
-                    "description": "the desired interval in seconds between successful probes.\n - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n - Determines the freshness of workspace activity status used by activity rules.\n - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still\n   inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose\n   user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,\n   so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible\n   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,\n   at the cost of more frequent probing.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=3600\n+kubebuilder:validation:Optional",
+                    "description": "the desired interval in seconds between successful probes.\n - If a probe succeeds, the controller schedules the next probe after this duration (requeuing after probeInterval).\n - Determines the freshness of workspace activity status used by activity rules.\n - ACTIVITY TIMING CAVEAT: a Workspace is only paused immediately after a fresh probe confirms it is still\n   inactive (a Workspace is never paused based on stale activity data, so an actively-used Workspace whose\n   user resumed activity between probes is not paused). Consequently, activity rules are only evaluated at probe time,\n   so a Workspace may keep running for up to ~probeIntervalSeconds after it first becomes eligible\n   (lastActivity + secondsSinceActive) before it is actually paused. Lower this value for tighter timing,\n   at the cost of more frequent probing.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+default=3600\n+optional",
                     "type": "integer"
                 }
             }
@@ -6588,11 +6588,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "script": {
-                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - The Pod's main container MUST provide a POSIX shell at \"/bin/sh\" and the \"cat\", \"chmod\",\n   and \"rm\" utilities, which the controller uses to stage and execute the script. Minimal\n   or distroless images without these will cause the probe to fail (and never pause).\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable.\n - When has_activity is not provided and last_activity is provided, last_activity is the authoritative source of truth:\n   a successful probe unconditionally overwrites ` + "`" + `status.activity.lastActivity` + "`" + ` with the reported\n   timestamp (the controller does not validate monotonicity or clamp to wall-clock time).\n - The JSON fields ` + "`" + `has_activity` + "`" + ` (boolean) and ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) are mutually exclusive;\n   users should specify one or the other, not both. If both fields are present, ` + "`" + `has_activity` + "`" + ` takes\n   precedence and ` + "`" + `last_activity` + "`" + ` is totally ignored (the probe does not fail).\n   The fields are evaluated to update the Workspace status field ` + "`" + `status.activity.lastActivity` + "`" + ` as follows:\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `true` + "`" + ` (or if the JSON file is empty/omitted): The Workspace is treated as active, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the probe completion time (ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `false` + "`" + `: The Workspace is treated as inactive, and the existing ` + "`" + `status.activity.lastActivity` + "`" + ` timestamp is preserved (unchanged, ignoring ` + "`" + `last_activity` + "`" + `). If ` + "`" + `status.activity.lastActivity` + "`" + ` was not previously set (0), it is initialized to ` + "`" + `status.lastRunningTime` + "`" + ` to treat the Workspace as inactive since startup.\n     - If ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) is provided (and ` + "`" + `has_activity` + "`" + ` is omitted): The Workspace is treated as inactive, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the ` + "`" + `last_activity` + "`" + ` timestamp.\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=2048",
+                    "description": "script is the script to run inside the Pod to determine if the Workspace is active.\nThe script must meet the following requirements:\n - The Pod's main container MUST provide a POSIX shell at \"/bin/sh\" and the \"cat\", \"chmod\",\n   and \"rm\" utilities, which the controller uses to stage and execute the script. Minimal\n   or distroless images without these will cause the probe to fail (and never pause).\n - It must start with a shebang (e.g., \"#!/usr/bin/env bash\" or \"#!/usr/bin/env python\").\n - It must exit with a 0 status code. A non-zero exit code is treated as a probe failure (Workspaces with failing probes are not paused).\n - It should be idempotent and without side effects since it can be run multiple times.\n - If the script wants to report an INACTIVE state, it MUST write a JSON object to the file path\n   supplied in the OUTPUT_JSON_PATH environment variable.\n - When has_activity is not provided and last_activity is provided, last_activity is the authoritative source of truth:\n   a successful probe unconditionally overwrites ` + "`" + `status.activity.lastActivity` + "`" + ` with the reported\n   timestamp (the controller does not validate monotonicity or clamp to wall-clock time).\n - The JSON fields ` + "`" + `has_activity` + "`" + ` (boolean) and ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) are mutually exclusive;\n   users should specify one or the other, not both. If both fields are present, ` + "`" + `has_activity` + "`" + ` takes\n   precedence and ` + "`" + `last_activity` + "`" + ` is totally ignored (the probe does not fail).\n   The fields are evaluated to update the Workspace status field ` + "`" + `status.activity.lastActivity` + "`" + ` as follows:\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `true` + "`" + ` (or if the JSON file is empty/omitted): The Workspace is treated as active, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the probe completion time (ignoring ` + "`" + `last_activity` + "`" + `).\n     - If ` + "`" + `has_activity` + "`" + ` is explicitly set to ` + "`" + `false` + "`" + `: The Workspace is treated as inactive, and the existing ` + "`" + `status.activity.lastActivity` + "`" + ` timestamp is preserved (unchanged, ignoring ` + "`" + `last_activity` + "`" + `). If ` + "`" + `status.activity.lastActivity` + "`" + ` was not previously set (0), it is initialized to ` + "`" + `status.lastRunningTime` + "`" + ` to treat the Workspace as inactive since startup.\n     - If ` + "`" + `last_activity` + "`" + ` (ISO 8601 string) is provided (and ` + "`" + `has_activity` + "`" + ` is omitted): The Workspace is treated as inactive, and ` + "`" + `status.activity.lastActivity` + "`" + ` is updated to the ` + "`" + `last_activity` + "`" + ` timestamp.\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=2048\n+required",
                     "type": "string"
                 },
                 "timeoutSeconds": {
-                    "description": "the maximum number of seconds the probe is allowed to run\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:default:=60\n+kubebuilder:validation:Optional",
+                    "description": "the maximum number of seconds the probe is allowed to run\n+kubebuilder:validation:Minimum:=1\n+default=60\n+optional",
                     "type": "integer"
                 }
             }
@@ -6605,7 +6605,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "config": {
-                    "description": "the configuration for this rule",
+                    "description": "the configuration for this rule\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ActivityRuleConfig"
@@ -6613,7 +6613,7 @@ const docTemplate = `{
                     ]
                 },
                 "effect": {
-                    "description": "the action to take when the rule matches and its conditions are met",
+                    "description": "the action to take when the rule matches and its conditions are met\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ActivityRuleEffect"
@@ -6621,7 +6621,7 @@ const docTemplate = `{
                     ]
                 },
                 "match": {
-                    "description": "the conditions which must ALL be satisfied for the rule to apply\n - an omitted or empty list makes this a catch-all rule that matches all Workspaces\n+kubebuilder:validation:Optional\n+listType:=\"atomic\"",
+                    "description": "the conditions which must ALL be satisfied for the rule to apply\n - an omitted or empty list makes this a catch-all rule that matches all Workspaces\n+optional\n+listType=atomic",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.ActivityRuleMatch"
@@ -6636,11 +6636,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "minRunningSeconds": {
-                    "description": "the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity\n+kubebuilder:validation:Minimum:=0\n+kubebuilder:default:=0\n+kubebuilder:validation:Optional",
+                    "description": "the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity\n+kubebuilder:validation:Minimum:=0\n+default=0\n+optional",
                     "type": "integer"
                 },
                 "secondsSinceActive": {
-                    "description": "the number of seconds of inactivity before a Workspace is eligible for this rule's effect\n - the minimum value is 16 (` + "`" + `secondsSinceActive` + "`" + ` \u003e 15) to prevent thrashing and pausing\n   workspaces prematurely during startup or transient connection drops\n+kubebuilder:validation:Minimum:=16",
+                    "description": "the number of seconds of inactivity before a Workspace is eligible for this rule's effect\n - the minimum value is 16 (` + "`" + `secondsSinceActive` + "`" + ` \u003e 15) to prevent thrashing and pausing\n   workspaces prematurely during startup or transient connection drops\n+kubebuilder:validation:Minimum:=16\n+required",
                     "type": "integer"
                 }
             }
@@ -6649,7 +6649,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "pauseWorkspace": {
-                    "description": "determines if the Workspace should be paused\n - the webhook rejects rules with ` + "`" + `pauseWorkspace: true` + "`" + `\n   when no ` + "`" + `activityProbe` + "`" + ` is configured\n+kubebuilder:validation:Optional",
+                    "description": "determines if the Workspace should be paused\n - the webhook rejects rules with ` + "`" + `pauseWorkspace: true` + "`" + `\n   when no ` + "`" + `activityProbe` + "`" + ` is configured\n+optional",
                     "type": "boolean"
                 }
             }
@@ -6658,7 +6658,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "matchNamespace": {
-                    "description": "filters Workspaces by the labels of their namespace\n+kubebuilder:validation:Optional",
+                    "description": "filters Workspaces by the labels of their namespace\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ActivityRuleSelector"
@@ -6666,7 +6666,7 @@ const docTemplate = `{
                     ]
                 },
                 "matchPodConfig": {
-                    "description": "filters Workspaces by the labels of the PodConfig option they are using\n+kubebuilder:validation:Optional",
+                    "description": "filters Workspaces by the labels of the PodConfig option they are using\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ActivityRuleSelector"
@@ -6682,7 +6682,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "selector": {
-                    "description": "a standard Kubernetes label selector\n - must not be empty, use an empty 'match' list for a catch-all rule",
+                    "description": "a standard Kubernetes label selector\n - must not be empty, use an empty 'match' list for a catch-all rule\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.LabelSelector"
@@ -6700,7 +6700,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "effect": {
-                    "description": "the effect to apply to matched items when all ` + "`" + `match` + "`" + ` conditions are satisfied",
+                    "description": "the effect to apply to matched items when all ` + "`" + `match` + "`" + ` conditions are satisfied\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.FilterRuleEffect"
@@ -6708,14 +6708,14 @@ const docTemplate = `{
                     ]
                 },
                 "match": {
-                    "description": "the conditions which must ALL be satisfied for the rule to apply\n+kubebuilder:validation:MinItems:=1\n+listType:=\"atomic\"",
+                    "description": "the conditions which must ALL be satisfied for the rule to apply\n+kubebuilder:validation:MinItems:=1\n+listType=atomic\n+required",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.FilterRuleMatch"
                     }
                 },
                 "scope": {
-                    "description": "the type of resource whose visibility this rule controls",
+                    "description": "the type of resource whose visibility this rule controls\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.FilterRuleScope"
@@ -6731,7 +6731,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "text": {
-                    "description": "the text of the message to show when the item is denied\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024",
+                    "description": "the text of the message to show when the item is denied\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024\n+required",
                     "type": "string"
                 }
             }
@@ -6740,7 +6740,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "api": {
-                    "description": "server-enforced behavior evaluated by the backend API server\n+kubebuilder:validation:Optional",
+                    "description": "server-enforced behavior evaluated by the backend API server\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.FilterRuleEffectAPI"
@@ -6748,7 +6748,7 @@ const docTemplate = `{
                     ]
                 },
                 "ui": {
-                    "description": "rendering hints for the frontend (the item is still returned by the API)\n+kubebuilder:validation:Optional",
+                    "description": "rendering hints for the frontend (the item is still returned by the API)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.FilterRuleEffectUI"
@@ -6761,11 +6761,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "deny": {
-                    "description": "return the matched item but reject any workspace create/update which selects it\n+kubebuilder:validation:Optional",
+                    "description": "return the matched item but reject any workspace create/update which selects it\n+optional",
                     "type": "boolean"
                 },
                 "denyMessage": {
-                    "description": "a message explaining why the matched item is denied\n+kubebuilder:validation:Optional",
+                    "description": "a message explaining why the matched item is denied\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.FilterRuleDenyMessage"
@@ -6773,7 +6773,7 @@ const docTemplate = `{
                     ]
                 },
                 "hide": {
-                    "description": "omit the matched item from the API response entirely\n+kubebuilder:validation:Optional",
+                    "description": "omit the matched item from the API response entirely\n+optional",
                     "type": "boolean"
                 }
             }
@@ -6785,7 +6785,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "hide": {
-                    "description": "suggest the UI hide the matched item",
+                    "description": "suggest the UI hide the matched item\n+required",
                     "type": "boolean"
                 }
             }
@@ -6794,7 +6794,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "matchImageConfig": {
-                    "description": "match against the ` + "`" + `spawner.labels` + "`" + ` of an imageConfig value\n+kubebuilder:validation:Optional",
+                    "description": "match against the ` + "`" + `spawner.labels` + "`" + ` of an imageConfig value\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.FilterRuleSelector"
@@ -6802,7 +6802,7 @@ const docTemplate = `{
                     ]
                 },
                 "matchNamespace": {
-                    "description": "match against the labels of the namespace the workspace would be created in\n+kubebuilder:validation:Optional",
+                    "description": "match against the labels of the namespace the workspace would be created in\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.FilterRuleSelector"
@@ -6810,7 +6810,7 @@ const docTemplate = `{
                     ]
                 },
                 "matchPodConfig": {
-                    "description": "match against the ` + "`" + `spawner.labels` + "`" + ` of a podConfig value\n+kubebuilder:validation:Optional",
+                    "description": "match against the ` + "`" + `spawner.labels` + "`" + ` of a podConfig value\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.FilterRuleSelector"
@@ -6839,7 +6839,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "selector": {
-                    "description": "a standard Kubernetes label selector\n - must not be empty",
+                    "description": "a standard Kubernetes label selector\n - must not be empty\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.LabelSelector"
@@ -6852,11 +6852,11 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "removePathPrefix": {
-                    "description": "if the path prefix is stripped from incoming HTTP requests\n - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix\n   is stripped from incoming requests, the application sees the request\n   as if it was made to '/...'\n - this only works if the application serves RELATIVE URLs for its assets\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "description": "if the path prefix is stripped from incoming HTTP requests\n - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix\n   is stripped from incoming requests, the application sees the request\n   as if it was made to '/...'\n - this only works if the application serves RELATIVE URLs for its assets\n+optional\n+default=false",
                     "type": "boolean"
                 },
                 "requestHeaders": {
-                    "description": "header manipulation rules for incoming HTTP requests\n - sets the ` + "`" + `spec.http[].headers.request` + "`" + ` of the Istio VirtualService\n   https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations\n+kubebuilder:validation:Optional",
+                    "description": "header manipulation rules for incoming HTTP requests\n - sets the ` + "`" + `spec.http[].headers.request` + "`" + ` of the Istio VirtualService\n   https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.IstioHeaderOperations"
@@ -6873,7 +6873,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "spawner": {
-                    "description": "spawner ui configs",
+                    "description": "spawner ui configs\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.OptionsSpawnerConfig"
@@ -6881,7 +6881,7 @@ const docTemplate = `{
                     ]
                 },
                 "values": {
-                    "description": "the list of image configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
+                    "description": "the list of image configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType=map\n+listMapKey=id\n+required",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.ImageConfigValue"
@@ -6898,11 +6898,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "image": {
-                    "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0\"",
+                    "description": "the container image to use\n+kubebuilder:validation:MinLength:=2\n+kubeflow:example=\"ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0\"\n+required",
                     "type": "string"
                 },
                 "imagePullPolicy": {
-                    "description": "the pull policy for the container image\n+kubebuilder:validation:Optional\n+kubebuilder:default:=\"IfNotPresent\"\n+kubebuilder:validation:Enum:={\"Always\",\"IfNotPresent\",\"Never\"}",
+                    "description": "the pull policy for the container image\n+optional\n+default=\"IfNotPresent\"\n+kubebuilder:validation:Enum:={\"Always\",\"IfNotPresent\",\"Never\"}",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.PullPolicy"
@@ -6910,7 +6910,7 @@ const docTemplate = `{
                     ]
                 },
                 "ports": {
-                    "description": "ports that the container listens on\n  - if multiple ports are defined, the user will see multiple \"Connect\" buttons\n    in a dropdown menu on the Workspace overview page\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
+                    "description": "ports that the container listens on\n  - if multiple ports are defined, the user will see multiple \"Connect\" buttons\n    in a dropdown menu on the Workspace overview page\n+kubebuilder:validation:MinItems:=1\n+listType=map\n+listMapKey=id\n+required",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.ImagePort"
@@ -6927,11 +6927,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "id": {
-                    "description": "the id of this image config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"",
+                    "description": "the id of this image config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"\n+required",
                     "type": "string"
                 },
                 "redirect": {
-                    "description": "redirect configs\n+kubebuilder:validation:Optional",
+                    "description": "redirect configs\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.OptionRedirect"
@@ -6939,7 +6939,7 @@ const docTemplate = `{
                     ]
                 },
                 "spawner": {
-                    "description": "information for the spawner ui",
+                    "description": "information for the spawner ui\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.OptionSpawnerInfo"
@@ -6947,7 +6947,7 @@ const docTemplate = `{
                     ]
                 },
                 "spec": {
-                    "description": "the spec of the image config",
+                    "description": "the spec of the image config\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ImageConfigSpec"
@@ -6964,15 +6964,15 @@ const docTemplate = `{
             ],
             "properties": {
                 "displayName": {
-                    "description": "the display name of the port\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+kubebuilder:validation:Optional",
+                    "description": "the display name of the port\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+optional",
                     "type": "string"
                 },
                 "id": {
-                    "description": "the id of the port\n - this is used as the Container and Service port name, in addition to the HTTP URL path\n+kubebuilder:example=\"jupyterlab\"",
+                    "description": "the id of the port\n - this is used as the Container and Service port name, in addition to the HTTP URL path\n+kubebuilder:example=\"jupyterlab\"\n+required",
                     "type": "string"
                 },
                 "port": {
-                    "description": "the port number\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=65535\n+kubebuilder:example:=8888",
+                    "description": "the port number\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=65535\n+kubebuilder:example:=8888\n+required",
                     "type": "integer"
                 }
             }
@@ -6990,21 +6990,21 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "add": {
-                    "description": "append the given values to the headers specified by keys (will create a comma-separated list of values)\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"My-Header\": \"value-to-append\" }",
+                    "description": "append the given values to the headers specified by keys (will create a comma-separated list of values)\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+optional\n+kubebuilder:example:={ \"My-Header\": \"value-to-append\" }",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
                     }
                 },
                 "remove": {
-                    "description": "remove the specified headers\n+kubebuilder:validation:Optional\n+kubebuilder:example:={\"Header-To-Remove\"}",
+                    "description": "remove the specified headers\n+optional\n+kubebuilder:example:={\"Header-To-Remove\"}",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "set": {
-                    "description": "overwrite the headers specified by key with the given values\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ httpPathPrefix 'rstudio' }}\" }",
+                    "description": "overwrite the headers specified by key with the given values\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ httpPathPrefix 'rstudio' }}\" }",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -7019,7 +7019,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "message": {
-                    "description": "information about the redirect\n+kubebuilder:validation:Optional",
+                    "description": "information about the redirect\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.RedirectMessage"
@@ -7027,7 +7027,7 @@ const docTemplate = `{
                     ]
                 },
                 "to": {
-                    "description": "the id of the option to redirect to\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"",
+                    "description": "the id of the option to redirect to\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"jupyterlab_scipy_190\"\n+required",
                     "type": "string"
                 }
             }
@@ -7039,19 +7039,19 @@ const docTemplate = `{
             ],
             "properties": {
                 "description": {
-                    "description": "a description of the option\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024",
+                    "description": "a description of the option\n+optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024",
                     "type": "string"
                 },
                 "displayName": {
-                    "description": "the display name of the option\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=128",
+                    "description": "the display name of the option\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=128\n+required",
                     "type": "string"
                 },
                 "hidden": {
-                    "description": "if this option should be hidden from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "description": "if this option should be hidden from the Workspace Spawner UI\n+optional\n+default=false",
                     "type": "boolean"
                 },
                 "labels": {
-                    "description": "labels for the option\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MaxItems:=32\n+listType:=\"map\"\n+listMapKey:=\"key\"",
+                    "description": "labels for the option\n+optional\n+kubebuilder:validation:MaxItems:=32\n+listType=map\n+listMapKey=key",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.OptionSpawnerLabel"
@@ -7067,11 +7067,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "key": {
-                    "description": "the key of the label\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64",
+                    "description": "the key of the label\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+required",
                     "type": "string"
                 },
                 "value": {
-                    "description": "the value of the label\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=64",
+                    "description": "the value of the label\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=64\n+required",
                     "type": "string"
                 }
             }
@@ -7083,7 +7083,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "default": {
-                    "description": "the id of the default option\n - this will be selected by default in the spawner ui\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"jupyterlab_scipy_190\"",
+                    "description": "the id of the default option\n - this will be selected by default in the spawner ui\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"jupyterlab_scipy_190\"\n+required",
                     "type": "string"
                 }
             }
@@ -7096,7 +7096,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "spawner": {
-                    "description": "spawner ui configs",
+                    "description": "spawner ui configs\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.OptionsSpawnerConfig"
@@ -7104,7 +7104,7 @@ const docTemplate = `{
                     ]
                 },
                 "values": {
-                    "description": "the list of pod configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
+                    "description": "the list of pod configs that are available\n+kubebuilder:validation:MinItems:=1\n+listType=map\n+listMapKey=id\n+required",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.PodConfigValue"
@@ -7116,7 +7116,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "affinity": {
-                    "description": "affinity configs for the pod\n+kubebuilder:validation:Optional",
+                    "description": "affinity configs for the pod\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Affinity"
@@ -7124,21 +7124,21 @@ const docTemplate = `{
                     ]
                 },
                 "extraEnv": {
-                    "description": "extra environment variables for the \"main\" container, specific to this pod config\n - use this for variables that depend on the hardware or scheduling of this pod config,\n   for example ` + "`" + `PJRT_DEVICE=CPU` + "`" + ` for a CPU pod config, or ` + "`" + `TPU_TOPOLOGY=2x2` + "`" + ` for a TPU slice\n - these are combined with the WorkspaceKind-level ` + "`" + `podTemplate.podSpec.mainContainer.extraEnv` + "`" + `:\n    - a variable with the same ` + "`" + `name` + "`" + ` as a WorkspaceKind-level variable replaces its value,\n      but keeps the position of the WorkspaceKind-level variable\n    - all other variables are added after the WorkspaceKind-level variables, in the order listed here\n - Kubernetes only expands ` + "`" + `$(VAR_NAME)` + "`" + ` references to variables that appear EARLIER in the\n   final list, so WorkspaceKind-level variables can NOT reference variables only defined here\n - like all pod config ` + "`" + `spec` + "`" + ` fields, this can NOT be changed while the pod config is used by\n   any Workspace, instead, create a new pod config value and redirect the old one to it\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={{name: \"PJRT_DEVICE\", value: \"CPU\"}}\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "extra environment variables for the \"main\" container, specific to this pod config\n - use this for variables that depend on the hardware or scheduling of this pod config,\n   for example ` + "`" + `PJRT_DEVICE=CPU` + "`" + ` for a CPU pod config, or ` + "`" + `TPU_TOPOLOGY=2x2` + "`" + ` for a TPU slice\n - these are combined with the WorkspaceKind-level ` + "`" + `podTemplate.podSpec.mainContainer.extraEnv` + "`" + `:\n    - a variable with the same ` + "`" + `name` + "`" + ` as a WorkspaceKind-level variable replaces its value,\n      but keeps the position of the WorkspaceKind-level variable\n    - all other variables are added after the WorkspaceKind-level variables, in the order listed here\n - Kubernetes only expands ` + "`" + `$(VAR_NAME)` + "`" + ` references to variables that appear EARLIER in the\n   final list, so WorkspaceKind-level variables can NOT reference variables only defined here\n - like all pod config ` + "`" + `spec` + "`" + ` fields, this can NOT be changed while the pod config is used by\n   any Workspace, instead, create a new pod config value and redirect the old one to it\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+optional\n+kubebuilder:example:={{name: \"PJRT_DEVICE\", value: \"CPU\"}}\n+listType=map\n+listMapKey=name",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.EnvVar"
                     }
                 },
                 "nodeSelector": {
-                    "description": "node selector configs for the pod\n+kubebuilder:validation:Optional",
+                    "description": "node selector configs for the pod\n+optional",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
                     }
                 },
                 "podMetadata": {
-                    "description": "metadata to apply to Workspace Pods when this podConfig is selected\n - layered over the WorkspaceKind-level ` + "`" + `podMetadata` + "`" + `, winning on key conflicts\n+kubebuilder:validation:Optional",
+                    "description": "metadata to apply to Workspace Pods when this podConfig is selected\n - layered over the WorkspaceKind-level ` + "`" + `podMetadata` + "`" + `, winning on key conflicts\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindPodMetadata"
@@ -7146,7 +7146,7 @@ const docTemplate = `{
                     ]
                 },
                 "resources": {
-                    "description": "resource configs for the \"main\" container in the pod\n+kubebuilder:validation:Optional",
+                    "description": "resource configs for the \"main\" container in the pod\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.ResourceRequirements"
@@ -7154,11 +7154,11 @@ const docTemplate = `{
                     ]
                 },
                 "schedulerName": {
-                    "description": "the name of the scheduler to use for the pod\n - this takes precedence over the ` + "`" + `schedulerName` + "`" + ` of the pod template\n - set this to \"default-scheduler\" to have this pod config use the\n   default Kubernetes scheduler, even if the pod template sets another one\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"volcano\"",
+                    "description": "the name of the scheduler to use for the pod\n - this takes precedence over the ` + "`" + `schedulerName` + "`" + ` of the pod template\n - set this to \"default-scheduler\" to have this pod config use the\n   default Kubernetes scheduler, even if the pod template sets another one\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+optional\n+kubebuilder:example=\"volcano\"",
                     "type": "string"
                 },
                 "statefulSetMetadata": {
-                    "description": "metadata to apply to the Workspace StatefulSet when this podConfig is selected\n - layered over the WorkspaceKind-level ` + "`" + `statefulSetMetadata` + "`" + `, winning on key conflicts\n+kubebuilder:validation:Optional",
+                    "description": "metadata to apply to the Workspace StatefulSet when this podConfig is selected\n - layered over the WorkspaceKind-level ` + "`" + `statefulSetMetadata` + "`" + `, winning on key conflicts\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindStatefulSetMetadata"
@@ -7166,7 +7166,7 @@ const docTemplate = `{
                     ]
                 },
                 "tolerations": {
-                    "description": "toleration configs for the pod\n+kubebuilder:validation:Optional",
+                    "description": "toleration configs for the pod\n+optional",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.Toleration"
@@ -7183,11 +7183,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "id": {
-                    "description": "the id of this pod config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"big_gpu\"",
+                    "description": "the id of this pod config\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example=\"big_gpu\"\n+required",
                     "type": "string"
                 },
                 "redirect": {
-                    "description": "redirect configs\n+kubebuilder:validation:Optional",
+                    "description": "redirect configs\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.OptionRedirect"
@@ -7195,7 +7195,7 @@ const docTemplate = `{
                     ]
                 },
                 "spawner": {
-                    "description": "information for the spawner ui",
+                    "description": "information for the spawner ui\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.OptionSpawnerInfo"
@@ -7203,7 +7203,7 @@ const docTemplate = `{
                     ]
                 },
                 "spec": {
-                    "description": "the spec of the pod config",
+                    "description": "the spec of the pod config\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.PodConfigSpec"
@@ -7220,7 +7220,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "level": {
-                    "description": "the importance level of the message\n+kubebuilder:example:=\"Info\"",
+                    "description": "the importance level of the message\n+kubebuilder:example:=\"Info\"\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.RedirectMessageLevel"
@@ -7228,7 +7228,7 @@ const docTemplate = `{
                     ]
                 },
                 "text": {
-                    "description": "the text of the message to show\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024\n+kubebuilder:example:=\"This update will increase the version of JupyterLab to v1.7.1\"",
+                    "description": "the text of the message to show\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=1024\n+kubebuilder:example:=\"This update will increase the version of JupyterLab to v1.7.1\"\n+required",
                     "type": "string"
                 }
             }
@@ -7250,7 +7250,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "configMap": {
-                    "description": "the ConfigMap reference for the asset\n+kubebuilder:validation:Optional",
+                    "description": "the ConfigMap reference for the asset\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindAssetConfigMap"
@@ -7258,7 +7258,7 @@ const docTemplate = `{
                     ]
                 },
                 "url": {
-                    "description": "the URL of the asset\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png\"",
+                    "description": "the URL of the asset\n+optional\n+kubebuilder:example=\"https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png\"",
                     "type": "string"
                 }
             }
@@ -7273,11 +7273,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "key": {
-                    "description": "the key in the ConfigMap which contains the data\n+kubebuilder:example=\"jupyterlab-logo.svg\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$",
+                    "description": "the key in the ConfigMap which contains the data\n+kubebuilder:example=\"jupyterlab-logo.svg\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$\n+required",
                     "type": "string"
                 },
                 "mediaType": {
-                    "description": "the media type of the asset data in the ConfigMap\n+kubebuilder:example=\"image/svg+xml\"",
+                    "description": "the media type of the asset data in the ConfigMap\n+kubebuilder:example=\"image/svg+xml\"\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindAssetMediaType"
@@ -7285,11 +7285,11 @@ const docTemplate = `{
                     ]
                 },
                 "name": {
-                    "description": "the name of the ConfigMap\n+kubebuilder:example=\"my-logos\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
+                    "description": "the name of the ConfigMap\n+kubebuilder:example=\"my-logos\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$\n+required",
                     "type": "string"
                 },
                 "namespace": {
-                    "description": "the namespace of the ConfigMap\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=63\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$\n+kubebuilder:example=\"kubeflow\"",
+                    "description": "the namespace of the ConfigMap\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=63\n+kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$\n+kubebuilder:example=\"kubeflow\"\n+required",
                     "type": "string"
                 }
             }
@@ -7310,7 +7310,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "name": {
-                    "description": "the name of the ClusterRole to bind to the Workspace ServiceAccount\n - note, ClusterRole names are path segment names, so unlike most Kubernetes\n   resource names they may contain uppercase letters and \":\" (for example,\n   the aggregated \"system:aggregate-to-view\" ClusterRole)\n - the pattern is the regex form of Kubernetes ` + "`" + `IsValidPathSegmentName` + "`" + `:\n   the name must not be \".\" or \"..\", and must not contain \"/\" or \"%\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^([^./%][^/%]*|\\.[^./%][^/%]*|\\.[^/%][^/%]+)$\n+kubebuilder:example:=\"kubeflow-edit\"",
+                    "description": "the name of the ClusterRole to bind to the Workspace ServiceAccount\n - note, ClusterRole names are path segment names, so unlike most Kubernetes\n   resource names they may contain uppercase letters and \":\" (for example,\n   the aggregated \"system:aggregate-to-view\" ClusterRole)\n - the pattern is the regex form of Kubernetes ` + "`" + `IsValidPathSegmentName` + "`" + `:\n   the name must not be \".\" or \"..\", and must not contain \"/\" or \"%\"\n+kubebuilder:validation:MinLength:=1\n+kubebuilder:validation:MaxLength:=253\n+kubebuilder:validation:Pattern:=^([^./%][^/%]*|\\.[^./%][^/%]*|\\.[^/%][^/%]+)$\n+kubebuilder:example:=\"kubeflow-edit\"\n+required",
                     "type": "string"
                 }
             }
@@ -7319,21 +7319,21 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "extraEnv": {
-                    "description": "environment variables for the main container (MUTABLE)\n - these apply to ALL Workspaces of this WorkspaceKind, regardless of the selected pod config\n - a pod config may override (by ` + "`" + `name` + "`" + `) or add to these with its own ` + "`" + `spec.extraEnv` + "`" + `\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={{name: \"NB_PREFIX\", value: \"{{ httpPathPrefix \\\"jupyterlab\\\" }}\"}}\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "environment variables for the main container (MUTABLE)\n - these apply to ALL Workspaces of this WorkspaceKind, regardless of the selected pod config\n - a pod config may override (by ` + "`" + `name` + "`" + `) or add to these with its own ` + "`" + `spec.extraEnv` + "`" + `\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+optional\n+kubebuilder:example:={{name: \"NB_PREFIX\", value: \"{{ httpPathPrefix \\\"jupyterlab\\\" }}\"}}\n+listType=map\n+listMapKey=name",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.EnvVar"
                     }
                 },
                 "extraVolumeMounts": {
-                    "description": "extra volume mounts for the main container (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"mountPath\"",
+                    "description": "extra volume mounts for the main container (MUTABLE)\n+optional\n+listType=map\n+listMapKey=mountPath",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.VolumeMount"
                     }
                 },
                 "livenessProbe": {
-                    "description": "the liveness probe for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "description": "the liveness probe for the main container (MUTABLE)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Probe"
@@ -7341,7 +7341,7 @@ const docTemplate = `{
                     ]
                 },
                 "readinessProbe": {
-                    "description": "the readiness probe for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "description": "the readiness probe for the main container (MUTABLE)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Probe"
@@ -7349,7 +7349,7 @@ const docTemplate = `{
                     ]
                 },
                 "securityContext": {
-                    "description": "container security context for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "description": "container security context for the main container (MUTABLE)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.SecurityContext"
@@ -7357,7 +7357,7 @@ const docTemplate = `{
                     ]
                 },
                 "startupProbe": {
-                    "description": "the startup probe for the main container (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "description": "the startup probe for the main container (MUTABLE)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.Probe"
@@ -7370,14 +7370,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "annotations": {
-                    "description": "annotations to be applied to the Pod resource\n+kubebuilder:validation:Optional",
+                    "description": "annotations to be applied to the Pod resource\n+optional",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
                     }
                 },
                 "labels": {
-                    "description": "labels to be applied to the Pod resource\n+kubebuilder:validation:Optional",
+                    "description": "labels to be applied to the Pod resource\n+optional",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -7393,7 +7393,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "imageConfig": {
-                    "description": "imageConfig options",
+                    "description": "imageConfig options\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ImageConfig"
@@ -7401,7 +7401,7 @@ const docTemplate = `{
                     ]
                 },
                 "podConfig": {
-                    "description": "podConfig options",
+                    "description": "podConfig options\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.PodConfig"
@@ -7417,14 +7417,14 @@ const docTemplate = `{
             ],
             "properties": {
                 "extraVolumes": {
-                    "description": "extra volumes for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "extra volumes for Workspace Pods (MUTABLE)\n+optional\n+listType=map\n+listMapKey=name",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.Volume"
                     }
                 },
                 "mainContainer": {
-                    "description": "mainContainer configures the \"main\" user container of the Workspace Pod, mirroring\nthe shape of ` + "`" + `corev1.Container` + "`" + `.\n+kubebuilder:validation:Optional",
+                    "description": "mainContainer configures the \"main\" user container of the Workspace Pod, mirroring\nthe shape of ` + "`" + `corev1.Container` + "`" + `.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindMainContainer"
@@ -7432,11 +7432,11 @@ const docTemplate = `{
                     ]
                 },
                 "schedulerName": {
-                    "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the ` + "`" + `schedulerName` + "`" + ` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the default scheduler\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+kubebuilder:validation:Optional\n+kubebuilder:example=\"default-scheduler\"",
+                    "description": "the name of the scheduler to use for Workspace Pods (MUTABLE)\n - this is the default for all Workspaces of this WorkspaceKind, it may be\n   overridden by the ` + "`" + `schedulerName` + "`" + ` of a pod config value\n - if not set here, or on the pod config value, the Kubernetes API server\n   will default to the default scheduler\n - no character/length validation, matching Kubernetes which applies none\n   to PodSpec.SchedulerName; an empty value means the default scheduler\n+optional\n+kubebuilder:example=\"default-scheduler\"",
                     "type": "string"
                 },
                 "securityContext": {
-                    "description": "security context for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "description": "security context for Workspace Pods (MUTABLE)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1.PodSecurityContext"
@@ -7455,7 +7455,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "activityProbe": {
-                    "description": "activityProbe configs to determine Workspace activity (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "description": "activityProbe configs to determine Workspace activity (MUTABLE)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ActivityProbe"
@@ -7463,7 +7463,7 @@ const docTemplate = `{
                     ]
                 },
                 "options": {
-                    "description": "options are the user-selectable fields, they determine the PodSpec of the Workspace",
+                    "description": "options are the user-selectable fields, they determine the PodSpec of the Workspace\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindPodOptions"
@@ -7471,7 +7471,7 @@ const docTemplate = `{
                     ]
                 },
                 "podMetadata": {
-                    "description": "metadata for Workspace Pods (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "description": "metadata for Workspace Pods (MUTABLE)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindPodMetadata"
@@ -7479,7 +7479,7 @@ const docTemplate = `{
                     ]
                 },
                 "podSpec": {
-                    "description": "podSpec groups Pod-level fields of the Workspace Pod, mirroring the\nshape of ` + "`" + `corev1.PodSpec` + "`" + `.\n+kubebuilder:validation:Optional",
+                    "description": "podSpec groups Pod-level fields of the Workspace Pod, mirroring the\nshape of ` + "`" + `corev1.PodSpec` + "`" + `.\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindPodSpec"
@@ -7487,14 +7487,14 @@ const docTemplate = `{
                     ]
                 },
                 "ports": {
-                    "description": "port definitions which can be referenced in image config values\n- think of port definitions as the \"types\" of services which could be provided by a specific image\n- a port definition has a common id (URL path) for consistency if the listening TCP port changes\n- ports are referenced in image config values by their ` + "`" + `id` + "`" + ` and their definition here establishes\n  their protocol type, and default display name in the UI\n+kubebuilder:validation:MinItems:=1\n+listType:=\"map\"\n+listMapKey:=\"id\"",
+                    "description": "port definitions which can be referenced in image config values\n- think of port definitions as the \"types\" of services which could be provided by a specific image\n- a port definition has a common id (URL path) for consistency if the listening TCP port changes\n- ports are referenced in image config values by their ` + "`" + `id` + "`" + ` and their definition here establishes\n  their protocol type, and default display name in the UI\n+kubebuilder:validation:MinItems:=1\n+listType=map\n+listMapKey=id\n+required",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.WorkspaceKindPort"
                     }
                 },
                 "serviceAccount": {
-                    "description": "service account configs for Workspace Pods\n - each Workspace runs as its own ServiceAccount, which is created and owned by\n   the controller and named \"ws-{WORKSPACE_NAME}-{RANDOM_SUFFIX}\"\n - the resolved name is reported in the Workspace ` + "`" + `status.podTemplatePod.serviceAccountName` + "`" + `\n+kubebuilder:validation:Optional",
+                    "description": "service account configs for Workspace Pods\n - each Workspace runs as its own ServiceAccount, which is created and owned by\n   the controller and named \"ws-{WORKSPACE_NAME}-{RANDOM_SUFFIX}\"\n - the resolved name is reported in the Workspace ` + "`" + `status.podTemplatePod.serviceAccountName` + "`" + `\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccount"
@@ -7502,7 +7502,7 @@ const docTemplate = `{
                     ]
                 },
                 "statefulSetMetadata": {
-                    "description": "metadata for the Workspace StatefulSet (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "description": "metadata for the Workspace StatefulSet (MUTABLE)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindStatefulSetMetadata"
@@ -7510,7 +7510,7 @@ const docTemplate = `{
                     ]
                 },
                 "volumeMountPaths": {
-                    "description": "volume mount paths used by the controller when assembling the Workspace Pod",
+                    "description": "volume mount paths used by the controller when assembling the Workspace Pod\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindVolumeMountPaths"
@@ -7528,11 +7528,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "defaultDisplayName": {
-                    "description": "the default display name of the port\n- note, this can be overridden on a per image config value basis\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+kubebuilder:example:=\"JupyterLab\"",
+                    "description": "the default display name of the port\n- note, this can be overridden on a per image config value basis\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=64\n+kubebuilder:example:=\"JupyterLab\"\n+required",
                     "type": "string"
                 },
                 "httpProxy": {
-                    "description": "the http proxy config for the port (MUTABLE)\n+kubebuilder:validation:Optional",
+                    "description": "the http proxy config for the port (MUTABLE)\n+optional",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.HTTPProxy"
@@ -7540,11 +7540,11 @@ const docTemplate = `{
                     ]
                 },
                 "id": {
-                    "description": "the id of the port\n- identifier for the port in ` + "`" + `imageconfig` + "`" + ` ports.[].id\n+kubebuilder:example=\"jupyterlab\"",
+                    "description": "the id of the port\n- identifier for the port in ` + "`" + `imageconfig` + "`" + ` ports.[].id\n+kubebuilder:example=\"jupyterlab\"\n+required",
                     "type": "string"
                 },
                 "protocol": {
-                    "description": "the protocol of the port\n+kubebuilder:example:=\"HTTP\"",
+                    "description": "the protocol of the port\n+kubebuilder:example:=\"HTTP\"\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.ImagePortProtocol"
@@ -7557,14 +7557,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "clusterRoles": {
-                    "description": "the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)\n - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding,\n   so the permissions only apply inside the Namespace of the Workspace\n - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing\n   ClusterRole simply grants nothing until that ClusterRole is created\n - changes take effect immediately, Workspaces do NOT need to be restarted,\n   and removing an entry deletes the corresponding RoleBinding\n+kubebuilder:validation:Optional\n+listType:=\"map\"\n+listMapKey:=\"name\"\n+kubebuilder:example={{name: \"kubeflow-edit\"}}",
+                    "description": "the ClusterRoles to grant to the ServiceAccount of each Workspace (MUTABLE)\n - each entry becomes a namespaced RoleBinding, NOT a ClusterRoleBinding,\n   so the permissions only apply inside the Namespace of the Workspace\n - the referenced ClusterRoles do not have to exist, a RoleBinding to a missing\n   ClusterRole simply grants nothing until that ClusterRole is created\n - changes take effect immediately, Workspaces do NOT need to be restarted,\n   and removing an entry deletes the corresponding RoleBinding\n+optional\n+listType=map\n+listMapKey=name\n+kubebuilder:example={{name: \"kubeflow-edit\"}}",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1beta1.WorkspaceKindClusterRole"
                     }
                 },
                 "metadata": {
-                    "description": "metadata for the ServiceAccount of each Workspace (MUTABLE)\n - labels and annotations applied to the ServiceAccount object itself\n - for example to configure cloud Workload Identity:\n   - EKS IRSA:  \"eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role\"\n   - GKE:       \"iam.gke.io/gcp-service-account: my-gsa@my-project.iam.gserviceaccount.com\"\n   - Azure:     \"azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000\"\n                (NOTE: azure also requires the ` + "`" + `azure.workload.identity/use: \"true\"` + "`" + ` label\n                 on the Pod, set that in ` + "`" + `podMetadata.labels` + "`" + ` above)\n - changes are applied to the ServiceAccounts of existing Workspaces without a restart,\n   but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the\n   ServiceAccount when a Pod is created, so running Workspaces must be restarted\n   for changes to take effect\n - removing a key here removes it from the ServiceAccounts of existing Workspaces,\n   if the controller was the last to change its value (ownership is tracked\n   with ` + "`" + `metadata.managedFields` + "`" + `), regardless of who originally added the key\n+kubebuilder:validation:Optional\n+kubebuilder:example={annotations: {\"eks.amazonaws.com/role-arn\": \"arn:aws:iam::111122223333:role/my-role\"}}",
+                    "description": "metadata for the ServiceAccount of each Workspace (MUTABLE)\n - labels and annotations applied to the ServiceAccount object itself\n - for example to configure cloud Workload Identity:\n   - EKS IRSA:  \"eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role\"\n   - GKE:       \"iam.gke.io/gcp-service-account: my-gsa@my-project.iam.gserviceaccount.com\"\n   - Azure:     \"azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000\"\n                (NOTE: azure also requires the ` + "`" + `azure.workload.identity/use: \"true\"` + "`" + ` label\n                 on the Pod, set that in ` + "`" + `podMetadata.labels` + "`" + ` above)\n - changes are applied to the ServiceAccounts of existing Workspaces without a restart,\n   but note that some Workload Identity webhooks (EKS IRSA, Azure) only read the\n   ServiceAccount when a Pod is created, so running Workspaces must be restarted\n   for changes to take effect\n - removing a key here removes it from the ServiceAccounts of existing Workspaces,\n   if the controller was the last to change its value (ownership is tracked\n   with ` + "`" + `metadata.managedFields` + "`" + `), regardless of who originally added the key\n+optional\n+kubebuilder:example={annotations: {\"eks.amazonaws.com/role-arn\": \"arn:aws:iam::111122223333:role/my-role\"}}",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindServiceAccountMetadata"
@@ -7577,14 +7577,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "annotations": {
-                    "description": "annotations to be applied to the Workspace ServiceAccount resource\n+kubebuilder:validation:Optional",
+                    "description": "annotations to be applied to the Workspace ServiceAccount resource\n+optional",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
                     }
                 },
                 "labels": {
-                    "description": "labels to be applied to the Workspace ServiceAccount resource\n+kubebuilder:validation:Optional",
+                    "description": "labels to be applied to the Workspace ServiceAccount resource\n+optional",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -7602,27 +7602,27 @@ const docTemplate = `{
             ],
             "properties": {
                 "deprecated": {
-                    "description": "if this WorkspaceKind is deprecated\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "description": "if this WorkspaceKind is deprecated\n+optional\n+default=false",
                     "type": "boolean"
                 },
                 "deprecationMessage": {
-                    "description": "a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated\n+kubebuilder:validation:Optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind.\"",
+                    "description": "a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated\n+optional\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=256\n+kubebuilder:example:=\"This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind.\"",
                     "type": "string"
                 },
                 "description": {
-                    "description": "the description of the WorkspaceKind\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=4096\n+kubebuilder:example:=\"A Workspace which runs JupyterLab in a Pod\"",
+                    "description": "the description of the WorkspaceKind\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=4096\n+kubebuilder:example:=\"A Workspace which runs JupyterLab in a Pod\"\n+required",
                     "type": "string"
                 },
                 "displayName": {
-                    "description": "the display name of the WorkspaceKind\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=128\n+kubebuilder:example:=\"JupyterLab Notebook\"",
+                    "description": "the display name of the WorkspaceKind\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=128\n+kubebuilder:example:=\"JupyterLab Notebook\"\n+required",
                     "type": "string"
                 },
                 "hidden": {
-                    "description": "if this WorkspaceKind should be hidden from the Workspace Spawner UI\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "description": "if this WorkspaceKind should be hidden from the Workspace Spawner UI\n+optional\n+default=false",
                     "type": "boolean"
                 },
                 "icon": {
-                    "description": "the icon of the WorkspaceKind\n - a small (favicon-sized) icon used in the Workspace Spawner UI",
+                    "description": "the icon of the WorkspaceKind\n - a small (favicon-sized) icon used in the Workspace Spawner UI\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
@@ -7630,7 +7630,7 @@ const docTemplate = `{
                     ]
                 },
                 "logo": {
-                    "description": "the logo of the WorkspaceKind\n - a 1:1 (card size) logo used in the Workspace Spawner UI",
+                    "description": "the logo of the WorkspaceKind\n - a 1:1 (card size) logo used in the Workspace Spawner UI\n+required",
                     "allOf": [
                         {
                             "$ref": "#/definitions/v1beta1.WorkspaceKindAsset"
@@ -7643,14 +7643,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "annotations": {
-                    "description": "annotations to be applied to the Workspace StatefulSet resource\n+kubebuilder:validation:Optional",
+                    "description": "annotations to be applied to the Workspace StatefulSet resource\n+optional",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
                     }
                 },
                 "labels": {
-                    "description": "labels to be applied to the Workspace StatefulSet resource\n+kubebuilder:validation:Optional",
+                    "description": "labels to be applied to the Workspace StatefulSet resource\n+optional",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -7665,7 +7665,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "home": {
-                    "description": "the path to mount the home PVC (NOT MUTABLE)\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=4096\n+kubebuilder:validation:Pattern:=^/[^/].*$\n+kubebuilder:validation:XValidation:rule=\"self == oldSelf\",message=\"mount path of 'home' is immutable\"\n+kubebuilder:example:=\"/home/jovyan\"",
+                    "description": "the path to mount the home PVC (NOT MUTABLE)\n+kubebuilder:validation:MinLength:=2\n+kubebuilder:validation:MaxLength:=4096\n+kubebuilder:validation:Pattern:=^/[^/].*$\n+kubebuilder:validation:XValidation:rule=\"self == oldSelf\",message=\"mount path of 'home' is immutable\"\n+kubebuilder:example:=\"/home/jovyan\"\n+required",
                     "type": "string"
                 }
             }
