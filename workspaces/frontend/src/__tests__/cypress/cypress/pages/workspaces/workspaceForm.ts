@@ -182,7 +182,7 @@ class WorkspaceForm {
   }
 
   typeResourceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findResourceNameInput().clear().type(name);
+    return this.findResourceNameInput().should('not.be.disabled').clear().type(name);
   }
 
   findResourceNameCriterion(key: string): Cypress.Chainable<JQuery<HTMLElement>> {
