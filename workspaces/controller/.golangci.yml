@@ -1,6 +1,9 @@
 version: "2"
 run:
   allow-parallel-runners: true
+issues:
+  # report every violation on a line, not just the first one (e.g. multiple kubeapilinter rules)
+  uniq-by-line: false
 linters:
   default: none
   enable:
@@ -21,6 +24,7 @@ linters:
     - gosec
     - govet
     - ineffassign
+    - kubeapilinter
     - lll
     - misspell
     - modernize
@@ -33,6 +37,36 @@ linters:
     - unparam
     - unused
   settings:
+    custom:
+      kubeapilinter:
+        type: module
+        description: Kube API Linter lints Kube-like APIs based on API conventions and best practices.
+        settings:
+          # Rule documentation: https://github.com/kubernetes-sigs/kube-api-linter/blob/main/docs/linters.md
+          linters:
+            enable:
+              # TODO: enable statusoptional once status fields are made optional
+              - statussubresource
+            disable:
+              # TODO: the following rules have existing violations in
+              # api/v1beta1 and are disabled until fixed. Most fixes change the
+              # CRD schema or Go types, so each rule should be re-enabled in
+              # its own PR (finding counts as of adoption).
+              - arrayofstruct
+              # godoc should start with the JSON field name
+              - commentstart
+              # defaulted status fields are currently required
+              - defaultorrequired
+              # defaulted fields must be optional + omitempty
+              - defaults
+              - nonpointerstructs
+              # optional fields should be pointers
+              - optionalfields
+              # required fields need omitempty / pointers
+              - requiredfields
+              # missing +listType markers
+              - ssatags
+          lintersConfig: {}
     gocritic:
       disabled-checks:
         - assignOp
@@ -74,6 +108,9 @@ linters:
   exclusions:
     generated: lax
     rules:
+      - linters:
+          - kubeapilinter
+        path-except: ^api/
       - linters:
           - lll
         path: api/*

@@ -59,40 +59,44 @@ type PortId string
 type WorkspaceKindSpec struct {
 
 	// spawner config determines how the WorkspaceKind is displayed in the Workspace Spawner UI
+	// +required
 	Spawner WorkspaceKindSpawner `json:"spawner"`
 
 	// podTemplate is the PodTemplate used to spawn Pods to run Workspaces of this WorkspaceKind
+	// +required
 	PodTemplate WorkspaceKindPodTemplate `json:"podTemplate"`
 
 	// activityRules defines the policies for handling inactivity in Workspaces of this WorkspaceKind (MUTABLE).
 	// Rules are evaluated sequentially from top to bottom (first-match-wins semantics) independently for each
 	// configured effect type (e.g., pauseWorkspace). A rule with an omitted or empty 'match' list is treated as a
 	// catch-all rule; at most one catch-all rule is allowed per effect type, and it must be the last rule in the list.
-	// +kubebuilder:validation:Optional
-	// +listType:="atomic"
+	// +optional
+	// +listType=atomic
 	ActivityRules []ActivityRule `json:"activityRules,omitempty"`
 
 	// filterRules are admin-defined rules used by downstream consumers (the backend API server)
 	// to dynamically filter which WorkspaceKinds, imageConfig values, and podConfig values are
 	// visible or allowed in a given context. (MUTABLE)
 	// The controller does NOT evaluate or act on these rules, it only persists and validates them.
-	// +kubebuilder:validation:Optional
-	// +listType:="atomic"
+	// +optional
+	// +listType=atomic
 	FilterRules []FilterRule `json:"filterRules,omitempty"`
 }
 
 // ActivityRule defines a policy for handling inactivity in a Workspace
 type ActivityRule struct {
 	// the configuration for this rule
+	// +required
 	Config ActivityRuleConfig `json:"config"`
 
 	// the conditions which must ALL be satisfied for the rule to apply
 	//  - an omitted or empty list makes this a catch-all rule that matches all Workspaces
-	// +kubebuilder:validation:Optional
-	// +listType:="atomic"
+	// +optional
+	// +listType=atomic
 	Match []ActivityRuleMatch `json:"match,omitempty"`
 
 	// the action to take when the rule matches and its conditions are met
+	// +required
 	Effect ActivityRuleEffect `json:"effect"`
 }
 
@@ -102,12 +106,13 @@ type ActivityRuleConfig struct {
 	//  - the minimum value is 16 (`secondsSinceActive` > 15) to prevent thrashing and pausing
 	//    workspaces prematurely during startup or transient connection drops
 	// +kubebuilder:validation:Minimum:=16
+	// +required
 	SecondsSinceActive int32 `json:"secondsSinceActive"`
 
 	// the minimum duration in seconds a Workspace must be running before it can be paused due to inactivity
 	// +kubebuilder:validation:Minimum:=0
-	// +kubebuilder:default:=0
-	// +kubebuilder:validation:Optional
+	// +default=0
+	// +optional
 	MinRunningSeconds *int32 `json:"minRunningSeconds,omitempty"`
 }
 
@@ -116,11 +121,11 @@ type ActivityRuleConfig struct {
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'matchNamespace' or 'matchPodConfig'",rule="(has(self.matchNamespace) ? 1 : 0) + (has(self.matchPodConfig) ? 1 : 0) == 1"
 type ActivityRuleMatch struct {
 	// filters Workspaces by the labels of their namespace
-	// +kubebuilder:validation:Optional
+	// +optional
 	MatchNamespace *ActivityRuleSelector `json:"matchNamespace,omitempty"`
 
 	// filters Workspaces by the labels of the PodConfig option they are using
-	// +kubebuilder:validation:Optional
+	// +optional
 	MatchPodConfig *ActivityRuleSelector `json:"matchPodConfig,omitempty"`
 }
 
@@ -130,6 +135,7 @@ type ActivityRuleMatch struct {
 type ActivityRuleSelector struct {
 	// a standard Kubernetes label selector
 	//  - must not be empty, use an empty 'match' list for a catch-all rule
+	// +required
 	Selector metav1.LabelSelector `json:"selector"`
 }
 
@@ -148,7 +154,7 @@ type ActivityRuleEffect struct {
 	// determines if the Workspace should be paused
 	//  - the webhook rejects rules with `pauseWorkspace: true`
 	//    when no `activityProbe` is configured
-	// +kubebuilder:validation:Optional
+	// +optional
 	PauseWorkspace *bool `json:"pauseWorkspace,omitempty"`
 }
 
@@ -157,26 +163,28 @@ type WorkspaceKindSpawner struct {
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=128
 	// +kubebuilder:example:="JupyterLab Notebook"
+	// +required
 	DisplayName string `json:"displayName"`
 
 	// the description of the WorkspaceKind
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=4096
 	// +kubebuilder:example:="A Workspace which runs JupyterLab in a Pod"
+	// +required
 	Description string `json:"description"`
 
 	// if this WorkspaceKind should be hidden from the Workspace Spawner UI
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=false
+	// +optional
+	// +default=false
 	Hidden *bool `json:"hidden,omitempty"`
 
 	// if this WorkspaceKind is deprecated
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=false
+	// +optional
+	// +default=false
 	Deprecated *bool `json:"deprecated,omitempty"`
 
 	// a message to show in Workspace Spawner UI when the WorkspaceKind is deprecated
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=256
 	// +kubebuilder:example:="This WorkspaceKind will be removed on 20XX-XX-XX, please use another WorkspaceKind."
@@ -184,22 +192,24 @@ type WorkspaceKindSpawner struct {
 
 	// the icon of the WorkspaceKind
 	//  - a small (favicon-sized) icon used in the Workspace Spawner UI
+	// +required
 	Icon WorkspaceKindAsset `json:"icon"`
 
 	// the logo of the WorkspaceKind
 	//  - a 1:1 (card size) logo used in the Workspace Spawner UI
+	// +required
 	Logo WorkspaceKindAsset `json:"logo"`
 }
 
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'url' or 'configMap'",rule="!(has(self.url) && has(self.configMap)) && (has(self.url) || has(self.configMap))"
 type WorkspaceKindAsset struct {
 	// the URL of the asset
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:example="https://jupyter.org/assets/favicons/apple-touch-icon-152x152.png"
 	Url *string `json:"url,omitempty"`
 
 	// the ConfigMap reference for the asset
-	// +kubebuilder:validation:Optional
+	// +optional
 	ConfigMap *WorkspaceKindAssetConfigMap `json:"configMap,omitempty"`
 }
 
@@ -209,6 +219,7 @@ type WorkspaceKindAssetConfigMap struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	// +required
 	Name string `json:"name"`
 
 	// the namespace of the ConfigMap
@@ -216,6 +227,7 @@ type WorkspaceKindAssetConfigMap struct {
 	// +kubebuilder:validation:MaxLength:=63
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	// +kubebuilder:example="kubeflow"
+	// +required
 	Namespace string `json:"namespace"`
 
 	// the key in the ConfigMap which contains the data
@@ -223,10 +235,12 @@ type WorkspaceKindAssetConfigMap struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
+	// +required
 	Key string `json:"key"`
 
 	// the media type of the asset data in the ConfigMap
 	// +kubebuilder:example="image/svg+xml"
+	// +required
 	MediaType WorkspaceKindAssetMediaType `json:"mediaType"`
 }
 
@@ -239,30 +253,31 @@ const (
 
 type WorkspaceKindPodTemplate struct {
 	// metadata for Workspace Pods (MUTABLE)
-	// +kubebuilder:validation:Optional
+	// +optional
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
 	// metadata for the Workspace StatefulSet (MUTABLE)
-	// +kubebuilder:validation:Optional
+	// +optional
 	StatefulSetMetadata *WorkspaceKindStatefulSetMetadata `json:"statefulSetMetadata,omitempty"`
 
 	// service account configs for Workspace Pods
 	//  - each Workspace runs as its own ServiceAccount, which is created and owned by
 	//    the controller and named "ws-{WORKSPACE_NAME}-{RANDOM_SUFFIX}"
 	//  - the resolved name is reported in the Workspace `status.podTemplatePod.serviceAccountName`
-	// +kubebuilder:validation:Optional
+	// +optional
 	ServiceAccount *WorkspaceKindServiceAccount `json:"serviceAccount,omitempty"`
 
 	// activityProbe configs to determine Workspace activity (MUTABLE)
-	// +kubebuilder:validation:Optional
+	// +optional
 	ActivityProbe *ActivityProbe `json:"activityProbe,omitempty"`
 
 	// podSpec groups Pod-level fields of the Workspace Pod, mirroring the
 	// shape of `corev1.PodSpec`.
-	// +kubebuilder:validation:Optional
+	// +optional
 	PodSpec WorkspaceKindPodSpec `json:"podSpec"`
 
 	// volume mount paths used by the controller when assembling the Workspace Pod
+	// +required
 	VolumeMountPaths WorkspaceKindVolumeMountPaths `json:"volumeMountPaths"`
 
 	// port definitions which can be referenced in image config values
@@ -271,11 +286,13 @@ type WorkspaceKindPodTemplate struct {
 	// - ports are referenced in image config values by their `id` and their definition here establishes
 	//   their protocol type, and default display name in the UI
 	// +kubebuilder:validation:MinItems:=1
-	// +listType:="map"
-	// +listMapKey:="id"
+	// +listType=map
+	// +listMapKey=id
+	// +required
 	Ports []WorkspaceKindPort `json:"ports"`
 
 	// options are the user-selectable fields, they determine the PodSpec of the Workspace
+	// +required
 	Options WorkspaceKindPodOptions `json:"options"`
 }
 
@@ -289,23 +306,23 @@ type WorkspaceKindPodSpec struct {
 	//    will default to the default scheduler
 	//  - no character/length validation, matching Kubernetes which applies none
 	//    to PodSpec.SchedulerName; an empty value means the default scheduler
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:example="default-scheduler"
 	SchedulerName *string `json:"schedulerName,omitempty"`
 
 	// security context for Workspace Pods (MUTABLE)
-	// +kubebuilder:validation:Optional
+	// +optional
 	SecurityContext *v1.PodSecurityContext `json:"securityContext,omitempty"`
 
 	// extra volumes for Workspace Pods (MUTABLE)
-	// +kubebuilder:validation:Optional
-	// +listType:="map"
-	// +listMapKey:="name"
+	// +optional
+	// +listType=map
+	// +listMapKey=name
 	ExtraVolumes []v1.Volume `json:"extraVolumes,omitempty"`
 
 	// mainContainer configures the "main" user container of the Workspace Pod, mirroring
 	// the shape of `corev1.Container`.
-	// +kubebuilder:validation:Optional
+	// +optional
 	MainContainer WorkspaceKindMainContainer `json:"mainContainer"`
 }
 
@@ -313,19 +330,19 @@ type WorkspaceKindPodSpec struct {
 // "main" user container of the Workspace Pod, mirroring the shape of `corev1.Container`.
 type WorkspaceKindMainContainer struct {
 	// container security context for the main container (MUTABLE)
-	// +kubebuilder:validation:Optional
+	// +optional
 	SecurityContext *v1.SecurityContext `json:"securityContext,omitempty"`
 
 	// the startup probe for the main container (MUTABLE)
-	// +kubebuilder:validation:Optional
+	// +optional
 	StartupProbe *v1.Probe `json:"startupProbe,omitempty"`
 
 	// the liveness probe for the main container (MUTABLE)
-	// +kubebuilder:validation:Optional
+	// +optional
 	LivenessProbe *v1.Probe `json:"livenessProbe,omitempty"`
 
 	// the readiness probe for the main container (MUTABLE)
-	// +kubebuilder:validation:Optional
+	// +optional
 	ReadinessProbe *v1.Probe `json:"readinessProbe,omitempty"`
 
 	// environment variables for the main container (MUTABLE)
@@ -333,16 +350,16 @@ type WorkspaceKindMainContainer struct {
 	//  - a pod config may override (by `name`) or add to these with its own `spec.extraEnv`
 	//  - the following go template functions are available:
 	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:example:={{name: "NB_PREFIX", value: "{{ httpPathPrefix \"jupyterlab\" }}"}}
-	// +listType:="map"
-	// +listMapKey:="name"
+	// +listType=map
+	// +listMapKey=name
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
 
 	// extra volume mounts for the main container (MUTABLE)
-	// +kubebuilder:validation:Optional
-	// +listType:="map"
-	// +listMapKey:="mountPath"
+	// +optional
+	// +listType=map
+	// +listMapKey=mountPath
 	ExtraVolumeMounts []v1.VolumeMount `json:"extraVolumeMounts,omitempty"`
 }
 
@@ -350,10 +367,12 @@ type WorkspaceKindPort struct {
 	// the id of the port
 	// - identifier for the port in `imageconfig` ports.[].id
 	// +kubebuilder:example="jupyterlab"
+	// +required
 	Id PortId `json:"id"`
 
 	// the protocol of the port
 	// +kubebuilder:example:="HTTP"
+	// +required
 	Protocol ImagePortProtocol `json:"protocol"`
 
 	// the default display name of the port
@@ -361,32 +380,33 @@ type WorkspaceKindPort struct {
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=64
 	// +kubebuilder:example:="JupyterLab"
+	// +required
 	DefaultDisplayName string `json:"defaultDisplayName"`
 
 	// the http proxy config for the port (MUTABLE)
-	// +kubebuilder:validation:Optional
+	// +optional
 	HTTPProxy *HTTPProxy `json:"httpProxy,omitempty"`
 }
 
 // WorkspaceKindPodMetadata defines labels and annotations applied to the Workspace Pod.
 type WorkspaceKindPodMetadata struct {
 	// labels to be applied to the Pod resource
-	// +kubebuilder:validation:Optional
+	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to be applied to the Pod resource
-	// +kubebuilder:validation:Optional
+	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // WorkspaceKindStatefulSetMetadata defines labels and annotations applied to the Workspace StatefulSet.
 type WorkspaceKindStatefulSetMetadata struct {
 	// labels to be applied to the Workspace StatefulSet resource
-	// +kubebuilder:validation:Optional
+	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to be applied to the Workspace StatefulSet resource
-	// +kubebuilder:validation:Optional
+	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
@@ -400,9 +420,9 @@ type WorkspaceKindServiceAccount struct {
 	//    ClusterRole simply grants nothing until that ClusterRole is created
 	//  - changes take effect immediately, Workspaces do NOT need to be restarted,
 	//    and removing an entry deletes the corresponding RoleBinding
-	// +kubebuilder:validation:Optional
-	// +listType:="map"
-	// +listMapKey:="name"
+	// +optional
+	// +listType=map
+	// +listMapKey=name
 	// +kubebuilder:example={{name: "kubeflow-edit"}}
 	ClusterRoles []WorkspaceKindClusterRole `json:"clusterRoles,omitempty"`
 
@@ -421,7 +441,7 @@ type WorkspaceKindServiceAccount struct {
 	//  - removing a key here removes it from the ServiceAccounts of existing Workspaces,
 	//    if the controller was the last to change its value (ownership is tracked
 	//    with `metadata.managedFields`), regardless of who originally added the key
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:example={annotations: {"eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role"}}
 	Metadata *WorkspaceKindServiceAccountMetadata `json:"metadata,omitempty"`
 }
@@ -430,11 +450,11 @@ type WorkspaceKindServiceAccount struct {
 // ServiceAccount of each Workspace.
 type WorkspaceKindServiceAccountMetadata struct {
 	// labels to be applied to the Workspace ServiceAccount resource
-	// +kubebuilder:validation:Optional
+	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// annotations to be applied to the Workspace ServiceAccount resource
-	// +kubebuilder:validation:Optional
+	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
@@ -451,6 +471,7 @@ type WorkspaceKindClusterRole struct {
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^([^./%][^/%]*|\.[^./%][^/%]*|\.[^/%][^/%]+)$
 	// +kubebuilder:example:="kubeflow-edit"
+	// +required
 	Name string `json:"name"`
 }
 
@@ -463,8 +484,8 @@ type ActivityProbe struct {
 	// - Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=31536000
-	// +kubebuilder:default:=300
-	// +kubebuilder:validation:Optional
+	// +default=300
+	// +optional
 	MinProbeIntervalSeconds *int32 `json:"minProbeIntervalSeconds,omitempty"`
 
 	// the desired interval in seconds between successful probes.
@@ -478,12 +499,13 @@ type ActivityProbe struct {
 	//    at the cost of more frequent probing.
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=31536000
-	// +kubebuilder:default:=3600
-	// +kubebuilder:validation:Optional
+	// +default=3600
+	// +optional
 	ProbeIntervalSeconds *int32 `json:"probeIntervalSeconds,omitempty"`
 
 	// a script-based probe executed in the Pod
 	//  - this is currently the only supported probe type, so it is required
+	// +required
 	PodExec ActivityProbePodExec `json:"podExec"`
 }
 
@@ -491,8 +513,8 @@ type ActivityProbe struct {
 type ActivityProbePodExec struct {
 	// the maximum number of seconds the probe is allowed to run
 	// +kubebuilder:validation:Minimum:=1
-	// +kubebuilder:default:=60
-	// +kubebuilder:validation:Optional
+	// +default=60
+	// +optional
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 
 	// script is the script to run inside the Pod to determine if the Workspace is active.
@@ -517,6 +539,7 @@ type ActivityProbePodExec struct {
 	//      - If `last_activity` (ISO 8601 string) is provided (and `has_activity` is omitted): The Workspace is treated as inactive, and `status.activity.lastActivity` is updated to the `last_activity` timestamp.
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=2048
+	// +required
 	Script string `json:"script"`
 }
 
@@ -527,6 +550,7 @@ type WorkspaceKindVolumeMountPaths struct {
 	// +kubebuilder:validation:Pattern:=^/[^/].*$
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="mount path of 'home' is immutable"
 	// +kubebuilder:example:="/home/jovyan"
+	// +required
 	Home string `json:"home"`
 }
 
@@ -536,14 +560,14 @@ type HTTPProxy struct {
 	//    is stripped from incoming requests, the application sees the request
 	//    as if it was made to '/...'
 	//  - this only works if the application serves RELATIVE URLs for its assets
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=false
+	// +optional
+	// +default=false
 	RemovePathPrefix *bool `json:"removePathPrefix,omitempty"`
 
 	// header manipulation rules for incoming HTTP requests
 	//  - sets the `spec.http[].headers.request` of the Istio VirtualService
 	//    https://istio.io/latest/docs/reference/config/networking/virtual-service/#Headers-HeaderOperations
-	// +kubebuilder:validation:Optional
+	// +optional
 	RequestHeaders *IstioHeaderOperations `json:"requestHeaders,omitempty"`
 }
 
@@ -551,39 +575,43 @@ type IstioHeaderOperations struct {
 	// overwrite the headers specified by key with the given values
 	//  - the following go template functions are available in the values:
 	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:example:={ "X-RStudio-Root-Path": "{{ httpPathPrefix 'rstudio' }}" }
 	Set map[string]string `json:"set,omitempty"`
 
 	// append the given values to the headers specified by keys (will create a comma-separated list of values)
 	//  - the following go template functions are available in the values:
 	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:example:={ "My-Header": "value-to-append" }
 	Add map[string]string `json:"add,omitempty"`
 
 	// remove the specified headers
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:example:={"Header-To-Remove"}
 	Remove []string `json:"remove,omitempty"`
 }
 
 type WorkspaceKindPodOptions struct {
 	// imageConfig options
+	// +required
 	ImageConfig ImageConfig `json:"imageConfig"`
 
 	// podConfig options
+	// +required
 	PodConfig PodConfig `json:"podConfig"`
 }
 
 type ImageConfig struct {
 	// spawner ui configs
+	// +required
 	Spawner OptionsSpawnerConfig `json:"spawner"`
 
 	// the list of image configs that are available
 	// +kubebuilder:validation:MinItems:=1
-	// +listType:="map"
-	// +listMapKey:="id"
+	// +listType=map
+	// +listMapKey=id
+	// +required
 	Values []ImageConfigValue `json:"values"`
 }
 
@@ -592,16 +620,19 @@ type ImageConfigValue struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=256
 	// +kubebuilder:example:="jupyterlab_scipy_190"
+	// +required
 	Id string `json:"id"`
 
 	// information for the spawner ui
+	// +required
 	Spawner OptionSpawnerInfo `json:"spawner"`
 
 	// redirect configs
-	// +kubebuilder:validation:Optional
+	// +optional
 	Redirect *OptionRedirect `json:"redirect,omitempty"`
 
 	// the spec of the image config
+	// +required
 	Spec ImageConfigSpec `json:"spec"`
 }
 
@@ -609,11 +640,12 @@ type ImageConfigSpec struct {
 	// the container image to use
 	// +kubebuilder:validation:MinLength:=2
 	// +kubeflow:example="ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-scipy:v1.7.0"
+	// +required
 	Image string `json:"image"`
 
 	// the pull policy for the container image
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:="IfNotPresent"
+	// +optional
+	// +default="IfNotPresent"
 	// +kubebuilder:validation:Enum:={"Always","IfNotPresent","Never"}
 	ImagePullPolicy *v1.PullPolicy `json:"imagePullPolicy"`
 
@@ -621,8 +653,9 @@ type ImageConfigSpec struct {
 	//   - if multiple ports are defined, the user will see multiple "Connect" buttons
 	//     in a dropdown menu on the Workspace overview page
 	// +kubebuilder:validation:MinItems:=1
-	// +listType:="map"
-	// +listMapKey:="id"
+	// +listType=map
+	// +listMapKey=id
+	// +required
 	Ports []ImagePort `json:"ports"`
 }
 
@@ -630,18 +663,20 @@ type ImagePort struct {
 	// the id of the port
 	//  - this is used as the Container and Service port name, in addition to the HTTP URL path
 	// +kubebuilder:example="jupyterlab"
+	// +required
 	Id PortId `json:"id"`
 
 	// the port number
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=65535
 	// +kubebuilder:example:=8888
+	// +required
 	Port int32 `json:"port"`
 
 	// the display name of the port
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=64
-	// +kubebuilder:validation:Optional
+	// +optional
 	DisplayName *string `json:"displayName,omitempty"`
 }
 
@@ -654,12 +689,14 @@ const (
 
 type PodConfig struct {
 	// spawner ui configs
+	// +required
 	Spawner OptionsSpawnerConfig `json:"spawner"`
 
 	// the list of pod configs that are available
 	// +kubebuilder:validation:MinItems:=1
-	// +listType:="map"
-	// +listMapKey:="id"
+	// +listType=map
+	// +listMapKey=id
+	// +required
 	Values []PodConfigValue `json:"values"`
 }
 
@@ -668,34 +705,37 @@ type PodConfigValue struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=256
 	// +kubebuilder:example="big_gpu"
+	// +required
 	Id string `json:"id"`
 
 	// information for the spawner ui
+	// +required
 	Spawner OptionSpawnerInfo `json:"spawner"`
 
 	// redirect configs
-	// +kubebuilder:validation:Optional
+	// +optional
 	Redirect *OptionRedirect `json:"redirect,omitempty"`
 
 	// the spec of the pod config
+	// +required
 	Spec PodConfigSpec `json:"spec"`
 }
 
 type PodConfigSpec struct {
 	// affinity configs for the pod
-	// +kubebuilder:validation:Optional
+	// +optional
 	Affinity *v1.Affinity `json:"affinity,omitempty"`
 
 	// node selector configs for the pod
-	// +kubebuilder:validation:Optional
+	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// toleration configs for the pod
-	// +kubebuilder:validation:Optional
+	// +optional
 	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
 
 	// resource configs for the "main" container in the pod
-	// +kubebuilder:validation:Optional
+	// +optional
 	Resources *v1.ResourceRequirements `json:"resources,omitempty"`
 
 	// the name of the scheduler to use for the pod
@@ -704,18 +744,18 @@ type PodConfigSpec struct {
 	//    default Kubernetes scheduler, even if the pod template sets another one
 	//  - no character/length validation, matching Kubernetes which applies none
 	//    to PodSpec.SchedulerName; an empty value means the default scheduler
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:example="volcano"
 	SchedulerName *string `json:"schedulerName,omitempty"`
 
 	// metadata to apply to Workspace Pods when this podConfig is selected
 	//  - layered over the WorkspaceKind-level `podMetadata`, winning on key conflicts
-	// +kubebuilder:validation:Optional
+	// +optional
 	PodMetadata *WorkspaceKindPodMetadata `json:"podMetadata,omitempty"`
 
 	// metadata to apply to the Workspace StatefulSet when this podConfig is selected
 	//  - layered over the WorkspaceKind-level `statefulSetMetadata`, winning on key conflicts
-	// +kubebuilder:validation:Optional
+	// +optional
 	StatefulSetMetadata *WorkspaceKindStatefulSetMetadata `json:"statefulSetMetadata,omitempty"`
 
 	// extra environment variables for the "main" container, specific to this pod config
@@ -731,10 +771,10 @@ type PodConfigSpec struct {
 	//    any Workspace, instead, create a new pod config value and redirect the old one to it
 	//  - the following go template functions are available:
 	//     - `httpPathPrefix(portId string)`: returns the HTTP path prefix of the specified port
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:example:={{name: "PJRT_DEVICE", value: "CPU"}}
-	// +listType:="map"
-	// +listMapKey:="name"
+	// +listType=map
+	// +listMapKey=name
 	ExtraEnv []v1.EnvVar `json:"extraEnv,omitempty"`
 }
 
@@ -744,6 +784,7 @@ type OptionsSpawnerConfig struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=256
 	// +kubebuilder:example="jupyterlab_scipy_190"
+	// +required
 	Default string `json:"default"`
 }
 
@@ -751,24 +792,25 @@ type OptionSpawnerInfo struct {
 	// the display name of the option
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=128
+	// +required
 	DisplayName string `json:"displayName"`
 
 	// a description of the option
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=1024
 	Description *string `json:"description,omitempty"`
 
 	// labels for the option
-	// +kubebuilder:validation:Optional
+	// +optional
 	// +kubebuilder:validation:MaxItems:=32
-	// +listType:="map"
-	// +listMapKey:="key"
+	// +listType=map
+	// +listMapKey=key
 	Labels []OptionSpawnerLabel `json:"labels,omitempty"`
 
 	// if this option should be hidden from the Workspace Spawner UI
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=false
+	// +optional
+	// +default=false
 	Hidden *bool `json:"hidden,omitempty"`
 }
 
@@ -776,11 +818,13 @@ type OptionSpawnerLabel struct {
 	// the key of the label
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=64
+	// +required
 	Key string `json:"key"`
 
 	// the value of the label
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=64
+	// +required
 	Value string `json:"value"`
 }
 
@@ -789,22 +833,25 @@ type OptionRedirect struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=256
 	// +kubebuilder:example:="jupyterlab_scipy_190"
+	// +required
 	To string `json:"to"`
 
 	// information about the redirect
-	// +kubebuilder:validation:Optional
+	// +optional
 	Message *RedirectMessage `json:"message,omitempty"`
 }
 
 type RedirectMessage struct {
 	// the importance level of the message
 	// +kubebuilder:example:="Info"
+	// +required
 	Level RedirectMessageLevel `json:"level"`
 
 	// the text of the message to show
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=1024
 	// +kubebuilder:example:="This update will increase the version of JupyterLab to v1.7.1"
+	// +required
 	Text string `json:"text"`
 }
 
@@ -828,14 +875,17 @@ const (
 // its match conditions are satisfied.
 type FilterRule struct {
 	// the type of resource whose visibility this rule controls
+	// +required
 	Scope FilterRuleScope `json:"scope"`
 
 	// the effect to apply to matched items when all `match` conditions are satisfied
+	// +required
 	Effect FilterRuleEffect `json:"effect"`
 
 	// the conditions which must ALL be satisfied for the rule to apply
 	// +kubebuilder:validation:MinItems:=1
-	// +listType:="atomic"
+	// +listType=atomic
+	// +required
 	Match []FilterRuleMatch `json:"match"`
 }
 
@@ -860,17 +910,18 @@ const (
 // +kubebuilder:validation:XValidation:message="must specify at least one of 'ui' or 'api'",rule="has(self.ui) || has(self.api)"
 type FilterRuleEffect struct {
 	// rendering hints for the frontend (the item is still returned by the API)
-	// +kubebuilder:validation:Optional
+	// +optional
 	UI *FilterRuleEffectUI `json:"ui,omitempty"`
 
 	// server-enforced behavior evaluated by the backend API server
-	// +kubebuilder:validation:Optional
+	// +optional
 	API *FilterRuleEffectAPI `json:"api,omitempty"`
 }
 
 // FilterRuleEffectUI defines frontend rendering hints for a matched filter rule item
 type FilterRuleEffectUI struct {
 	// suggest the UI hide the matched item
+	// +required
 	Hide bool `json:"hide"`
 }
 
@@ -879,15 +930,15 @@ type FilterRuleEffectUI struct {
 // +kubebuilder:validation:XValidation:message="'denyMessage' may only be set when 'deny' is true",rule="!has(self.denyMessage) || (has(self.deny) && self.deny)"
 type FilterRuleEffectAPI struct {
 	// omit the matched item from the API response entirely
-	// +kubebuilder:validation:Optional
+	// +optional
 	Hide *bool `json:"hide,omitempty"`
 
 	// return the matched item but reject any workspace create/update which selects it
-	// +kubebuilder:validation:Optional
+	// +optional
 	Deny *bool `json:"deny,omitempty"`
 
 	// a message explaining why the matched item is denied
-	// +kubebuilder:validation:Optional
+	// +optional
 	DenyMessage *FilterRuleDenyMessage `json:"denyMessage,omitempty"`
 }
 
@@ -896,6 +947,7 @@ type FilterRuleDenyMessage struct {
 	// the text of the message to show when the item is denied
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:MaxLength:=1024
+	// +required
 	Text string `json:"text"`
 }
 
@@ -904,15 +956,15 @@ type FilterRuleDenyMessage struct {
 // +kubebuilder:validation:XValidation:message="must specify exactly one of 'matchNamespace', 'matchImageConfig', or 'matchPodConfig'",rule="(has(self.matchNamespace) ? 1 : 0) + (has(self.matchImageConfig) ? 1 : 0) + (has(self.matchPodConfig) ? 1 : 0) == 1"
 type FilterRuleMatch struct {
 	// match against the labels of the namespace the workspace would be created in
-	// +kubebuilder:validation:Optional
+	// +optional
 	MatchNamespace *FilterRuleSelector `json:"matchNamespace,omitempty"`
 
 	// match against the `spawner.labels` of an imageConfig value
-	// +kubebuilder:validation:Optional
+	// +optional
 	MatchImageConfig *FilterRuleSelector `json:"matchImageConfig,omitempty"`
 
 	// match against the `spawner.labels` of a podConfig value
-	// +kubebuilder:validation:Optional
+	// +optional
 	MatchPodConfig *FilterRuleSelector `json:"matchPodConfig,omitempty"`
 }
 
@@ -922,6 +974,7 @@ type FilterRuleMatch struct {
 type FilterRuleSelector struct {
 	// a standard Kubernetes label selector
 	//  - must not be empty
+	// +required
 	Selector metav1.LabelSelector `json:"selector"`
 }
 
@@ -935,36 +988,40 @@ type FilterRuleSelector struct {
 type WorkspaceKindStatus struct {
 
 	// the number of Workspaces that are using this WorkspaceKind
-	// +kubebuilder:default=0
+	// +default=0
+	// +required
 	Workspaces int32 `json:"workspaces"`
 
 	// metrics for podTemplate options
+	// +required
 	PodTemplateOptions PodTemplateOptionsMetrics `json:"podTemplateOptions"`
 
 	// status of the spawner icon
+	// +required
 	SpawnerIcon ImageAssetStatus `json:"spawnerIcon"`
 
 	// status of the spawner logo
+	// +required
 	SpawnerLogo ImageAssetStatus `json:"spawnerLogo"`
 }
 
 type ImageAssetStatus struct {
 	// sha256 hash of image asset content
-	// +kubebuilder:validation:Optional
+	// +optional
 	Sha256 string `json:"sha256,omitempty"`
 
 	// status of the configMap reference
-	// +kubebuilder:validation:Optional
+	// +optional
 	ConfigMap *WorkspaceKindAssetConfigMapStatus `json:"configMap,omitempty"`
 }
 
 type WorkspaceKindAssetConfigMapStatus struct {
 	// cause of the error when reading the configMap
-	// +kubebuilder:validation:Optional
+	// +optional
 	Error *ConfigMapError `json:"errorType,omitempty"`
 
 	// error message when reading the configMap
-	// +kubebuilder:validation:Optional
+	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
@@ -979,13 +1036,15 @@ const (
 
 type PodTemplateOptionsMetrics struct {
 	// metrics about the imageConfig options
-	// +listType:="map"
-	// +listMapKey:="id"
+	// +listType=map
+	// +listMapKey=id
+	// +required
 	ImageConfig []OptionMetric `json:"imageConfig"`
 
 	// metrics about the podConfig options
-	// +listType:="map"
-	// +listMapKey:="id"
+	// +listType=map
+	// +listMapKey=id
+	// +required
 	PodConfig []OptionMetric `json:"podConfig"`
 }
 
@@ -994,10 +1053,12 @@ type OptionMetric struct {
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=256
 	// +kubebuilder:example="big_gpu"
+	// +required
 	Id string `json:"id"`
 
 	// the number of Workspaces currently using the option
 	// +kubebuilder:example=3
+	// +required
 	Workspaces int32 `json:"workspaces"`
 }
 
@@ -1016,10 +1077,13 @@ type OptionMetric struct {
 
 // WorkspaceKind is the Schema for the WorkspaceKinds API
 type WorkspaceKind struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   WorkspaceKindSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec WorkspaceKindSpec `json:"spec,omitempty"`
+	// +optional
 	Status WorkspaceKindStatus `json:"status,omitempty"`
 }
 

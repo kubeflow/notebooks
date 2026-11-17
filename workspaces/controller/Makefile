@@ -154,12 +154,15 @@ KUBECTL ?= kubectl
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 ISTIOCTL ?= $(LOCALBIN)/istioctl
-GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+GOLANGCI_LINT_BASE = $(LOCALBIN)/golangci-lint
+# custom golangci-lint build including the kube-api-linter plugin, see .custom-gcl.yml
+GOLANGCI_LINT = $(LOCALBIN)/golangci-lint-kube-api-linter
 
 ## Tool Versions
 CONTROLLER_TOOLS_VERSION ?= v0.20.1
 ENVTEST_VERSION ?= release-0.19
 ISTIOCTL_VERSION ?= 1.27.3
+# NOTE: keep in sync with `version` in .custom-gcl.yml
 GOLANGCI_LINT_VERSION ?= v2.14.0
 
 .PHONY: controller-gen
@@ -179,6 +182,14 @@ $(ISTIOCTL): $(LOCALBIN)
 	$(call go-install-tool,$(ISTIOCTL),istio.io/istio/istioctl/cmd/istioctl,$(ISTIOCTL_VERSION),"-X istio.io/istio/pkg/version.buildVersion=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildTag=$(ISTIOCTL_VERSION) -X istio.io/istio/pkg/version.buildHub=docker.io/istio")
 
 .PHONY: golangci-lint
-golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): $(LOCALBIN)
-	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+golangci-lint: $(GOLANGCI_LINT) ## Build golangci-lint with kube-api-linter locally if necessary.
+$(GOLANGCI_LINT): $(GOLANGCI_LINT_BASE) .custom-gcl.yml
+	@grep -q '^version: $(GOLANGCI_LINT_VERSION)$$' .custom-gcl.yml || { \
+		echo "ERROR: 'version' in .custom-gcl.yml must match GOLANGCI_LINT_VERSION ($(GOLANGCI_LINT_VERSION))"; \
+		exit 1; \
+	}
+	$(GOLANGCI_LINT_BASE) custom
+	@touch $(GOLANGCI_LINT)
+
+$(GOLANGCI_LINT_BASE): $(LOCALBIN)
+	$(call go-install-tool,$(GOLANGCI_LINT_BASE),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
