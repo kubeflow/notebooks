@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/custom-gcl.jsonschema.json
+# Custom golangci-lint build including kube-api-linter (KAL).
+# Built by `make golangci-lint` and used by `make lint`; the linter itself is
+# configured as `kubeapilinter` in .golangci.yml.
+#
+# NOTE: `version` must match GOLANGCI_LINT_VERSION in the Makefile.
+# NOTE: kube-api-linter has no releases yet, so a Go pseudo-version is used.
+version: v2.14.0
+name: golangci-lint-kube-api-linter
+destination: ./bin
+plugins:
+  - module: 'sigs.k8s.io/kube-api-linter'
+    version: 'v0.0.0-20261030144752-d90122c89087'
