@@ -17,7 +17,9 @@ limitations under the License.
 package api
 
 import (
+	"bytes"
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -27,6 +29,7 @@ import (
 	"strings"
 
 	"github.com/kubeflow/notebooks/workspaces/backend/api/constants"
+	"github.com/kubeflow/notebooks/workspaces/backend/internal/helper"
 )
 
 // Envelope is the body of all requests and responses that contain data.
@@ -40,7 +43,7 @@ type Envelope[D any] struct {
 // WriteJSON writes a JSON response with the given status code, data, and headers.
 func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 
-	bytes, err := json.Marshal(data)
+	body, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
@@ -49,7 +52,7 @@ func (a *App) WriteJSON(w http.ResponseWriter, status int, data any, headers htt
 
 	w.Header().Set("Content-Type", constants.MediaTypeJson)
 	w.WriteHeader(status)
-	_, err = w.Write(bytes)
+	_, err = w.Write(body)
 	if err != nil {
 		return err
 	}
@@ -90,38 +93,55 @@ func (a *App) WriteSVG(w http.ResponseWriter, status int, content []byte, header
 }
 
 // DecodeJSON decodes the JSON request body into the given value.
+// NOTE: we use encoding/json/v2 because its errors include a JSON Pointer to the invalid field.
+// NOTE: we read the full body first because encoding/json/v2 returns io.ErrUnexpectedEOF for both empty and truncated bodies.
 func (a *App) DecodeJSON(r *http.Request, v any) error {
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(v); err != nil {
-		// NOTE: we don't wrap this error so we can unpack it in the caller
-		if a.IsMaxBytesError(err) {
-			return err
-		}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
 
-		// provide better error message for the case where the body is empty
-		// NOTE: io.EOF is only returned when the body is completely empty or contains only whitespace.
-		//       If there's any actual JSON content (even malformed), json.Decoder returns different errors.
-		if a.IsEOFError(err) {
-			return fmt.Errorf("request body was empty: %w", err)
-		}
+	if len(bytes.TrimSpace(body)) == 0 {
+		return errors.New("request body was empty")
+	}
+
+	if err := jsonv2.Unmarshal(body, v, jsonv2.RejectUnknownMembers(true)); err != nil {
 		return fmt.Errorf("error decoding JSON: %w", err)
 	}
 	return nil
 }
 
-// IsMaxBytesError checks if the error is an instance of http.MaxBytesError.
-func (a *App) IsMaxBytesError(err error) bool {
-	var maxBytesError *http.MaxBytesError
-	return errors.As(err, &maxBytesError)
+// DecodeRequestBody decodes the JSON request body into v, writing an error response if decoding fails.
+// If this method returns false, the request has been handled and the caller should return immediately.
+// If this method returns true, the request body was successfully decoded into v.
+func (a *App) DecodeRequestBody(w http.ResponseWriter, r *http.Request, v any) bool {
+	err := a.DecodeJSON(r, v)
+	if err == nil {
+		return true
+	}
+	if a.IsMaxBytesError(err) {
+		a.requestEntityTooLargeResponse(w, r, err)
+		return false
+	}
+	if a.IsSemanticError(err) {
+		fieldErrs := helper.FieldErrorsFromSemanticError(err, v)
+		a.failedValidationResponse(w, r, errMsgRequestBodyInvalid, fieldErrs, nil)
+		return false
+	}
+	a.badRequestResponse(w, r, fmt.Errorf("error decoding request body: %w", err))
+	return false
 }
 
-// IsEOFError checks if the error is an EOF error (empty request body).
-// This returns true when the request body is completely empty, which happens when:
-// - Content-Length is 0, or
-// - The body stream ends immediately without any data (io.EOF)
-func (a *App) IsEOFError(err error) bool {
-	return errors.Is(err, io.EOF)
+// IsMaxBytesError checks if the error is an instance of http.MaxBytesError.
+func (a *App) IsMaxBytesError(err error) bool {
+	_, ok := errors.AsType[*http.MaxBytesError](err)
+	return ok
+}
+
+// IsSemanticError checks if the error is an instance of jsonv2.SemanticError.
+func (a *App) IsSemanticError(err error) bool {
+	_, ok := errors.AsType[*jsonv2.SemanticError](err)
+	return ok
 }
 
 // ValidateContentType validates the Content-Type header of the request.
