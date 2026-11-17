@@ -120,8 +120,13 @@ class WorkspaceForm {
     return cy.findByTestId('workspace-display-name');
   }
 
+  /**
+   * Focus explicitly before typing: cy.type()'s internal click-to-focus races the
+   * re-render that follows .clear() (validate + setData on change) and can then
+   * fail the command as a "disabled element" even though the input never is.
+   */
   typeDisplayName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDisplayNameInput().clear().type(name);
+    return this.findDisplayNameInput().focus().clear().type(name);
   }
 
   /** Leading/trailing whitespace is trimmed on blur. */
