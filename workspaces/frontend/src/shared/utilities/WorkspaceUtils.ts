@@ -190,7 +190,9 @@ export const getActivityStatus = (workspace: WorkspacesWorkspaceListItem): Activ
   }
 
   const eligibleAfter = rules?.pauseWorkspace?.eligibleAfter;
-  const timeRemainingMs = isRunning && eligibleAfter != null ? eligibleAfter - Date.now() : null;
+  // eligibleAfter is 0 when the controller cannot compute the deadline (lastActivity unknown)
+  const timeRemainingMs =
+    isRunning && eligibleAfter != null && eligibleAfter > 0 ? eligibleAfter - Date.now() : null;
 
   let warningLevel = ActivityWarningLevel.None;
   if (timeRemainingMs != null) {
