@@ -120,13 +120,24 @@ class WorkspaceForm {
     return cy.findByTestId('workspace-display-name');
   }
 
+  /**
+   * Focus explicitly before typing: cy.type()'s internal click-to-focus races the
+   * re-render that follows .clear() (validate + setData on change) and can then
+   * fail the command as a "disabled element" even though the input never is.
+   */
   typeDisplayName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDisplayNameInput().clear().type(name);
+    return this.findDisplayNameInput().focus().clear().type(name);
   }
 
-  /** Leading/trailing whitespace is trimmed on blur. */
+  /**
+   * Leading/trailing whitespace is trimmed on blur. Re-focus before blurring:
+   * the per-keystroke re-render (validate + setData on change) can drop focus
+   * after cy.type() completes on slower runners, and cy.blur() then fails with
+   * "no currently focused element". A user who just typed still has focus, so
+   * focusing first matches real usage and exercises the real onBlur trim.
+   */
   blurDisplayName(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDisplayNameInput().blur();
+    return this.findDisplayNameInput().focus().blur();
   }
 
   assertDisplayName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -182,7 +193,7 @@ class WorkspaceForm {
   }
 
   typeResourceName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findResourceNameInput().clear().type(name);
+    return this.findResourceNameInput().should('not.be.disabled').clear().type(name);
   }
 
   findResourceNameCriterion(key: string): Cypress.Chainable<JQuery<HTMLElement>> {
