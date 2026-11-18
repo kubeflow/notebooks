@@ -129,9 +129,15 @@ class WorkspaceForm {
     return this.findDisplayNameInput().focus().clear().type(name);
   }
 
-  /** Leading/trailing whitespace is trimmed on blur. */
+  /**
+   * Leading/trailing whitespace is trimmed on blur. Re-focus before blurring:
+   * the per-keystroke re-render (validate + setData on change) can drop focus
+   * after cy.type() completes on slower runners, and cy.blur() then fails with
+   * "no currently focused element". A user who just typed still has focus, so
+   * focusing first matches real usage and exercises the real onBlur trim.
+   */
   blurDisplayName(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findDisplayNameInput().blur();
+    return this.findDisplayNameInput().focus().blur();
   }
 
   assertDisplayName(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
