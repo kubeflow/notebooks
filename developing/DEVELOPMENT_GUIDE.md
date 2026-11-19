@@ -116,6 +116,12 @@ ENABLE_PROMETHEUS=true make tilt-up
 
 # OPTION 3: run with metrics-server enabled (kubectl top verification)
 ENABLE_METRICS_SERVER=true make tilt-up
+
+# OPTION 4: run with a local image registry enabled (faster incremental rebuilds)
+ENABLE_REGISTRY=true make tilt-up
+
+# OPTION 5: run with every optional flag above enabled
+make tilt-up-all
 ```
 
 What this does:
@@ -150,6 +156,10 @@ What this does:
 > [!TIP]
 >
 > `ENABLE_METRICS_SERVER=true` installs [metrics-server](https://github.com/kubernetes-sigs/metrics-server), registering the `metrics.k8s.io` API so `kubectl top nodes` / `kubectl top pods` work against the cluster.
+
+> [!TIP]
+>
+> `ENABLE_REGISTRY=true` pushes images to a local container registry (via [ctlptl](https://github.com/tilt-dev/ctlptl)) instead of loading them into the Kind cluster, speeding up incremental rebuilds. Requires `ctlptl` to be installed (`brew install tilt-dev/tap/ctlptl`). Not needed for most development; the default (disabled) behavior is unchanged.
 
 Wait until all resources show green/healthy status. 
 The frontend may take a couple of minutes on first start as webpack compiles the bundle.
