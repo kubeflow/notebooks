@@ -13,9 +13,25 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 # Tool Versions
 KUSTOMIZE_VERSION ?= v5.5.0
 
-# Export KIND_EXPERIMENTAL_PROVIDER to honor it if set in user's environment
+# Options passed to the setup scripts and the Tiltfile.
+# They can be persisted in an optional, gitignored config file (see tilt.env.example).
+# The config file uses `?=`, so the precedence is:
+# command line (make VAR=x) > environment (VAR=x make) > config file > built-in defaults.
+TILT_CONFIG_FILE ?= tilt.env
+TILT_CONFIG_VARS := ENABLE_FRONTEND ENABLE_DASHBOARD ENABLE_PROMETHEUS ENABLE_METRICS_SERVER KIND_EXPERIMENTAL_PROVIDER
+
+-include $(TILT_CONFIG_FILE)
+
+# Only export options that are set: exporting an undefined variable would pass an empty
+# string to the scripts/Tiltfile and override their built-in defaults
 # (e.g., KIND_EXPERIMENTAL_PROVIDER=podman for podman support)
-export KIND_EXPERIMENTAL_PROVIDER
+export $(foreach v,$(TILT_CONFIG_VARS),$(if $($(v)),$(v)))
+
+# Print the effective value and source of each option
+.PHONY: show-config
+show-config:
+	@echo "Config file: $(TILT_CONFIG_FILE) ($(if $(wildcard $(TILT_CONFIG_FILE)),found,not found))"
+	@$(foreach v,$(TILT_CONFIG_VARS),printf '  %-28s %-10s (%s)\n' '$(v)' '$(if $($(v)),$($(v)),<unset>)' '$(patsubst file,$(TILT_CONFIG_FILE),$(patsubst undefined,default,$(origin $(v))))';)
 
 # Check if tilt is installed
 .PHONY: check-tilt
