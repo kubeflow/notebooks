@@ -1,0 +1,19 @@
+{
+  "name": "kubeflow-notebooks-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end tests for Kubeflow Notebooks",
+  "scripts": {
+    "cypress:run": "cypress run --browser chrome",
+    "cypress:open": "cypress open"
+  },
+  "engines": {
+    "node": "^20"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^1.0.0",
+    "@testing-library/cypress": "^10.0.3",
+    "cypress": "^14.4.1",
+    "typescript": "^5.8.2"
+  }
+}
