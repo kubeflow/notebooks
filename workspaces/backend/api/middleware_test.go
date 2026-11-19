@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"time"
 
 	"github.com/klauspost/compress/gzhttp"
 	"github.com/klauspost/compress/zstd"
@@ -123,4 +124,24 @@ var _ = Describe("compression", func() {
 		Entry("does not compress small responses even when the client accepts compression",
 			testSmallRequestPath, "gzip, zstd", ""),
 	)
+})
+
+var _ = Describe("request timeout", func() {
+
+	It("sets a deadline on the request context", func() {
+		app := &App{}
+
+		var deadline time.Time
+		var hasDeadline bool
+		handler := app.withRequestTimeout(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			deadline, hasDeadline = r.Context().Deadline()
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		before := time.Now()
+		handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/test", http.NoBody))
+
+		Expect(hasDeadline).To(BeTrue())
+		Expect(deadline).To(BeTemporally("~", before.Add(requestTimeout), time.Second))
+	})
 })

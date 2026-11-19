@@ -17,9 +17,17 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
 )
+
+// requestTimeout is the maximum time a request may spend waiting on the Kubernetes API,
+// including waiting for an informer cache to sync.
+// NOTE: this is slightly less than the server's WriteTimeout (32s), so that the handler
+// still has time to write an error response after the deadline is exceeded.
+const requestTimeout = 30 * time.Second
 
 func (a *App) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -41,5 +49,17 @@ func (a *App) enableCORS(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+// withRequestTimeout sets a deadline on the request context, so that handlers waiting on
+// the Kubernetes API (e.g. on an informer which never syncs) give up and return an error,
+// rather than blocking until the client disconnects.
+func (a *App) withRequestTimeout(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+		defer cancel()
+
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
