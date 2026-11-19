@@ -32,6 +32,13 @@ COPY --from=builder /usr/src/app/dist /usr/share/nginx/html
 # Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Create symlink so assets can be resolved with or without /workspaces prefix
+RUN ln -s . /usr/share/nginx/html/workspaces
+
 # Create directories and set permissions for non-root user
 RUN mkdir -p /var/cache/nginx/client_temp \
              /var/cache/nginx/proxy_temp \
@@ -55,6 +62,10 @@ EXPOSE 8080
 
 # Set environment variables
 ENV PORT=8080
+ENV DEPLOYMENT_MODE=kubeflow
+
+# Run entrypoint script to substitute runtime configuration
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Start the production server
 CMD ["nginx", "-g", "daemon off;"]
