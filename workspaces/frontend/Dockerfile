@@ -8,7 +8,8 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install the dependencies and build
-RUN npm cache clean --force \
+RUN npm install -g npm@"$(node -p "require('./package.json').engines.npm")" \
+  && npm cache clean --force \
   && npm ci
 
 # Copy source code
