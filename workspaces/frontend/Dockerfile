@@ -23,9 +23,6 @@ FROM nginx:alpine
 
 USER root
 
-# Install envsubst (gettext package)
-RUN apk add --no-cache gettext
-
 # Copy built assets from builder stage
 COPY --from=builder /usr/src/app/dist /usr/share/nginx/html
 
