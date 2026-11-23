@@ -6564,7 +6564,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "minProbeIntervalSeconds": {
-                    "description": "the minimum duration in seconds that must elapse between two consecutive probes.\n- Acts as a rate-limiter for failed probes: if a probe fails, the controller waits at least this long before retrying (requeuing after minProbeInterval).\n- Also acts as a guard: if a reconcile triggers early, the probe is skipped until this interval has elapsed since the last probe.\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
+                    "description": "the minimum duration in seconds between a failed probe and the next probe\n - acts as a rate-limiter for failed (or timed out) probes: the controller\n   waits at least this long after a failed probe before retrying\n - after a successful probe, ` + "`" + `probeIntervalSeconds` + "`" + ` is used instead\n - must be less than or equal to ` + "`" + `probeIntervalSeconds` + "`" + `, note that when only\n   ` + "`" + `probeIntervalSeconds` + "`" + ` is set, it must be at least the default of this field (300)\n+kubebuilder:validation:Minimum:=1\n+kubebuilder:validation:Maximum:=31536000\n+kubebuilder:default:=300\n+kubebuilder:validation:Optional",
                     "type": "integer"
                 },
                 "podExec": {
@@ -6649,7 +6649,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "pauseWorkspace": {
-                    "description": "determines if the Workspace should be paused\n - the webhook rejects rules with ` + "`" + `pauseWorkspace: true` + "`" + `\n   when no ` + "`" + `activityProbe` + "`" + ` is configured\n+kubebuilder:validation:Optional",
+                    "description": "determines if the Workspace should be paused\n - ` + "`" + `true` + "`" + `: pause matching Workspaces when they are inactive\n - ` + "`" + `false` + "`" + `: exempt matching Workspaces from being paused\n - unset: this rule does not decide, evaluation continues with the next rule\n - the webhook rejects rules with ` + "`" + `pauseWorkspace: true` + "`" + `\n   when no ` + "`" + `activityProbe` + "`" + ` is configured\n - the webhook allows at most one rule with an empty ` + "`" + `match` + "`" + ` that sets\n   this effect, and it must be the last such rule\n+kubebuilder:validation:Optional",
                     "type": "boolean"
                 }
             }
@@ -6761,7 +6761,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "deny": {
-                    "description": "return the matched item but reject any workspace create/update which selects it\n+kubebuilder:validation:Optional",
+                    "description": "return the matched item but reject any workspace create/update which selects it\n - if ` + "`" + `hide` + "`" + ` is also true, ` + "`" + `hide` + "`" + ` takes precedence and the item is\n   omitted from API responses\n - on update, a denied imageConfig/podConfig option is only rejected if it\n   is being changed to, so existing Workspaces keep their current option,\n   a denied WorkspaceKind is rejected on every update\n+kubebuilder:validation:Optional",
                     "type": "boolean"
                 },
                 "denyMessage": {
@@ -6852,7 +6852,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "removePathPrefix": {
-                    "description": "if the path prefix is stripped from incoming HTTP requests\n - if true, the '/workspace/connect/{profile_name}/{workspace_name}/' path prefix\n   is stripped from incoming requests, the application sees the request\n   as if it was made to '/...'\n - this only works if the application serves RELATIVE URLs for its assets\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
+                    "description": "if the path prefix is stripped from incoming HTTP requests\n - if true, the '/workspace/connect/{namespace}/{name}/{port_id}/' path prefix\n   is stripped from incoming requests, the application sees the request\n   as if it was made to '/...'\n - this only works if the application serves RELATIVE URLs for its assets\n+kubebuilder:validation:Optional\n+kubebuilder:default:=false",
                     "type": "boolean"
                 },
                 "requestHeaders": {
@@ -6990,7 +6990,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "add": {
-                    "description": "append the given values to the headers specified by keys (will create a comma-separated list of values)\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"My-Header\": \"value-to-append\" }",
+                    "description": "append the given values to the headers specified by keys (will create a comma-separated list of values)\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port,\n      or an empty string if the selected imageConfig has no port with that id\n      (port ids are NOT validated by the webhook)\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"My-Header\": \"value-to-append\" }",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -7004,7 +7004,7 @@ const docTemplate = `{
                     }
                 },
                 "set": {
-                    "description": "overwrite the headers specified by key with the given values\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ httpPathPrefix 'rstudio' }}\" }",
+                    "description": "overwrite the headers specified by key with the given values\n - the following go template functions are available in the values:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port,\n      or an empty string if the selected imageConfig has no port with that id\n      (port ids are NOT validated by the webhook)\n+kubebuilder:validation:Optional\n+kubebuilder:example:={ \"X-RStudio-Root-Path\": \"{{ httpPathPrefix \\\"rstudio\\\" }}\" }",
                     "type": "object",
                     "additionalProperties": {
                         "type": "string"
@@ -7124,7 +7124,7 @@ const docTemplate = `{
                     ]
                 },
                 "extraEnv": {
-                    "description": "extra environment variables for the \"main\" container, specific to this pod config\n - use this for variables that depend on the hardware or scheduling of this pod config,\n   for example ` + "`" + `PJRT_DEVICE=CPU` + "`" + ` for a CPU pod config, or ` + "`" + `TPU_TOPOLOGY=2x2` + "`" + ` for a TPU slice\n - these are combined with the WorkspaceKind-level ` + "`" + `podTemplate.podSpec.mainContainer.extraEnv` + "`" + `:\n    - a variable with the same ` + "`" + `name` + "`" + ` as a WorkspaceKind-level variable replaces its value,\n      but keeps the position of the WorkspaceKind-level variable\n    - all other variables are added after the WorkspaceKind-level variables, in the order listed here\n - Kubernetes only expands ` + "`" + `$(VAR_NAME)` + "`" + ` references to variables that appear EARLIER in the\n   final list, so WorkspaceKind-level variables can NOT reference variables only defined here\n - like all pod config ` + "`" + `spec` + "`" + ` fields, this can NOT be changed while the pod config is used by\n   any Workspace, instead, create a new pod config value and redirect the old one to it\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={{name: \"PJRT_DEVICE\", value: \"CPU\"}}\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "extra environment variables for the \"main\" container, specific to this pod config\n - use this for variables that depend on the hardware or scheduling of this pod config,\n   for example ` + "`" + `PJRT_DEVICE=CPU` + "`" + ` for a CPU pod config, or ` + "`" + `TPU_TOPOLOGY=2x2` + "`" + ` for a TPU slice\n - these are combined with the WorkspaceKind-level ` + "`" + `podTemplate.podSpec.mainContainer.extraEnv` + "`" + `:\n    - a variable with the same ` + "`" + `name` + "`" + ` as a WorkspaceKind-level variable replaces its value,\n      but keeps the position of the WorkspaceKind-level variable\n    - all other variables are added after the WorkspaceKind-level variables, in the order listed here\n - Kubernetes only expands ` + "`" + `$(VAR_NAME)` + "`" + ` references to variables that appear EARLIER in the\n   final list, so WorkspaceKind-level variables can NOT reference variables only defined here\n - like all pod config ` + "`" + `spec` + "`" + ` fields, this can NOT be changed while the pod config is used by\n   any Workspace, instead, create a new pod config value and redirect the old one to it\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port,\n      or an empty string if the selected imageConfig has no port with that id\n      (port ids are NOT validated by the webhook)\n+kubebuilder:validation:Optional\n+kubebuilder:example:={{name: \"PJRT_DEVICE\", value: \"CPU\"}}\n+listType:=\"map\"\n+listMapKey:=\"name\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.EnvVar"
@@ -7319,7 +7319,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "extraEnv": {
-                    "description": "environment variables for the main container (MUTABLE)\n - these apply to ALL Workspaces of this WorkspaceKind, regardless of the selected pod config\n - a pod config may override (by ` + "`" + `name` + "`" + `) or add to these with its own ` + "`" + `spec.extraEnv` + "`" + `\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port\n+kubebuilder:validation:Optional\n+kubebuilder:example:={{name: \"NB_PREFIX\", value: \"{{ httpPathPrefix \\\"jupyterlab\\\" }}\"}}\n+listType:=\"map\"\n+listMapKey:=\"name\"",
+                    "description": "environment variables for the main container (MUTABLE)\n - these apply to ALL Workspaces of this WorkspaceKind, regardless of the selected pod config\n - a pod config may override (by ` + "`" + `name` + "`" + `) or add to these with its own ` + "`" + `spec.extraEnv` + "`" + `\n - the following go template functions are available:\n    - ` + "`" + `httpPathPrefix(portId string)` + "`" + `: returns the HTTP path prefix of the specified port,\n      or an empty string if the selected imageConfig has no port with that id\n      (port ids are NOT validated by the webhook)\n+kubebuilder:validation:Optional\n+kubebuilder:example:={{name: \"NB_PREFIX\", value: \"{{ httpPathPrefix \\\"jupyterlab\\\" }}\"}}\n+listType:=\"map\"\n+listMapKey:=\"name\"",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.EnvVar"

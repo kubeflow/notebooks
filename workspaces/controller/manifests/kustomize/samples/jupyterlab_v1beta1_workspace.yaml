@@ -46,7 +46,11 @@ spec:
 
       ## the name of the PVC to mount as the home volume
       ##  - this PVC must already exist in the Namespace
-      ##  - this PVC must be RWX (ReadWriteMany, ReadWriteOnce)
+      ##  - the access modes of this PVC are NOT validated, but it must be
+      ##    mountable by the Workspace Pod, e.g. ReadWriteOnce (if only used by
+      ##    one Workspace at a time) or ReadWriteMany
+      ##  - the backend API only allows PVCs with the
+      ##    `workspaces.kubeflow.org/can-mount: "true"` label
       ##  - the mount path is defined in the WorkspaceKind under
       ##    `spec.podTemplate.volumeMountPaths.home`
       ##
@@ -55,8 +59,11 @@ spec:
       ## additional PVCs to mount
       ##  - these PVC must already exist in the Namespace
       ##  - the same PVC can be mounted multiple times with different `mountPaths`
-      ##  - if `readOnly` is false, the PVC must be RWX (ReadWriteMany, ReadWriteOnce)
-      ##  - if `readOnly` is true, the PVC must be ReadOnlyMany
+      ##  - the access modes of these PVCs are NOT validated, but they must be
+      ##    mountable by the Workspace Pod (e.g. ReadWriteMany if shared between
+      ##    Workspaces, ReadOnlyMany is sufficient if `readOnly` is true)
+      ##  - the backend API only allows PVCs with the
+      ##    `workspaces.kubeflow.org/can-mount: "true"` label
       ##
       data:
         - pvcName: "workspace-data-pvc"
