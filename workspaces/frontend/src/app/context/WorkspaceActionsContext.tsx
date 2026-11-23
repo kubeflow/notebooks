@@ -8,7 +8,7 @@ import { useNotification } from 'mod-arch-core';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import { WorkspaceDetails } from '~/app/pages/Workspaces/Details/WorkspaceDetails';
 import { useTypedNavigate } from '~/app/routerHelper';
-import DeleteModal from '~/shared/components/DeleteModal';
+import DeleteModal, { DeleteOptions } from '~/shared/components/DeleteModal';
 import { WorkspaceStartActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStartActionModal';
 import { WorkspaceStopActionModal } from '~/app/pages/Workspaces/workspaceActions/WorkspaceStopActionModal';
 import { WorkspacesRedirectStep, WorkspacesWorkspaceListItem } from '~/generated/data-contracts';
@@ -106,6 +106,7 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
   const notification = useNotification();
   const { api } = useNotebookAPI();
   const [activeWsAction, setActiveWsAction] = useState<WorkspaceAction | null>(null);
+  const [homeVolumeName, setHomeVolumeName] = useState<string | undefined>();
 
   const drawerContent = (
     <>
@@ -151,17 +152,58 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
     });
   }, [navigate, activeWsAction]);
 
-  const executeDeleteAction = useCallback(async () => {
+  const executeDeleteAction = useCallback(
+    async (options?: DeleteOptions) => {
+      if (!activeWsAction || activeWsAction.action !== ActionType.Delete) {
+        return;
+      }
+
+      const workspaceName = activeWsAction.workspace.name;
+      const workspaceNamespace = activeWsAction.workspace.namespace;
+      let volumeToDelete = options?.deleteHomeVolume ? homeVolumeName : undefined;
+      if (options?.deleteHomeVolume && !volumeToDelete) {
+        const envelope = await api.workspaces.getWorkspace(workspaceNamespace, workspaceName);
+        volumeToDelete = envelope.data.podTemplate.volumes.home;
+      }
+      await api.workspaces.deleteWorkspace(workspaceNamespace, workspaceName);
+      if (volumeToDelete) {
+        await api.pvc.deletePvc(workspaceNamespace, volumeToDelete);
+        notification.info(
+          `Workspace '${workspaceName}' and home volume '${volumeToDelete}' deleted successfully`,
+        );
+      } else {
+        notification.info(`Workspace '${workspaceName}' deleted successfully`);
+      }
+      activeWsAction.onActionDone?.();
+    },
+    [api, activeWsAction, homeVolumeName, notification],
+  );
+
+  useEffect(() => {
     if (!activeWsAction || activeWsAction.action !== ActionType.Delete) {
+      setHomeVolumeName(undefined);
       return;
     }
 
     const workspaceName = activeWsAction.workspace.name;
     const workspaceNamespace = activeWsAction.workspace.namespace;
-    await api.workspaces.deleteWorkspace(workspaceNamespace, workspaceName);
-    notification.info(`Workspace '${workspaceName}' deleted successfully`);
-    activeWsAction.onActionDone?.();
-  }, [api, activeWsAction, notification]);
+    let cancelled = false;
+    Promise.resolve(api.workspaces.getWorkspace(workspaceNamespace, workspaceName))
+      .then((envelope) => {
+        if (!cancelled) {
+          setHomeVolumeName(envelope.data.podTemplate.volumes.home);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHomeVolumeName(undefined);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWsAction, api]);
 
   useEffect(() => {
     if (!activeWsAction) {
@@ -276,8 +318,9 @@ export const WorkspaceActionsContextProvider: React.FC<WorkspaceActionsContextPr
                     resourceName={activeWsAction.workspace.name}
                     namespace={activeWsAction.workspace.namespace}
                     title="Delete workspace?"
+                    homeVolumeName={homeVolumeName}
                     onClose={() => setActiveWsAction(null)}
-                    onDelete={async () => executeDeleteAction()}
+                    onDelete={async (_resourceName, options) => executeDeleteAction(options)}
                   />
                 )}
               </>

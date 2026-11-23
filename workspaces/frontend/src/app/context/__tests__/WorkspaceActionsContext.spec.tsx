@@ -31,18 +31,27 @@ jest.mock('~/shared/components/DeleteModal', () => ({
     resourceName,
     namespace,
   }: {
-    onDelete: () => void;
+    onDelete: (resourceName?: string, options?: { deleteHomeVolume: boolean }) => void;
     resourceName: string;
     namespace: string;
   }) => (
-    <button
-      type="button"
-      data-testid="confirm-delete"
-      data-namespace={namespace}
-      onClick={onDelete}
-    >
-      Confirm delete {resourceName}
-    </button>
+    <>
+      <button
+        type="button"
+        data-testid="confirm-delete"
+        data-namespace={namespace}
+        onClick={() => onDelete()}
+      >
+        Confirm delete {resourceName}
+      </button>
+      <button
+        type="button"
+        data-testid="confirm-delete-with-volume"
+        onClick={() => onDelete(resourceName, { deleteHomeVolume: true })}
+      >
+        Confirm delete {resourceName} and volume
+      </button>
+    </>
   ),
 }));
 jest.mock('mod-arch-core', () => ({
@@ -98,6 +107,7 @@ describe('WorkspaceActionsContext namespace routing', () => {
   const getWorkspace = jest.fn();
   const updateWorkspace = jest.fn();
   const deleteWorkspace = jest.fn();
+  const deletePvc = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -107,6 +117,7 @@ describe('WorkspaceActionsContext namespace routing', () => {
     jest.mocked(useNotebookAPI).mockReturnValue({
       api: {
         workspaces: { updateWorkspacePauseState, getWorkspace, updateWorkspace, deleteWorkspace },
+        pvc: { deletePvc },
       } as unknown as NotebookApis,
       apiAvailable: true,
       refreshAllAPI: jest.fn(),
@@ -114,6 +125,7 @@ describe('WorkspaceActionsContext namespace routing', () => {
     updateWorkspacePauseState.mockResolvedValue({ data: { paused: false } });
     updateWorkspace.mockResolvedValue({});
     deleteWorkspace.mockResolvedValue({});
+    deletePvc.mockResolvedValue({});
   });
 
   it.each([
@@ -271,6 +283,28 @@ describe('WorkspaceActionsContext namespace routing', () => {
         'data-namespace',
         namespaceB,
       );
+    });
+
+    it('deletes the home volume when the confirmation asks for it', async () => {
+      const user = userEvent.setup();
+      const workspace = buildMockWorkspace({ name: 'my-notebook-5', namespace: namespaceB });
+      getWorkspace.mockResolvedValue({
+        data: { podTemplate: { volumes: { home: 'workspace-home' } } },
+      });
+
+      render(
+        <WorkspaceActionsContextProvider>
+          <DeleteActionTrigger workspace={workspace} />
+        </WorkspaceActionsContextProvider>,
+      );
+
+      await user.click(screen.getByTestId('trigger-delete'));
+      await user.click(await screen.findByTestId('confirm-delete-with-volume'));
+
+      await waitFor(() => {
+        expect(deleteWorkspace).toHaveBeenCalledWith(namespaceB, workspace.name);
+        expect(deletePvc).toHaveBeenCalledWith(namespaceB, 'workspace-home');
+      });
     });
 
     it('does not delete before confirmation', async () => {

@@ -266,6 +266,43 @@ describe('DeleteModal', () => {
     });
   });
 
+  describe('Home volume checkbox', () => {
+    it('hides the volume checkbox when no home volume is given', () => {
+      render(<DeleteModal {...defaultProps} />);
+      expect(screen.queryByTestId('delete-home-volume-checkbox')).not.toBeInTheDocument();
+    });
+
+    it('leaves the home volume in place when the checkbox stays unchecked', async () => {
+      const user = userEvent.setup();
+      mockOnDelete.mockResolvedValue(undefined);
+
+      render(<DeleteModal {...defaultProps} homeVolumeName="workspace-home" />);
+
+      expect(screen.getByTestId('delete-home-volume-checkbox')).not.toBeChecked();
+      await user.type(screen.getByTestId('delete-modal-input'), 'test-resource');
+      await user.click(screen.getByTestId('delete-button'));
+
+      await waitFor(() => {
+        expect(mockOnDelete).toHaveBeenCalledWith('test-resource', { deleteHomeVolume: false });
+      });
+    });
+
+    it('asks to delete the named home volume when the checkbox is checked', async () => {
+      const user = userEvent.setup();
+      mockOnDelete.mockResolvedValue(undefined);
+
+      render(<DeleteModal {...defaultProps} homeVolumeName="workspace-home" />);
+
+      await user.click(screen.getByTestId('delete-home-volume-checkbox'));
+      await user.type(screen.getByTestId('delete-modal-input'), 'test-resource');
+      await user.click(screen.getByTestId('delete-button'));
+
+      await waitFor(() => {
+        expect(mockOnDelete).toHaveBeenCalledWith('test-resource', { deleteHomeVolume: true });
+      });
+    });
+  });
+
   describe('Cancel Button', () => {
     it('should call onClose when cancel button is clicked', async () => {
       const user = userEvent.setup();
