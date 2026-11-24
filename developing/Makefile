@@ -17,7 +17,7 @@ KUSTOMIZE_VERSION ?= v5.5.0
 # They can be persisted in an optional, gitignored config file (see tilt-config.mk.example).
 # The config file uses `?=`, so the precedence is:
 # command line (make VAR=x) > environment (VAR=x make) > config file > built-in defaults.
-TILT_CONFIG_FILE ?= tilt-config.mk
+TILT_CONFIG_FILE := tilt-config.mk
 TILT_CONFIG_VARS := ENABLE_FRONTEND ENABLE_DASHBOARD ENABLE_PROMETHEUS ENABLE_METRICS_SERVER KIND_EXPERIMENTAL_PROVIDER
 
 -include $(TILT_CONFIG_FILE)
