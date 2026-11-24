@@ -5,5 +5,5 @@
 *.so
 *.dylib
 bin/*
-# Local tilt settings (see tilt.env.example)
-tilt.env
+# Local tilt settings (see tilt-config.mk.example)
+tilt-config.mk

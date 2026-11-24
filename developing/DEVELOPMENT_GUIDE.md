@@ -164,13 +164,13 @@ What this does:
 
 > [!TIP]
 >
-> To persist these options instead of typing them on every invocation, copy [`tilt.env.example`](./tilt.env.example) to `tilt.env` (gitignored) and uncomment the options you need:
+> To persist these options instead of typing them on every invocation, copy [`tilt-config.mk.example`](./tilt-config.mk.example) to `tilt-config.mk` (gitignored) and uncomment the options you need:
 >
 > ```bash
-> cp tilt.env.example tilt.env
+> cp tilt-config.mk.example tilt-config.mk
 > ```
 >
-> Options set on the command line (`make tilt-up VAR=x`) or in the environment (`VAR=x make tilt-up`) still take precedence over `tilt.env`, as long as it uses `?=` assignments like the example.
+> Options set on the command line (`make tilt-up VAR=x`) or in the environment (`VAR=x make tilt-up`) still take precedence over `tilt-config.mk`, as long as it uses `?=` assignments like the example.
 > Run `make show-config` to print the effective value of each option and where it came from.
 
 Wait until all resources show green/healthy status. 
