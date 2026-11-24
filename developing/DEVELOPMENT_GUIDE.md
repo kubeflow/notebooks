@@ -263,7 +263,7 @@ cd developing
 ENABLE_FAKE_GPU=true make tilt-up
 ```
 
-This labels the worker node, installs FGO (via Helm) into the `gpu-operator` namespace, and makes the worker advertise one simulated GPU. `helm` must be installed for this path; the default `make tilt-up` does not require it.
+This labels the worker node, installs FGO (via Helm) into the `gpu-operator` namespace, and makes the worker advertise one simulated GPU. A pinned `helm` is downloaded into `developing/bin/` automatically, so no separate installation is needed.
 
 The GPU workspace options are already defined on the sample WorkspaceKinds, which Tilt does not apply automatically. Apply them, then create a GPU workspace (`spec.podTemplate.options.podConfig: big_gpu`) via the UI spawner or `kubectl`:
 

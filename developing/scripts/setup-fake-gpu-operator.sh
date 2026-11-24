@@ -10,6 +10,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEVELOPING_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LOCALBIN="${DEVELOPING_DIR}/bin"
+
+HELM_VERSION="v4.3.2"
 
 FGO_CHART="oci://ghcr.io/run-ai/fake-gpu-operator/fake-gpu-operator"
 FGO_VERSION="0.2.1"
@@ -27,13 +30,46 @@ if [[ "${ENABLE_FAKE_GPU:-false}" != "true" ]]; then
   exit 0
 fi
 
-# helm is only required for the GPU path, so we check for it here rather than
-# as a global prerequisite.
-if ! command -v helm >/dev/null 2>&1; then
-  echo "ERROR: helm is required for ENABLE_FAKE_GPU=true. Please install helm first:"
-  echo "  https://helm.sh/docs/intro/install/"
-  exit 1
+# ================================
+# Fetch a pinned helm
+# ================================
+# helm is only needed for this (opt-in) path, so it is downloaded here, after
+# the ENABLE_FAKE_GPU check, from the official release page.
+HELM_DIR="${LOCALBIN}/helm-${HELM_VERSION}"
+if [[ ! -x "${HELM_DIR}/helm" ]]; then
+  HELM_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  case "$(uname -m)" in
+    x86_64 | amd64) HELM_ARCH="amd64" ;;
+    aarch64 | arm64) HELM_ARCH="arm64" ;;
+    *) echo "ERROR: unsupported architecture for helm download: $(uname -m)"; exit 1 ;;
+  esac
+  HELM_TARBALL="helm-${HELM_VERSION}-${HELM_OS}-${HELM_ARCH}.tar.gz"
+  HELM_URL="https://get.helm.sh/${HELM_TARBALL}"
+
+  TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "${TMP_DIR}"' EXIT
+
+  echo "INFO: Downloading helm ${HELM_VERSION} from ${HELM_URL} ..."
+  curl -fsSL -o "${TMP_DIR}/${HELM_TARBALL}" "${HELM_URL}"
+  curl -fsSL -o "${TMP_DIR}/${HELM_TARBALL}.sha256sum" "${HELM_URL}.sha256sum"
+
+  echo "INFO: Verifying helm checksum ..."
+  # sha256sum on Linux, shasum on macOS
+  if command -v sha256sum >/dev/null 2>&1; then
+    SHA256_CHECK=(sha256sum -c)
+  else
+    SHA256_CHECK=(shasum -a 256 -c)
+  fi
+  (cd "${TMP_DIR}" && "${SHA256_CHECK[@]}" "${HELM_TARBALL}.sha256sum")
+
+  tar -xzf "${TMP_DIR}/${HELM_TARBALL}" -C "${TMP_DIR}"
+  mkdir -p "${HELM_DIR}"
+  mv "${TMP_DIR}/${HELM_OS}-${HELM_ARCH}/helm" "${HELM_DIR}/helm"
 fi
+
+# Add helm to PATH for this script
+export PATH="${HELM_DIR}:${PATH}"
+echo "INFO: using helm from $(command -v helm) ($(helm version --short))"
 
 # ================================
 # Label the worker node(s)
