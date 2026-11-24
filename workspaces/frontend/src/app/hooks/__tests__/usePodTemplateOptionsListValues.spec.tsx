@@ -2,7 +2,7 @@ import { renderHook } from '~/__tests__/unit/testUtils/hooks';
 import { useNotebookAPI } from '~/app/hooks/useNotebookAPI';
 import usePodTemplateOptionsListValues from '~/app/hooks/usePodTemplateOptionsListValues';
 import { NotebookApis } from '~/shared/api/notebookApi';
-import { buildMockWorkspaceKind } from '~/shared/mock/mockBuilder';
+import { buildMockListValuesData } from '~/shared/mock/mockBuilder';
 
 jest.mock('~/app/hooks/useNotebookAPI', () => ({
   useNotebookAPI: jest.fn(),
@@ -60,11 +60,7 @@ describe('usePodTemplateOptionsListValues', () => {
   });
 
   it('returns options when API is available and kindName is provided', async () => {
-    const mockWorkspaceKind = buildMockWorkspaceKind({});
-    const mockResponse = {
-      imageConfig: mockWorkspaceKind.podTemplate.options.imageConfig,
-      podConfig: mockWorkspaceKind.podTemplate.options.podConfig,
-    };
+    const mockResponse = buildMockListValuesData();
 
     const podTemplateOptionsListValues = jest
       .fn()
@@ -100,11 +96,7 @@ describe('usePodTemplateOptionsListValues', () => {
   });
 
   it('sends imageConfig context when imageId is provided', async () => {
-    const mockWorkspaceKind = buildMockWorkspaceKind({});
-    const mockResponse = {
-      imageConfig: mockWorkspaceKind.podTemplate.options.imageConfig,
-      podConfig: mockWorkspaceKind.podTemplate.options.podConfig,
-    };
+    const mockResponse = buildMockListValuesData();
 
     const podTemplateOptionsListValues = jest
       .fn()
@@ -141,11 +133,7 @@ describe('usePodTemplateOptionsListValues', () => {
   });
 
   it('sends no namespace context when namespace is undefined', async () => {
-    const mockWorkspaceKind = buildMockWorkspaceKind({});
-    const mockResponse = {
-      imageConfig: mockWorkspaceKind.podTemplate.options.imageConfig,
-      podConfig: mockWorkspaceKind.podTemplate.options.podConfig,
-    };
+    const mockResponse = buildMockListValuesData();
 
     const podTemplateOptionsListValues = jest
       .fn()

@@ -216,12 +216,107 @@ class WorkspaceKinds {
 }
 
 class WorkspaceKindDetailsDrawer {
+  assertImageRow(args: { id: string; displayName: string; workspaceCount: number }) {
+    this.findImageRows().should('have.length', 1);
+    return this.findImageRow(args.id)
+      .should('contain.text', args.displayName)
+      .and('contain.text', `${args.workspaceCount} Workspaces`);
+  }
+
+  assertPodConfigRow(args: { id: string; displayName: string; workspaceCount: number }) {
+    this.findPodConfigRows().should('have.length', 1);
+    return this.findPodConfigRow(args.id)
+      .should('contain.text', args.displayName)
+      .and('contain.text', `${args.workspaceCount} Workspaces`);
+  }
+
+  assertImagesLoading() {
+    return this.findImagesContent().findByTestId('details-loading-spinner').should('be.visible');
+  }
+
+  assertImagesLoadError() {
+    return this.findImagesContent()
+      .findByTestId('details-loading-error')
+      .should('be.visible')
+      .and('contain.text', 'Failed to load details');
+  }
+
+  assertOverviewVisible(workspaceKindName: string) {
+    return this.findOverviewContent()
+      .should('be.visible')
+      .and('contain.text', 'Name')
+      .and('contain.text', workspaceKindName);
+  }
+
+  assertPodConfigsLoading() {
+    return this.findPodConfigsContent()
+      .findByTestId('details-loading-spinner')
+      .should('be.visible');
+  }
+
+  assertPodConfigsLoadError() {
+    return this.findPodConfigsContent()
+      .findByTestId('details-loading-error')
+      .should('be.visible')
+      .and('contain.text', 'Failed to load details');
+  }
+
+  clickOverviewTab() {
+    return this.findOverviewTab().click();
+  }
+
+  clickImagesTab() {
+    return this.findImagesTab().click();
+  }
+
+  clickPodConfigsTab() {
+    return this.findPodConfigsTab().click();
+  }
+
   find() {
     return cy.findByTestId('workspaceDetails');
   }
 
   findCloseButton() {
     return cy.findByTestId('workspace-kind-details-close');
+  }
+
+  findImageRow(id: string) {
+    return this.find().findByTestId(`workspace-kind-details-image-row-${id}`);
+  }
+
+  findImageRows() {
+    return this.findImagesTable().find('[data-testid^="workspace-kind-details-image-row-"]');
+  }
+
+  findImagesContent() {
+    return this.find().find('#imagesTabContent');
+  }
+
+  findImagesTable() {
+    return this.find().findByTestId('workspace-kind-details-image-table');
+  }
+
+  findOverviewContent() {
+    return this.find().find('#overviewTabContent');
+  }
+
+  findPodConfigRow(id: string) {
+    return this.find().findByTestId(`workspace-kind-details-podConfig-row-${id}`);
+  }
+
+  findPodConfigRows() {
+    return this.findPodConfigsTable().find(
+      '[data-testid^="workspace-kind-details-podConfig-row-"]',
+    );
+  }
+
+  findPodConfigsContent() {
+    return this.find().find('#podConfigsTabContent');
+  }
+
+  findPodConfigsTable() {
+    return this.find().findByTestId('workspace-kind-details-podConfig-table');
   }
 
   findTitle() {

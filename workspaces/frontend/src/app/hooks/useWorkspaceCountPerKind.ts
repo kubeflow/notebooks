@@ -65,28 +65,6 @@ function extractCountByNamespace(args: {
   );
 }
 
-function extractCountByImage(
-  workspaceKind: WorkspacekindsWorkspaceKindListItem,
-): WorkspaceCountPerOption['countByImage'] {
-  return (workspaceKind.podTemplate.options.imageConfig.values ?? []).reduce<
-    WorkspaceCountPerOption['countByImage']
-  >((acc, { id, clusterMetrics }) => {
-    acc[id] = clusterMetrics?.workspacesCount ?? 0;
-    return acc;
-  }, {});
-}
-
-function extractCountByPodConfig(
-  workspaceKind: WorkspacekindsWorkspaceKindListItem,
-): WorkspaceCountPerOption['countByPodConfig'] {
-  return (workspaceKind.podTemplate.options.podConfig.values ?? []).reduce<
-    WorkspaceCountPerOption['countByPodConfig']
-  >((acc, { id, clusterMetrics }) => {
-    acc[id] = clusterMetrics?.workspacesCount ?? 0;
-    return acc;
-  }, {});
-}
-
 function extractTotalCount(workspaceKind: WorkspacekindsWorkspaceKindListItem): number {
   return workspaceKind.clusterMetrics.workspacesCount;
 }
@@ -100,8 +78,6 @@ function extractCountPerKind(args: {
   return workspaceKinds.reduce<WorkspaceCountPerKind>((acc, kind) => {
     acc[kind.name] = {
       count: extractTotalCount(kind),
-      countByImage: extractCountByImage(kind),
-      countByPodConfig: extractCountByPodConfig(kind),
       countByNamespace: extractCountByNamespace({ kind, workspaces }),
     };
 

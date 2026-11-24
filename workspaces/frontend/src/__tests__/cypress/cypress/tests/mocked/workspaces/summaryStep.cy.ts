@@ -4,6 +4,7 @@ import { editWorkspace } from '~/__tests__/cypress/cypress/pages/workspaces/edit
 import { workspaces } from '~/__tests__/cypress/cypress/pages/workspaces/workspaces';
 import { NOTEBOOKS_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import {
+  buildMockListValuesData,
   buildMockNamespace,
   buildMockPVC,
   buildMockWorkspace,
@@ -76,19 +77,16 @@ describe('Summary step', () => {
   const mockPodConfig1 = buildMockPodConfigValue('tiny_cpu', 'Tiny CPU', 'Tiny CPU resources');
   const mockPodConfig2 = buildMockPodConfigValue('small_cpu', 'Small CPU', 'Small CPU resources');
 
-  const mockWorkspaceKind = buildMockWorkspaceKind({
-    podTemplate: {
-      ...buildMockWorkspaceKind().podTemplate,
-      options: {
-        imageConfig: {
-          default: mockImage1.id,
-          values: [mockImage1, mockImage2],
-        },
-        podConfig: {
-          default: mockPodConfig1.id,
-          values: [mockPodConfig1, mockPodConfig2],
-        },
-      },
+  const mockWorkspaceKind = buildMockWorkspaceKind();
+
+  const listValues = buildMockListValuesData({
+    imageConfig: {
+      default: mockImage1.id,
+      values: [mockImage1, mockImage2],
+    },
+    podConfig: {
+      default: mockPodConfig1.id,
+      values: [mockPodConfig1, mockPodConfig2],
     },
   });
 
@@ -110,7 +108,7 @@ describe('Summary step', () => {
       { path: { apiVersion: NOTEBOOKS_API_VERSION } },
       mockModArchResponse([mockWorkspaceKind]),
     ).as('getWorkspaceKinds');
-    interceptListValues(mockWorkspaceKind);
+    interceptListValues(mockWorkspaceKind, { listValues });
 
     cy.interceptApi(
       'GET /api/:apiVersion/persistentvolumeclaims/:namespace',
