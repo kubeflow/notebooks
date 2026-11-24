@@ -89,7 +89,7 @@ The Tilt development environment runs a 2-node Kind cluster with Istio, cert-man
 > [!NOTE]
 >
 > The frontend webpack dev server is the heaviest component, requesting 3 GiB of memory.
-> If resources are tight, you can run without it using `ENABLE_FRONTEND=false make tilt-up`,
+> If resources are tight, you can run without it using `ENABLE_FRONTEND=false ENABLE_DASHBOARD=false make tilt-up`,
 > which reduces memory requirements by roughly 3 GiB.
 
 ### Tilt - Quick Start
@@ -147,7 +147,7 @@ What this does:
 > To run Tilt without the frontend (useful for backend/controller-only development):
 >
 > ```bash
-> ENABLE_FRONTEND=false make tilt-up
+> ENABLE_FRONTEND=false ENABLE_DASHBOARD=false make tilt-up
 > ```
 
 > [!TIP]
