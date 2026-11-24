@@ -17,8 +17,23 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"time"
+)
+
+const (
+	// ServerWriteTimeout is the WriteTimeout of the HTTP server.
+	ServerWriteTimeout = 32 * time.Second
+
+	// requestTimeoutWriteBuffer is the time reserved for a handler to write an error
+	// response after the request deadline is exceeded.
+	requestTimeoutWriteBuffer = 2 * time.Second
+
+	// requestTimeout is the maximum time a request may spend waiting on the Kubernetes API,
+	// including waiting for an informer cache to sync.
+	requestTimeout = ServerWriteTimeout - requestTimeoutWriteBuffer
 )
 
 func (a *App) recoverPanic(next http.Handler) http.Handler {
@@ -41,5 +56,17 @@ func (a *App) enableCORS(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+// withRequestTimeout sets a deadline on the request context, so that handlers waiting on
+// the Kubernetes API (e.g. on an informer which never syncs) give up and return an error,
+// rather than blocking until the client disconnects.
+func (a *App) withRequestTimeout(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
+		defer cancel()
+
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

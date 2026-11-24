@@ -17,11 +17,14 @@ limitations under the License.
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -53,6 +56,45 @@ var _ = Describe("Error Response Functions", func() {
 		app = &App{}
 		w = httptest.NewRecorder()
 		r = httptest.NewRequest(testRequestMethod, testRequestPath, http.NoBody)
+	})
+
+	Describe("serverErrorResponse", func() {
+		expectStatus := func(statusCode int) {
+			Expect(w.Code).To(Equal(statusCode))
+
+			var envelope ErrorEnvelope
+			Expect(json.Unmarshal(w.Body.Bytes(), &envelope)).To(Succeed())
+			Expect(envelope.Error).NotTo(BeNil())
+			Expect(envelope.Error.Code).To(Equal(strconv.Itoa(statusCode)))
+		}
+
+		BeforeEach(func() {
+			app.logger = slog.New(slog.DiscardHandler)
+		})
+
+		It("should return 500 when the request context is still active", func() {
+			app.serverErrorResponse(w, r, errors.New("test error"))
+
+			expectStatus(http.StatusInternalServerError)
+		})
+
+		It("should return 500 when the request context was canceled", func() {
+			ctx, cancel := context.WithCancel(r.Context())
+			cancel()
+
+			app.serverErrorResponse(w, r.WithContext(ctx), context.Canceled)
+
+			expectStatus(http.StatusInternalServerError)
+		})
+
+		It("should return 504 when the request deadline was exceeded, even if the error does not wrap it", func() {
+			ctx, cancel := context.WithDeadline(r.Context(), time.Now().Add(-time.Second))
+			defer cancel()
+
+			app.serverErrorResponse(w, r.WithContext(ctx), errors.New("client rate limiter wait failed"))
+
+			expectStatus(http.StatusGatewayTimeout)
+		})
 	})
 
 	Describe("conflictResponse", func() {
