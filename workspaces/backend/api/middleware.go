@@ -23,11 +23,18 @@ import (
 	"time"
 )
 
-// requestTimeout is the maximum time a request may spend waiting on the Kubernetes API,
-// including waiting for an informer cache to sync.
-// NOTE: this is slightly less than the server's WriteTimeout (32s), so that the handler
-// still has time to write an error response after the deadline is exceeded.
-const requestTimeout = 30 * time.Second
+const (
+	// ServerWriteTimeout is the WriteTimeout of the HTTP server.
+	ServerWriteTimeout = 32 * time.Second
+
+	// requestTimeoutWriteBuffer is the time reserved for a handler to write an error
+	// response after the request deadline is exceeded.
+	requestTimeoutWriteBuffer = 2 * time.Second
+
+	// requestTimeout is the maximum time a request may spend waiting on the Kubernetes API,
+	// including waiting for an informer cache to sync.
+	requestTimeout = ServerWriteTimeout - requestTimeoutWriteBuffer
+)
 
 func (a *App) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

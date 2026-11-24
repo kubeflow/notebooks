@@ -53,7 +53,7 @@ func NewServer(app *api.App, logger *slog.Logger) (*Server, error) {
 		IdleTimeout:       90 * time.Second, // matches http.DefaultTransport keep-alive timeout
 		ReadTimeout:       32 * time.Second,
 		ReadHeaderTimeout: 32 * time.Second,
-		WriteTimeout:      32 * time.Second,
+		WriteTimeout:      api.ServerWriteTimeout,
 		MaxHeaderBytes:    maxHeaderBytes,
 		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
