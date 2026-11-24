@@ -22,6 +22,9 @@ TILT_CONFIG_VARS := ENABLE_FRONTEND ENABLE_DASHBOARD ENABLE_PROMETHEUS ENABLE_ME
 
 -include $(TILT_CONFIG_FILE)
 
+# Make keeps whitespace before an inline comment, which would corrupt values from the config file
+$(foreach v,$(TILT_CONFIG_VARS),$(if $(filter file,$(origin $(v))),$(eval $(v) := $(strip $($(v))))))
+
 # Only export options that are set: exporting an undefined variable would pass an empty
 # string to the scripts/Tiltfile and override their built-in defaults
 # (e.g., KIND_EXPERIMENTAL_PROVIDER=podman for podman support)
