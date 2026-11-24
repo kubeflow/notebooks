@@ -136,14 +136,18 @@ func (a *App) getWorkspaceKindAssetHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err != nil {
-		if errors.Is(err, repository.ErrWorkspaceKindNotFound) ||
-			errors.Is(err, repository.ErrWorkspaceKindAssetNotConfigMap) ||
-			errors.Is(err, repository.ErrWorkspaceKindAssetConfigMapNotFound) ||
-			errors.Is(err, repository.ErrWorkspaceKindAssetConfigMapKeyMissing) {
+		switch {
+		case errors.Is(err, repository.ErrWorkspaceKindNotFound):
 			a.notFoundResponse(w, r)
-			return
+		case errors.Is(err, repository.ErrWorkspaceKindAssetNotConfigMap):
+			a.notFoundResponse(w, r)
+		case errors.Is(err, repository.ErrWorkspaceKindAssetConfigMapNotFound):
+			a.notFoundResponse(w, r)
+		case errors.Is(err, repository.ErrWorkspaceKindAssetConfigMapKeyMissing):
+			a.notFoundResponse(w, r)
+		default:
+			a.serverErrorResponse(w, r, err)
 		}
-		a.serverErrorResponse(w, r, err)
 		return
 	}
 
