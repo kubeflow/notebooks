@@ -116,6 +116,9 @@ ENABLE_PROMETHEUS=true make tilt-up
 
 # OPTION 3: run with metrics-server enabled (kubectl top verification)
 ENABLE_METRICS_SERVER=true make tilt-up
+
+# OPTION 4: run with a local image registry enabled (faster incremental rebuilds)
+ENABLE_REGISTRY=true make tilt-up
 ```
 
 What this does:
@@ -150,6 +153,14 @@ What this does:
 > [!TIP]
 >
 > `ENABLE_METRICS_SERVER=true` installs [metrics-server](https://github.com/kubernetes-sigs/metrics-server), registering the `metrics.k8s.io` API so `kubectl top nodes` / `kubectl top pods` work against the cluster.
+
+> [!TIP]
+>
+> `ENABLE_REGISTRY=true` creates the Kind cluster via [ctlptl](https://github.com/tilt-dev/ctlptl) with a local container registry, so Tilt pushes images to it instead of loading them into the Kind nodes, speeding up incremental rebuilds. A pinned `ctlptl` is installed into `developing/bin` automatically (via `go install`).
+>
+> The `kubeflow-registry` container (and its cached image layers) outlives the cluster, so it is reused if the cluster is deleted or recreated. Enabling it on an existing `tilt` cluster that was created without the registry recreates the cluster. Disabling it afterwards does not remove the registry wiring, so Tilt keeps pushing to the registry until the cluster is recreated.
+>
+> `ctlptl` sends anonymized usage statistics by default; opt out with `./bin/ctlptl-* analytics opt out`.
 
 Wait until all resources show green/healthy status. 
 The frontend may take a couple of minutes on first start as webpack compiles the bundle.
@@ -262,6 +273,12 @@ If you want to completely remove the Kind cluster, you can do so with:
 
 ```bash
 kind delete cluster --name tilt
+```
+
+If you used `ENABLE_REGISTRY=true`, also remove the local registry container:
+
+```bash
+docker rm -f kubeflow-registry  # or: podman rm -f kubeflow-registry
 ```
 
 ## Tilt - Troubleshooting
