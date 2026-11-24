@@ -27,6 +27,9 @@
 # Install metrics-server for `kubectl top` verification
 #ENABLE_METRICS_SERVER ?= false
 
+# Enable a local registry via ctlptl for faster rebuilds
+#ENABLE_REGISTRY ?= true
+
 # Use an alternative container runtime for kind (e.g., podman)
 #KIND_EXPERIMENTAL_PROVIDER ?= podman
 
