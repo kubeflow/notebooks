@@ -17,7 +17,11 @@ import {
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
-import { emptyPodConfig } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import {
+  emptyPodConfig,
+  resolveDefaultOnOptionDelete,
+  resolveDefaultOnOptionSave,
+} from '~/app/pages/WorkspaceKinds/Form/helpers';
 import {
   TolerationEntry,
   WorkspaceKindPodConfigValue,
@@ -39,7 +43,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   updatePodConfig,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [defaultId, setDefaultId] = useState('');
+  const [defaultId, setDefaultId] = useState(podConfig.default);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -65,16 +69,29 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
   const handleAddOrEditSubmit = useCallback(
     (config: WorkspaceKindPodConfigValue) => {
       const currentValues = podConfig.values ?? [];
-      if (editIndex !== null) {
-        const updated = [...currentValues];
-        updated[editIndex] = config;
-        updatePodConfig({ ...podConfig, values: updated });
-      } else {
-        updatePodConfig({ ...podConfig, values: [...currentValues, config] });
+      const isEdit = editIndex !== null;
+      const previousId = isEdit ? currentValues[editIndex]?.id : undefined;
+      if (isEdit && previousId && previousId !== config.id) {
+        tolerationSettersCache.current.delete(previousId);
+        modalSettersCache.current.delete(previousId);
+      }
+      const updated = isEdit
+        ? currentValues.map((item, idx) => (idx === editIndex ? config : item))
+        : [...currentValues, config];
+      const newDefault = resolveDefaultOnOptionSave({
+        currentDefault: defaultId,
+        previousId,
+        nextId: config.id,
+        isEdit,
+        totalCount: updated.length,
+      });
+      updatePodConfig({ ...podConfig, default: newDefault, values: updated });
+      if (newDefault !== defaultId) {
+        setDefaultId(newDefault);
       }
       clearForm();
     },
-    [clearForm, editIndex, podConfig, updatePodConfig],
+    [clearForm, defaultId, editIndex, podConfig, updatePodConfig],
   );
 
   const handleEdit = useCallback(
@@ -91,19 +108,28 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
       return;
     }
     const currentValues = podConfig.values ?? [];
-    const removedId = currentValues[deleteIndex].id;
-    tolerationSettersCache.current.delete(removedId);
-    modalSettersCache.current.delete(removedId);
-    updatePodConfig({
-      default: currentValues[deleteIndex].id === defaultId ? '' : defaultId,
-      values: currentValues.filter((_, i) => i !== deleteIndex),
+    const removedId = currentValues[deleteIndex]?.id;
+    if (removedId) {
+      tolerationSettersCache.current.delete(removedId);
+      modalSettersCache.current.delete(removedId);
+    }
+    const remaining = currentValues.filter((_, i) => i !== deleteIndex);
+    const newDefault = resolveDefaultOnOptionDelete({
+      currentDefault: defaultId,
+      removedId,
+      remainingIds: remaining.map((v) => v.id),
     });
-    if (currentValues[deleteIndex].id === defaultId) {
-      setDefaultId('');
+    updatePodConfig({
+      ...podConfig,
+      default: newDefault,
+      values: remaining,
+    });
+    if (newDefault !== defaultId) {
+      setDefaultId(newDefault);
     }
     setDeleteIndex(null);
     setIsDeleteModalOpen(false);
-  }, [deleteIndex, podConfig, updatePodConfig, setDefaultId, defaultId]);
+  }, [deleteIndex, defaultId, podConfig, updatePodConfig]);
 
   const podConfigRef = useRef(podConfig);
   podConfigRef.current = podConfig;

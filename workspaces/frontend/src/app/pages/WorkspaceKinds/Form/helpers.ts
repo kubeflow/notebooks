@@ -26,6 +26,116 @@ import { PodResourceEntry } from './podConfig/WorkspaceKindFormResource';
 export const generateUniqueId = (): string =>
   `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
+export const OPTION_ID_REGEX = /^[a-z0-9]([a-z0-9_.:-]*[a-z0-9])?$/;
+export const MAX_OPTION_ID_LENGTH = 256;
+export const MIN_DISPLAY_NAME_LENGTH = 2;
+export const MAX_DISPLAY_NAME_LENGTH = 128;
+export const MIN_OPTION_DESCRIPTION_LENGTH = 2;
+export const MAX_OPTION_DESCRIPTION_LENGTH = 1024;
+export const MIN_IMAGE_URL_LENGTH = 2;
+
+export const validateOptionId = (
+  id: string,
+  existingIds: string[] = [],
+  currentId?: string,
+): string | null => {
+  if (!id.trim()) {
+    return 'ID is required.';
+  }
+  if (Array.from(id).length > MAX_OPTION_ID_LENGTH) {
+    return `ID must not exceed ${MAX_OPTION_ID_LENGTH} characters.`;
+  }
+  // Allow preserving an unchanged legacy ID during edit so existing cluster configs remain editable.
+  const isUnchangedExistingId = currentId !== undefined && id === currentId;
+  if (!isUnchangedExistingId && !OPTION_ID_REGEX.test(id)) {
+    return 'ID must start and end with an alphanumeric character and contain only lowercase letters, numbers, hyphens, underscores, dots, or colons.';
+  }
+  const duplicates = existingIds.filter((existing) => existing !== currentId);
+  if (duplicates.includes(id)) {
+    return 'An option with this ID already exists.';
+  }
+  return null;
+};
+
+export const validateOptionDisplayName = (displayName: string): string | null => {
+  if (!displayName.trim()) {
+    return 'Display Name is required.';
+  }
+  const runeLength = Array.from(displayName).length;
+  if (runeLength < MIN_DISPLAY_NAME_LENGTH) {
+    return `Display Name must be at least ${MIN_DISPLAY_NAME_LENGTH} characters.`;
+  }
+  if (runeLength > MAX_DISPLAY_NAME_LENGTH) {
+    return `Display Name must not exceed ${MAX_DISPLAY_NAME_LENGTH} characters.`;
+  }
+  return null;
+};
+
+export const validateOptionDescription = (description?: string): string | null => {
+  if (!description || description.length === 0) {
+    return null;
+  }
+  if (!description.trim()) {
+    return 'Description cannot contain only whitespace.';
+  }
+  const runeLength = Array.from(description).length;
+  if (runeLength < MIN_OPTION_DESCRIPTION_LENGTH) {
+    return `Description must be at least ${MIN_OPTION_DESCRIPTION_LENGTH} characters.`;
+  }
+  if (runeLength > MAX_OPTION_DESCRIPTION_LENGTH) {
+    return `Description must not exceed ${MAX_OPTION_DESCRIPTION_LENGTH} characters.`;
+  }
+  return null;
+};
+
+export const validateImageUrl = (imageUrl?: string): string | null => {
+  const trimmed = imageUrl?.trim() ?? '';
+  if (!trimmed) {
+    return 'Image URL is required.';
+  }
+  if (Array.from(trimmed).length < MIN_IMAGE_URL_LENGTH) {
+    return `Image URL must be at least ${MIN_IMAGE_URL_LENGTH} characters.`;
+  }
+  return null;
+};
+
+export const resolveDefaultOnOptionSave = ({
+  currentDefault,
+  previousId,
+  nextId,
+  isEdit,
+  totalCount,
+}: {
+  currentDefault: string;
+  previousId?: string;
+  nextId: string;
+  isEdit: boolean;
+  totalCount: number;
+}): string => {
+  if (isEdit) {
+    return previousId === currentDefault ? nextId : currentDefault;
+  }
+  return totalCount === 1 || !currentDefault ? nextId : currentDefault;
+};
+
+export const resolveDefaultOnOptionDelete = ({
+  currentDefault,
+  removedId,
+  remainingIds,
+}: {
+  currentDefault: string;
+  removedId?: string;
+  remainingIds: string[];
+}): string => {
+  if (remainingIds.length === 0) {
+    return '';
+  }
+  if (removedId === currentDefault || !remainingIds.includes(currentDefault)) {
+    return remainingIds[0];
+  }
+  return currentDefault;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
 export const isValidWorkspaceKindYaml = (data: any): boolean => {
   if (!data || typeof data !== 'object') {

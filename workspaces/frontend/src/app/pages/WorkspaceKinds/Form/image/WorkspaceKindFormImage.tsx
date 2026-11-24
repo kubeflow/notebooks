@@ -17,7 +17,11 @@ import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/Ex
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
 import { WorkspaceKindImageConfigData, WorkspaceKindImageConfigValue } from '~/app/types';
-import { emptyImage } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import {
+  emptyImage,
+  resolveDefaultOnOptionDelete,
+  resolveDefaultOnOptionSave,
+} from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormPaginatedTable } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormPaginatedTable';
 import { WorkspaceKindFormImageModal } from './WorkspaceKindFormImageModal';
 
@@ -33,7 +37,7 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
   updateImageConfig,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [defaultId, setDefaultId] = useState('');
+  const [defaultId, setDefaultId] = useState(imageConfig.default);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
@@ -59,22 +63,25 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
     (submittedImage?: WorkspaceKindImageConfigValue) => {
       const imgToSave = submittedImage ?? image;
       const currentValues = imageConfig.values ?? [];
-      if (editIndex !== null) {
-        const updated = [...currentValues];
-        updated[editIndex] = imgToSave;
-        updateImageConfig({ ...imageConfig, values: updated });
-      } else {
-        const images = [...currentValues, imgToSave];
-        if (images.length === 1) {
-          updateImageConfig({ default: imgToSave.id, values: [...currentValues, imgToSave] });
-          setDefaultId(imgToSave.id);
-        } else {
-          updateImageConfig({ ...imageConfig, values: [...currentValues, imgToSave] });
-        }
+      const isEdit = editIndex !== null;
+      const previousId = isEdit ? currentValues[editIndex]?.id : undefined;
+      const updated = isEdit
+        ? currentValues.map((item, idx) => (idx === editIndex ? imgToSave : item))
+        : [...currentValues, imgToSave];
+      const newDefault = resolveDefaultOnOptionSave({
+        currentDefault: defaultId,
+        previousId,
+        nextId: imgToSave.id,
+        isEdit,
+        totalCount: updated.length,
+      });
+      updateImageConfig({ ...imageConfig, default: newDefault, values: updated });
+      if (newDefault !== defaultId) {
+        setDefaultId(newDefault);
       }
       clearForm();
     },
-    [clearForm, editIndex, image, imageConfig, updateImageConfig],
+    [clearForm, defaultId, editIndex, image, imageConfig, updateImageConfig],
   );
 
   const handleEdit = useCallback(
@@ -91,16 +98,24 @@ export const WorkspaceKindFormImage: React.FC<WorkspaceKindFormImageProps> = ({
       return;
     }
     const currentValues = imageConfig.values ?? [];
-    updateImageConfig({
-      default: currentValues[deleteIndex].id === defaultId ? '' : defaultId,
-      values: currentValues.filter((_, i) => i !== deleteIndex),
+    const removedId = currentValues[deleteIndex]?.id;
+    const remaining = currentValues.filter((_, i) => i !== deleteIndex);
+    const newDefault = resolveDefaultOnOptionDelete({
+      currentDefault: defaultId,
+      removedId,
+      remainingIds: remaining.map((v) => v.id),
     });
-    if (currentValues[deleteIndex].id === defaultId) {
-      setDefaultId('');
+    updateImageConfig({
+      ...imageConfig,
+      default: newDefault,
+      values: remaining,
+    });
+    if (newDefault !== defaultId) {
+      setDefaultId(newDefault);
     }
     setDeleteIndex(null);
     setIsDeleteModalOpen(false);
-  }, [deleteIndex, imageConfig, updateImageConfig, setDefaultId, defaultId]);
+  }, [deleteIndex, defaultId, imageConfig, updateImageConfig]);
   const addImageBtn = (
     <Button
       variant="link"

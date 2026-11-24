@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   ModalHeader,
@@ -13,13 +13,17 @@ import {
   FormSelectOption,
 } from '@patternfly/react-core/dist/esm/components/FormSelect';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
-import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { WorkspaceKindImageConfigValue, ImagePullPolicy } from '~/app/types';
 import { EditableRowsTable } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupWrapper';
 import {
   getRedirectMessageError,
   normalizeRedirect,
+  validateImageUrl,
+  validateOptionDescription,
+  validateOptionDisplayName,
+  validateOptionId,
 } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import { WorkspaceKindFormRedirect } from '~/app/pages/WorkspaceKinds/Form/WorkspaceKindFormRedirect';
 import { WorkspaceKindFormImagePort } from './WorkspaceKindFormImagePort';
@@ -33,6 +37,7 @@ interface WorkspaceKindFormImageModalProps {
   image: WorkspaceKindImageConfigValue;
   setImage: (image: WorkspaceKindImageConfigValue) => void;
   imageOptions?: WorkspaceKindImageConfigValue[];
+  existingIds?: string[];
 }
 
 export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalProps> = ({
@@ -44,11 +49,69 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
   image,
   setImage,
   imageOptions,
+  existingIds,
 }) => {
+  const [isIdTouched, setIsIdTouched] = useState(false);
+  const [isDisplayNameTouched, setIsDisplayNameTouched] = useState(false);
+  const [isDescriptionTouched, setIsDescriptionTouched] = useState(false);
+  const [isImageUrlTouched, setIsImageUrlTouched] = useState(false);
+  const imageIdRef = useRef(image.id);
+  imageIdRef.current = image.id;
+  const initialIdRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (isOpen) {
+      initialIdRef.current = editIndex !== null ? imageIdRef.current : undefined;
+      setIsIdTouched(editIndex !== null);
+      setIsDisplayNameTouched(editIndex !== null);
+      setIsDescriptionTouched(editIndex !== null);
+      setIsImageUrlTouched(editIndex !== null);
+    } else {
+      initialIdRef.current = undefined;
+      setIsIdTouched(false);
+      setIsDisplayNameTouched(false);
+      setIsDescriptionTouched(false);
+      setIsImageUrlTouched(false);
+    }
+  }, [isOpen, editIndex]);
+
+  const resolvedExistingIds = useMemo(
+    () => existingIds ?? (imageOptions ?? []).map((opt) => opt.id),
+    [existingIds, imageOptions],
+  );
+
   const originalId =
-    editIndex !== null && imageOptions && imageOptions[editIndex]
+    editIndex !== null && imageOptions?.[editIndex]
       ? imageOptions[editIndex]?.id
-      : undefined;
+      : initialIdRef.current;
+
+  const idError =
+    isIdTouched || image.id.length > 0
+      ? validateOptionId(image.id, resolvedExistingIds, originalId)
+      : null;
+
+  const displayNameError =
+    isDisplayNameTouched || image.displayName.length > 0
+      ? validateOptionDisplayName(image.displayName)
+      : null;
+
+  const descriptionError =
+    isDescriptionTouched || image.description.length > 0
+      ? validateOptionDescription(image.description)
+      : null;
+
+  const imageUrlError =
+    isImageUrlTouched || (image.image?.length ?? 0) > 0 ? validateImageUrl(image.image) : null;
+
+  const isFormValid =
+    !idError &&
+    !displayNameError &&
+    !descriptionError &&
+    !imageUrlError &&
+    validateOptionId(image.id, resolvedExistingIds, originalId) === null &&
+    validateOptionDisplayName(image.displayName) === null &&
+    validateOptionDescription(image.description) === null &&
+    validateImageUrl(image.image) === null;
 
   const candidateTargets = useMemo(
     () =>
@@ -65,7 +128,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
     Boolean(getRedirectMessageError(image.redirect)) || isMissingRedirectTarget;
 
   const handleSubmit = () => {
-    if (hasRedirectError) {
+    if (!isFormValid || hasRedirectError) {
       return;
     }
     const finalRedirect = normalizeRedirect(image.redirect);
@@ -97,55 +160,118 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
       />
       <ModalBody>
         <Form>
-          <ThemeAwareFormGroupWrapper label="ID" isRequired fieldId="workspace-kind-image-id">
+          <ThemeAwareFormGroupWrapper
+            label="ID"
+            isRequired
+            fieldId="workspace-kind-image-id"
+            hasError={!!idError}
+            helperTextNode={
+              idError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="image-id-error">
+                    {idError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
+          >
             <TextInput
               isRequired
               type="text"
               value={image.id}
-              onChange={(_, value) => setImage({ ...image, id: value })}
+              onChange={(_, value) => {
+                setIsIdTouched(true);
+                setImage({ ...image, id: value });
+              }}
+              onBlur={() => setIsIdTouched(true)}
               id="workspace-kind-image-id"
               data-testid="workspace-kind-image-id-input"
+              validated={idError ? 'error' : 'default'}
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
             label="Display Name"
             isRequired
             fieldId="workspace-kind-image-name"
+            hasError={!!displayNameError}
+            helperTextNode={
+              displayNameError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="image-name-error">
+                    {displayNameError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
           >
             <TextInput
               isRequired
               type="text"
               value={image.displayName}
-              onChange={(_, value) => setImage({ ...image, displayName: value })}
+              onChange={(_, value) => {
+                setIsDisplayNameTouched(true);
+                setImage({ ...image, displayName: value });
+              }}
+              onBlur={() => setIsDisplayNameTouched(true)}
               id="workspace-kind-image-name"
               data-testid="workspace-kind-image-name-input"
+              validated={displayNameError ? 'error' : 'default'}
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
             label="Description"
             fieldId="workspace-kind-image-description"
+            hasError={!!descriptionError}
+            helperTextNode={
+              descriptionError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="image-description-error">
+                    {descriptionError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
           >
             <TextInput
-              isRequired
               type="text"
               value={image.description}
-              onChange={(_, value) => setImage({ ...image, description: value })}
+              onChange={(_, value) => {
+                setIsDescriptionTouched(true);
+                setImage({ ...image, description: value });
+              }}
+              onBlur={() => setIsDescriptionTouched(true)}
               id="workspace-kind-image-description"
               data-testid="workspace-kind-image-description-input"
+              validated={descriptionError ? 'error' : 'default'}
             />
           </ThemeAwareFormGroupWrapper>
           <ThemeAwareFormGroupWrapper
             label="Image URL"
             isRequired
             fieldId="workspace-kind-image-url"
+            hasError={!!imageUrlError}
+            helperTextNode={
+              imageUrlError ? (
+                <HelperText>
+                  <HelperTextItem variant="error" data-testid="image-url-error">
+                    {imageUrlError}
+                  </HelperTextItem>
+                </HelperText>
+              ) : null
+            }
           >
             <TextInput
               isRequired
               type="url"
               value={image.image}
-              onChange={(_, value) => setImage({ ...image, image: value })}
+              onChange={(_, value) => {
+                setIsImageUrlTouched(true);
+                setImage({ ...image, image: value });
+              }}
+              onBlur={() => setIsImageUrlTouched(true)}
               id="workspace-kind-image-url"
               data-testid="workspace-kind-image-url-input"
+              validated={imageUrlError ? 'error' : 'default'}
             />
           </ThemeAwareFormGroupWrapper>
           <FormGroup
@@ -216,7 +342,7 @@ export const WorkspaceKindFormImageModal: React.FC<WorkspaceKindFormImageModalPr
           key="confirm"
           variant="primary"
           onClick={handleSubmit}
-          isDisabled={hasRedirectError}
+          isDisabled={hasRedirectError || !isFormValid}
           data-testid="image-modal-submit-button"
         >
           {editIndex !== null ? 'Save' : 'Add'}
