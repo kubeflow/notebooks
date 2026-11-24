@@ -34,7 +34,7 @@ export $(foreach v,$(TILT_CONFIG_VARS),$(if $($(v)),$(v)))
 .PHONY: show-config
 show-config:
 	@echo "Config file: $(TILT_CONFIG_FILE) ($(if $(wildcard $(TILT_CONFIG_FILE)),found,not found))"
-	@$(foreach v,$(TILT_CONFIG_VARS),printf '  %-28s %-10s (%s)\n' '$(v)' '$(if $($(v)),$($(v)),<unset>)' '$(patsubst file,$(TILT_CONFIG_FILE),$(patsubst undefined,default,$(origin $(v))))';)
+	@$(foreach v,$(TILT_CONFIG_VARS),printf '  %-28s %-10s (%s)\n' '$(v)' '$(if $($(v)),$($(v)),$(if $(filter environment command line,$(origin $(v))),"",<unset>))' '$(patsubst file,$(TILT_CONFIG_FILE),$(patsubst undefined,default,$(origin $(v))))';)
 
 # Check if tilt is installed
 .PHONY: check-tilt
