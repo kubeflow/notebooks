@@ -11,7 +11,9 @@
 # NOTE: this file is included by make:
 #   - use `?=` (not `=`), otherwise the file overrides values from the environment
 #   - do not quote values, quotes are kept literally
-#   - comments after a value are allowed, surrounding whitespace is stripped
+#   - comments after a value are allowed for the options below, surrounding whitespace is stripped
+#   - only the options below are passed to Tilt automatically, use `export VAR ?= value`
+#     for any other variable, and do not put a comment after its value
 
 # Deploy the frontend webpack dev server (requires ~3 GiB of memory)
 #ENABLE_FRONTEND ?= true
@@ -27,3 +29,6 @@
 
 # Use an alternative container runtime for kind (e.g., podman)
 #KIND_EXPERIMENTAL_PROVIDER ?= podman
+
+# Example of another variable: disable BuildKit (see the troubleshooting guide)
+#export DOCKER_BUILDKIT ?= 0
