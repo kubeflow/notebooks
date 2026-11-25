@@ -125,44 +125,23 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
               return (
                 <Tr key={index} data-testid={`port-row-${index}`}>
                   <Td dataLabel="ID" data-testid={`port-id-cell-${index}`}>
-                    {declaredPorts.length > 0 ? (
-                      <>
-                        <FormSelect
-                          value={p.id}
-                          onChange={(_, val) => updatePort(index, { id: val })}
-                          aria-label={`Port ID for row ${index}`}
-                          id={`port-id-select-${index}`}
-                          data-testid={`port-id-select-${index}`}
-                          validated={isTouched && errors.id ? 'error' : 'default'}
-                        >
-                          <FormSelectOption value="" label="Select ID" />
-                          {declaredPorts.map((dp) => (
-                            <FormSelectOption key={dp.id} value={dp.id} label={dp.id} />
-                          ))}
-                        </FormSelect>
-                        {isTouched && errors.id && (
-                          <HelperText>
-                            <HelperTextItem variant="error">{errors.id}</HelperTextItem>
-                          </HelperText>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <TextInput
-                          value={p.id}
-                          onChange={(_, val) => updatePort(index, { id: val })}
-                          type="text"
-                          aria-label={`Port ID for row ${index}`}
-                          id={`port-id-input-${index}`}
-                          data-testid={`port-id-input-${index}`}
-                          validated={isTouched && errors.id ? 'error' : 'default'}
-                        />
-                        {isTouched && errors.id && (
-                          <HelperText>
-                            <HelperTextItem variant="error">{errors.id}</HelperTextItem>
-                          </HelperText>
-                        )}
-                      </>
+                    <FormSelect
+                      value={p.id}
+                      onChange={(_, val) => updatePort(index, { id: val })}
+                      aria-label={`Port ID for row ${index}`}
+                      id={`port-id-select-${index}`}
+                      data-testid={`port-id-select-${index}`}
+                      validated={isTouched && errors.id ? 'error' : 'default'}
+                    >
+                      <FormSelectOption value="" label="Select ID" />
+                      {declaredPorts.map((dp) => (
+                        <FormSelectOption key={dp.id} value={dp.id} label={dp.id} />
+                      ))}
+                    </FormSelect>
+                    {isTouched && errors.id && (
+                      <HelperText>
+                        <HelperTextItem variant="error">{errors.id}</HelperTextItem>
+                      </HelperText>
                     )}
                   </Td>
                   <Td dataLabel="Display Name" data-testid={`port-display-name-cell-${index}`}>

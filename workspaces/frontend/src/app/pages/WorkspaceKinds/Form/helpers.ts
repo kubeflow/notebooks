@@ -37,9 +37,11 @@ export const validatePort = (
 ): PortErrors => {
   const errors: PortErrors = {};
 
-  if (!p.id) {
+  if (declaredPorts.length === 0) {
+    errors.id = 'No ports are declared in the pod template';
+  } else if (!p.id) {
     errors.id = 'Port ID is required';
-  } else if (declaredPorts.length > 0 && !declaredPorts.some((dp) => dp.id === p.id)) {
+  } else if (!declaredPorts.some((dp) => dp.id === p.id)) {
     errors.id = 'ID must reference a declared port';
   } else if (allPorts.some((op, j) => j !== index && op.id === p.id)) {
     errors.id = 'ID must be unique';

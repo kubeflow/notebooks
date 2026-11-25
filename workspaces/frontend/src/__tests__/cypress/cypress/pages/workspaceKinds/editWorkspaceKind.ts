@@ -1235,22 +1235,13 @@ class EditWorkspaceKind {
     this.findAddPortButton().click();
   }
 
-  // Inline ID field — Select when declaredPorts are present
+  // Inline ID field — Select of the declared podTemplate ports
   findPortIdSelect(index: number) {
     return cy.findByTestId(`port-id-select-${index}`);
   }
 
-  // Inline ID field — TextInput fallback when no declaredPorts
-  findPortIdTextInput(index: number) {
-    return cy.findByTestId(`port-id-input-${index}`);
-  }
-
   selectPortId(index: number, id: string) {
     this.findPortIdSelect(index).select(id);
-  }
-
-  typePortIdText(index: number, id: string) {
-    this.findPortIdTextInput(index).clear().type(id);
   }
 
   // Inline display name field

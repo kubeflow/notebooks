@@ -3,7 +3,13 @@ import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { WorkspaceKindFormImagePort } from '~/app/pages/WorkspaceKinds/Form/image/WorkspaceKindFormImagePort';
-import { WorkspaceKindImagePort } from '~/app/types';
+import { WorkspaceKindFormImageModal } from '~/app/pages/WorkspaceKinds/Form/image/WorkspaceKindFormImageModal';
+import { validatePort } from '~/app/pages/WorkspaceKinds/Form/helpers';
+import {
+  ImagePullPolicy,
+  WorkspaceKindImageConfigValue,
+  WorkspaceKindImagePort,
+} from '~/app/types';
 import { V1Beta1WorkspaceKindPort, V1Beta1ImagePortProtocol } from '~/generated/data-contracts';
 
 jest.mock('mod-arch-kubeflow', () => ({
@@ -86,11 +92,12 @@ describe('WorkspaceKindFormImagePort', () => {
     expect(screen.getByTestId('add-port-button')).toBeInTheDocument();
   });
 
-  // 5. Without declaredPorts falls back to a text input for the ID field.
-  it('renders a text input for ID when no declaredPorts are provided', () => {
+  // 5. Without declaredPorts the ID field is still a selector, never free text.
+  it('renders an ID selector without free-text fallback when no ports are declared', () => {
     render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
-    expect(screen.getByTestId('port-id-input-0')).toBeInTheDocument();
-    expect(screen.queryByTestId('port-id-select-0')).not.toBeInTheDocument();
+    const select = screen.getByTestId('port-id-select-0');
+    expect(screen.queryByTestId('port-id-input-0')).not.toBeInTheDocument();
+    expect(within(select as HTMLElement).getAllByRole('option')).toHaveLength(1);
   });
 
   // ── Add / remove ──────────────────────────────────────────────────────────
@@ -511,38 +518,25 @@ describe('WorkspaceKindFormImagePort', () => {
     expect(screen.getByText('Port must be between 1 and 65535')).toBeInTheDocument();
   });
 
-  // 26. Single-port backward compatibility with text-input ID (no declaredPorts).
-  it('renders and validates correctly with a text ID input when no declaredPorts are given', () => {
-    const ports = [makePort({ id: 'http', port: 8888 })];
-    render(<WorkspaceKindFormImagePort ports={ports} setPorts={setPorts} />);
-
-    // The table shows the text-input variant
-    const idInput = screen.getByTestId('port-id-input-0');
-    expect(idInput).toBeInTheDocument();
-
-    // fireEvent.change is used so the controlled value is set atomically
-    fireEvent.change(idInput, { target: { value: 'newid' } });
-
-    expect(setPorts).toHaveBeenLastCalledWith([makePort({ id: 'newid', port: 8888 })]);
+  // 26. Regression: an empty podTemplate.ports must not bypass ID reference validation.
+  it('shows a missing-declarations error when podTemplate declares no ports', () => {
+    render(
+      <WorkspaceKindFormImagePort
+        ports={[makePort({ id: 'http', port: 8888 })]}
+        setPorts={setPorts}
+        declaredPorts={[]}
+      />,
+    );
+    expect(screen.getByText('No ports are declared in the pod template')).toBeInTheDocument();
   });
 
-  // 27. Text-input ID shows "ID must be unique" error on duplicate.
-  it('shows inline duplicate-ID error in text-input mode', () => {
-    const ports = [makePort({ id: 'http', port: 8888 }), makePort({ id: 'jupyter', port: 8889 })];
-    const { rerender } = render(<WorkspaceKindFormImagePort ports={ports} setPorts={setPorts} />);
-
-    // fireEvent.change sets the value atomically; controlled reset between
-    // keystrokes (from user.type) would produce wrong intermediate values
-    fireEvent.change(screen.getByTestId('port-id-input-1'), { target: { value: 'http' } });
-
-    const updated = setPorts.mock.calls[0][0] as WorkspaceKindImagePort[];
-    jest.clearAllMocks();
-
-    // rerender preserves touchedRows; both rows are touched so both show the error
-    rerender(<WorkspaceKindFormImagePort ports={updated} setPorts={setPorts} />);
-
-    // Both duplicate rows show the error — use queryAllByText to handle multiple matches
-    expect(screen.queryAllByText('ID must be unique').length).toBeGreaterThan(0);
+  // 27. Regression: validatePort rejects every ID when no ports are declared.
+  it('validatePort reports an ID error for any ID when declarations are empty', () => {
+    const ports = [makePort({ id: 'http', port: 8888 })];
+    expect(validatePort(ports[0], 0, ports, []).id).toBe(
+      'No ports are declared in the pod template',
+    );
+    expect(validatePort(ports[0], 0, ports, declaredPorts).id).toBeUndefined();
   });
 
   // ── Rows show pre-existing data ────────────────────────────────────────────
@@ -578,5 +572,40 @@ describe('WorkspaceKindFormImagePort', () => {
     within(select as HTMLElement).getByRole('option', { name: 'http' });
     within(select as HTMLElement).getByRole('option', { name: 'jupyter' });
     within(select as HTMLElement).getByRole('option', { name: 'tf' });
+  });
+
+  // 30. Regression: image Save stays disabled while podTemplate declares no ports.
+  it('disables image Save when podTemplate declares no ports', () => {
+    const image: WorkspaceKindImageConfigValue = {
+      id: 'jupyter-minimal',
+      displayName: 'Minimal Notebook',
+      description: '',
+      image: 'quay.io/jupyter/minimal-notebook:latest',
+      hidden: false,
+      imagePullPolicy: ImagePullPolicy.IfNotPresent,
+      restrictions: { deny: false },
+      ports: [makePort({ id: 'http', port: 8888 })],
+    };
+    const renderModal = (declared: V1Beta1WorkspaceKindPort[]) =>
+      render(
+        <WorkspaceKindFormImageModal
+          mode="edit"
+          isOpen
+          onClose={jest.fn()}
+          onSubmit={jest.fn()}
+          editIndex={0}
+          image={image}
+          setImage={jest.fn()}
+          imageOptions={[image]}
+          declaredPorts={declared}
+        />,
+      );
+
+    const { unmount } = renderModal([]);
+    expect(screen.getByTestId('image-modal-submit-button')).toBeDisabled();
+    unmount();
+
+    renderModal(declaredPorts);
+    expect(screen.getByTestId('image-modal-submit-button')).toBeEnabled();
   });
 });
