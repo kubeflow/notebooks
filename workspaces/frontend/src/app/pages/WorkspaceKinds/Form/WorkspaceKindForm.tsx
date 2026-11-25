@@ -150,6 +150,7 @@ export const convertToFormData = (
         home: podTemplate.volumeMountPaths.home,
       },
       activityProbe: podTemplate.activityProbe,
+      ports: podTemplate.ports,
     },
     activityRules: initialData.activityRules?.map((rule) => ({
       id: generateUniqueId(),
@@ -485,6 +486,7 @@ export const WorkspaceKindForm: React.FC = () => {
                         updateImageConfig={(imageInput) => {
                           setData('imageConfig', imageInput);
                         }}
+                        declaredPorts={data.podTemplate.ports ?? []}
                       />
                     </StackItem>
                     <StackItem>

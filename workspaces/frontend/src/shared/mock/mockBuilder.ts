@@ -765,6 +765,16 @@ export const buildMockWorkspaceKindUpdate = (
         defaultDisplayName: 'HTTP',
         protocol: V1Beta1ImagePortProtocol.ImagePortProtocolHTTP,
       },
+      {
+        id: 'jupyter',
+        defaultDisplayName: 'JupyterLab',
+        protocol: V1Beta1ImagePortProtocol.ImagePortProtocolHTTP,
+      },
+      {
+        id: 'tf',
+        defaultDisplayName: 'TensorBoard',
+        protocol: V1Beta1ImagePortProtocol.ImagePortProtocolHTTP,
+      },
     ],
     serviceAccount: {
       clusterRoles: [],
