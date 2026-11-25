@@ -89,7 +89,7 @@ The Tilt development environment runs a 2-node Kind cluster with Istio, cert-man
 > [!NOTE]
 >
 > The frontend webpack dev server is the heaviest component, requesting 3 GiB of memory.
-> If resources are tight, you can run without it using `ENABLE_FRONTEND=false make tilt-up`,
+> If resources are tight, you can run without it using `ENABLE_FRONTEND=false ENABLE_DASHBOARD=false make tilt-up`,
 > which reduces memory requirements by roughly 3 GiB.
 
 ### Tilt - Quick Start
@@ -147,7 +147,7 @@ What this does:
 > To run Tilt without the frontend (useful for backend/controller-only development):
 >
 > ```bash
-> ENABLE_FRONTEND=false make tilt-up
+> ENABLE_FRONTEND=false ENABLE_DASHBOARD=false make tilt-up
 > ```
 
 > [!TIP]
@@ -161,6 +161,17 @@ What this does:
 > The `kubeflow-registry` container (and its cached image layers) outlives the cluster, so it is reused if the cluster is deleted or recreated. Enabling it on an existing `tilt` cluster that was created without the registry recreates the cluster. Disabling it afterwards does not remove the registry wiring, so Tilt keeps pushing to the registry until the cluster is recreated.
 >
 > `ctlptl` sends anonymized usage statistics by default; opt out with `./bin/ctlptl-* analytics opt out`.
+
+> [!TIP]
+>
+> To persist these options instead of typing them on every invocation, copy [`tilt-config.mk.example`](./tilt-config.mk.example) to `tilt-config.mk` (gitignored) and uncomment the options you need:
+>
+> ```bash
+> cp tilt-config.mk.example tilt-config.mk
+> ```
+>
+> Options set on the command line (`make tilt-up VAR=x`) or in the environment (`VAR=x make tilt-up`) still take precedence over `tilt-config.mk`, as long as it uses `?=` assignments like the example.
+> Run `make show-config` to print the effective value of each option and where it came from.
 
 Wait until all resources show green/healthy status. 
 The frontend may take a couple of minutes on first start as webpack compiles the bundle.

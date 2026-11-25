@@ -1,0 +1,37 @@
+# Optional, persistent settings for `make tilt-up` / `make tilt-down`.
+#
+# Copy this file to `tilt-config.mk` (gitignored) and uncomment the options you want:
+#
+#   cp tilt-config.mk.example tilt-config.mk
+#
+# Values set on the command line (`make tilt-up VAR=x`) or in the environment
+# (`VAR=x make tilt-up`) take precedence over this file.
+# Run `make show-config` to see the effective values and where they came from.
+#
+# NOTE: this file is included by make:
+#   - use `?=` (not `=`), otherwise the file overrides values from the environment
+#   - do not quote values, quotes are kept literally
+#   - comments after a value are allowed for the options below, surrounding whitespace is stripped
+#   - only the options below are passed to Tilt automatically, use `export VAR ?= value`
+#     for any other variable, and do not put a comment after its value
+
+# Deploy the frontend webpack dev server (requires ~3 GiB of memory)
+#ENABLE_FRONTEND ?= true
+
+# Deploy the Kubeflow Dashboard (requires ENABLE_FRONTEND=true)
+#ENABLE_DASHBOARD ?= true
+
+# Install Prometheus for metrics verification
+#ENABLE_PROMETHEUS ?= false
+
+# Install metrics-server for `kubectl top` verification
+#ENABLE_METRICS_SERVER ?= false
+
+# Enable a local registry via ctlptl for faster rebuilds
+#ENABLE_REGISTRY ?= true
+
+# Use an alternative container runtime for kind (e.g., podman)
+#KIND_EXPERIMENTAL_PROVIDER ?= podman
+
+# Example of another variable: disable BuildKit (see the troubleshooting guide)
+#export DOCKER_BUILDKIT ?= 0
