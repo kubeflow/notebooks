@@ -121,6 +121,13 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
             {ports.map((p, index) => {
               const isTouched = touchedRows.has(index);
               const errors = isTouched ? validatePort(p, index, ports, declaredPorts) : {};
+              // Hide IDs assigned to other rows, but keep this row's own selection.
+              const idsUsedElsewhere = new Set(
+                ports.filter((_, j) => j !== index).map((other) => other.id),
+              );
+              const selectableIds = declaredPorts.filter(
+                (dp) => dp.id === p.id || !idsUsedElsewhere.has(dp.id),
+              );
 
               return (
                 <Tr key={index} data-testid={`port-row-${index}`}>
@@ -134,7 +141,7 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
                       validated={isTouched && errors.id ? 'error' : 'default'}
                     >
                       <FormSelectOption value="" label="Select ID" />
-                      {declaredPorts.map((dp) => (
+                      {selectableIds.map((dp) => (
                         <FormSelectOption key={dp.id} value={dp.id} label={dp.id} />
                       ))}
                     </FormSelect>

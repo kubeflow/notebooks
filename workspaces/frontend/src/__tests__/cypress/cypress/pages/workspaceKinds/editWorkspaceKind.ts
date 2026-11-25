@@ -1244,6 +1244,14 @@ class EditWorkspaceKind {
     this.findPortIdSelect(index).select(id);
   }
 
+  assertPortIdOptionPresent(index: number, id: string) {
+    this.findPortIdSelect(index).find(`option[value="${id}"]`).should('exist');
+  }
+
+  assertPortIdOptionMissing(index: number, id: string) {
+    this.findPortIdSelect(index).find(`option[value="${id}"]`).should('not.exist');
+  }
+
   // Inline display name field
   findPortDisplayNameInput(index: number) {
     return cy.findByTestId(`port-display-name-input-${index}`);

@@ -269,11 +269,11 @@ describe('WorkspaceKindFormImagePort', () => {
     expect(screen.queryByText('Port ID is required')).not.toBeInTheDocument();
   });
 
-  // 15. Duplicate ID error appears inline after selecting duplicate.
-  it('shows inline duplicate-ID error when the same ID is selected twice', async () => {
-    const user = userEvent.setup();
-    const ports = [makePort({ id: 'http', port: 8888 }), makePort({ id: 'jupyter', port: 8889 })];
-    const { rerender } = render(
+  // 15. Duplicate IDs loaded from existing data (e.g. YAML) still show the inline error,
+  // and each row keeps its own selection available in the selector.
+  it('shows inline duplicate-ID error for duplicate IDs in existing data', () => {
+    const ports = [makePort({ id: 'http', port: 8888 }), makePort({ id: 'http', port: 8889 })];
+    render(
       <WorkspaceKindFormImagePort
         ports={ports}
         setPorts={setPorts}
@@ -281,24 +281,55 @@ describe('WorkspaceKindFormImagePort', () => {
       />,
     );
 
-    // Both rows are pre-existing (touched). Change row 1 to duplicate row 0's id.
-    await user.selectOptions(screen.getByTestId('port-id-select-1'), 'http');
+    expect(screen.getAllByText('ID must be unique')).toHaveLength(2);
+    expect(screen.getByTestId('port-id-select-0')).toHaveValue('http');
+    expect(screen.getByTestId('port-id-select-1')).toHaveValue('http');
+  });
 
-    // The updated ports that setPorts was called with
-    const updated = setPorts.mock.calls[0][0] as WorkspaceKindImagePort[];
-    jest.clearAllMocks();
-
-    // rerender preserves touchedRows; both rows are touched so both show the error
-    rerender(
+  // 15b. Each selector excludes IDs used by other rows but keeps the row's own selection.
+  it('excludes IDs used by other rows from each selector', () => {
+    const ports = [makePort({ id: 'http', port: 8888 }), makePort({ id: 'jupyter', port: 8889 })];
+    render(
       <WorkspaceKindFormImagePort
-        ports={updated}
+        ports={ports}
         setPorts={setPorts}
         declaredPorts={declaredPorts}
       />,
     );
 
-    // Both duplicate rows show the error — use queryAllByText to handle multiple matches
-    expect(screen.queryAllByText('ID must be unique').length).toBeGreaterThan(0);
+    const optionValues = (testId: string) =>
+      within(screen.getByTestId(testId))
+        .getAllByRole('option')
+        .map((o) => (o as HTMLOptionElement).value);
+
+    expect(optionValues('port-id-select-0')).toEqual(['', 'http', 'tf']);
+    expect(optionValues('port-id-select-1')).toEqual(['', 'jupyter', 'tf']);
+  });
+
+  // 15c. Selecting an ID in one row removes it from the other rows' selectors.
+  it('updates other selectors when a row changes its ID', () => {
+    const ports = [makePort({ id: 'http', port: 8888 }), makePort({ id: '', port: 8889 })];
+    const { rerender } = render(
+      <WorkspaceKindFormImagePort
+        ports={ports}
+        setPorts={setPorts}
+        declaredPorts={declaredPorts}
+      />,
+    );
+    const row1 = within(screen.getByTestId('port-id-select-1'));
+    expect(row1.queryByRole('option', { name: 'http' })).not.toBeInTheDocument();
+    expect(row1.getByRole('option', { name: 'jupyter' })).toBeInTheDocument();
+
+    rerender(
+      <WorkspaceKindFormImagePort
+        ports={[ports[0], { ...ports[1], id: 'jupyter' }]}
+        setPorts={setPorts}
+        declaredPorts={declaredPorts}
+      />,
+    );
+    const row0 = within(screen.getByTestId('port-id-select-0'));
+    expect(row0.queryByRole('option', { name: 'jupyter' })).not.toBeInTheDocument();
+    expect(row0.getByRole('option', { name: 'http' })).toBeInTheDocument();
   });
 
   // 16. Duplicate port number error appears inline.

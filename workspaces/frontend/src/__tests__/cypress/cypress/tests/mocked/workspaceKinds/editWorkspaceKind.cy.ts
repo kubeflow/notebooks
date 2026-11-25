@@ -1924,7 +1924,7 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.assertPortIdCell(0, 'http');
     });
 
-    it('should disable image Save when duplicate ID is entered', () => {
+    it('should exclude IDs used by other rows from the ID selector', () => {
       const { mockWorkspaceKind } = setupEditWorkspaceKind();
       visitEditWorkspaceKind(mockWorkspaceKind.name);
 
@@ -1933,11 +1933,15 @@ describe('Edit workspace kind', () => {
       editWorkspaceKind.clickEditImage();
 
       editWorkspaceKind.clickAddPortButton();
-      // Select the same ID as row 0 → duplicate error.
-      editWorkspaceKind.selectPortId(1, 'http');
-
+      // Row 0 uses 'http', so the new row cannot select it.
+      editWorkspaceKind.assertPortIdOptionMissing(1, 'http');
+      editWorkspaceKind.assertPortIdOptionPresent(0, 'http');
+      // The new row has no ID yet, so image Save stays disabled.
       editWorkspaceKind.assertImageModalSaveDisabled(true);
-      cy.contains('ID must be unique').should('be.visible');
+
+      editWorkspaceKind.selectPortId(1, 'jupyter');
+      editWorkspaceKind.assertPortIdOptionMissing(0, 'jupyter');
+      editWorkspaceKind.assertPortIdOptionPresent(1, 'jupyter');
     });
 
     it('should disable image Save when duplicate port number is entered', () => {
