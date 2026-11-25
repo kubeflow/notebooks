@@ -79,9 +79,15 @@ setup-metrics-server:
 	@echo "Setting up metrics-server..."
 	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-metrics-server.sh
 
+# Install the fake-gpu-operator to simulate GPUs (optional, gated by ENABLE_FAKE_GPU)
+.PHONY: setup-fake-gpu-operator
+setup-fake-gpu-operator:
+	@echo "Setting up fake-gpu-operator..."
+	@export PATH="$(LOCALBIN):$$PATH" && ./scripts/setup-fake-gpu-operator.sh
+
 # Run tilt up with kind cluster, cert-manager, and Istio setup
 .PHONY: tilt-up
-tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus setup-metrics-server
+tilt-up: kustomize check-tilt setup-kind setup-istio setup-prometheus setup-metrics-server setup-fake-gpu-operator
 	@echo "Starting Tilt..."
 	@tilt up
 
