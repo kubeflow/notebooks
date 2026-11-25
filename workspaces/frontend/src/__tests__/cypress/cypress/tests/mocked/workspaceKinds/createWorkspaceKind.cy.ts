@@ -119,9 +119,35 @@ describe('Create workspace kind', () => {
       createWorkspaceKind.assertErrorAlertContainsMessage(message);
     });
 
-    it('should cancel creation and navigate back to workspace kinds list', () => {
+    it('should cancel creation and navigate back to workspace kinds list when clean', () => {
       createWorkspaceKind.visit();
       createWorkspaceKind.clickCancel();
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      workspaceKinds.verifyPageURL();
+    });
+
+    it('should prompt confirmation when canceling with unsaved YAML content and preserve content on stay', () => {
+      createWorkspaceKind.visit();
+      createWorkspaceKind.uploadYamlContent(validWorkspaceKindYaml);
+
+      createWorkspaceKind.clickCancel();
+      cy.findByTestId('discard-changes-modal').should('be.visible');
+
+      cy.findByTestId('discard-changes-modal').findByTestId('cancel-button').click();
+      cy.findByTestId('discard-changes-modal').should('not.exist');
+      createWorkspaceKind.verifyPageURL();
+      createWorkspaceKind.assertSubmitButtonEnabled();
+    });
+
+    it('should discard unsaved YAML content and navigate back when confirmed', () => {
+      createWorkspaceKind.visit();
+      createWorkspaceKind.uploadYamlContent(validWorkspaceKindYaml);
+
+      createWorkspaceKind.clickCancel();
+      cy.findByTestId('discard-changes-modal').should('be.visible');
+
+      cy.findByTestId('discard-changes-modal').findByTestId('confirm-button').click();
+      cy.findByTestId('discard-changes-modal').should('not.exist');
       workspaceKinds.verifyPageURL();
     });
 

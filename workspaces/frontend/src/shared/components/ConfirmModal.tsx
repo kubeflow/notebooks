@@ -20,6 +20,7 @@ interface ConfirmModalProps {
   children: React.ReactNode;
   confirmLabel: string;
   confirmLabelOnLoading: string;
+  cancelLabel?: string;
   confirmVariant?: React.ComponentProps<typeof Button>['variant'];
   onConfirm: () => Promise<void>;
   onClose: () => void;
@@ -34,6 +35,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   children,
   confirmLabel,
   confirmLabelOnLoading,
+  cancelLabel = 'Cancel',
   confirmVariant = 'danger',
   onConfirm,
   onClose,
@@ -81,7 +83,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           {confirmLabel}
         </ActionButton>
         <Button variant="link" onClick={onClose} data-testid="cancel-button">
-          Cancel
+          {cancelLabel}
         </Button>
       </ModalFooter>
     </Modal>
