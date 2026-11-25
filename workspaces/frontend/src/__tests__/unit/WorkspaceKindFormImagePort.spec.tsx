@@ -97,7 +97,39 @@ describe('WorkspaceKindFormImagePort', () => {
     render(<WorkspaceKindFormImagePort ports={[makePort()]} setPorts={setPorts} />);
     const select = screen.getByTestId('port-id-select-0');
     expect(screen.queryByTestId('port-id-input-0')).not.toBeInTheDocument();
-    expect(within(select as HTMLElement).getAllByRole('option')).toHaveLength(1);
+    // Only the placeholder and the (disabled) undeclared current ID are listed.
+    const options = within(select as HTMLElement).getAllByRole('option') as HTMLOptionElement[];
+    expect(options.map((o) => o.value)).toEqual(['', 'http']);
+  });
+
+  // 5b. An undeclared current ID stays visible but cannot be re-selected.
+  it('keeps an undeclared current ID visible as a disabled option', () => {
+    render(
+      <WorkspaceKindFormImagePort
+        ports={[makePort({ id: 'legacy', port: 8888 })]}
+        setPorts={setPorts}
+        declaredPorts={declaredPorts}
+      />,
+    );
+    const select = screen.getByTestId('port-id-select-0');
+    expect(select).toHaveValue('legacy');
+    expect(within(select).getByRole('option', { name: 'legacy (undeclared)' })).toBeDisabled();
+    expect(screen.getByText('ID must reference a declared port')).toBeInTheDocument();
+  });
+
+  // 5c. With no declarations, a newly added (untouched) row shows the reason Save is blocked.
+  it('shows the missing-declarations error on a new row before interaction', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <WorkspaceKindFormImagePort ports={[]} setPorts={setPorts} declaredPorts={[]} />,
+    );
+    await user.click(screen.getByTestId('add-port-button'));
+    const added = setPorts.mock.calls[0][0] as WorkspaceKindImagePort[];
+    rerender(<WorkspaceKindFormImagePort ports={added} setPorts={setPorts} declaredPorts={[]} />);
+
+    expect(screen.getByText('No ports are declared in the pod template')).toBeInTheDocument();
+    // Other fields of the untouched row stay quiet until interaction.
+    expect(screen.queryByText('Port must be between 1 and 65535')).not.toBeInTheDocument();
   });
 
   // ── Add / remove ──────────────────────────────────────────────────────────

@@ -120,7 +120,11 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
           <Tbody>
             {ports.map((p, index) => {
               const isTouched = touchedRows.has(index);
-              const errors = isTouched ? validatePort(p, index, ports, declaredPorts) : {};
+              // Validate every row; touched state only controls which errors are shown.
+              const rowErrors = validatePort(p, index, ports, declaredPorts);
+              const errors = isTouched ? rowErrors : {};
+              // Missing declarations block every row, so show that error even before interaction.
+              const idError = isTouched || declaredPorts.length === 0 ? rowErrors.id : undefined;
               // Hide IDs assigned to other rows, but keep this row's own selection.
               const idsUsedElsewhere = new Set(
                 ports.filter((_, j) => j !== index).map((other) => other.id),
@@ -128,6 +132,9 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
               const selectableIds = declaredPorts.filter(
                 (dp) => dp.id === p.id || !idsUsedElsewhere.has(dp.id),
               );
+              // Keep an undeclared current ID visible (but not selectable) instead of
+              // letting the selector silently display "Select ID".
+              const isUndeclaredId = !!p.id && !declaredPorts.some((dp) => dp.id === p.id);
 
               return (
                 <Tr key={index} data-testid={`port-row-${index}`}>
@@ -138,16 +145,19 @@ export const WorkspaceKindFormImagePort: React.FC<WorkspaceKindFormImagePortProp
                       aria-label={`Port ID for row ${index}`}
                       id={`port-id-select-${index}`}
                       data-testid={`port-id-select-${index}`}
-                      validated={isTouched && errors.id ? 'error' : 'default'}
+                      validated={idError ? 'error' : 'default'}
                     >
                       <FormSelectOption value="" label="Select ID" />
+                      {isUndeclaredId && (
+                        <FormSelectOption value={p.id} label={`${p.id} (undeclared)`} isDisabled />
+                      )}
                       {selectableIds.map((dp) => (
                         <FormSelectOption key={dp.id} value={dp.id} label={dp.id} />
                       ))}
                     </FormSelect>
-                    {isTouched && errors.id && (
+                    {idError && (
                       <HelperText>
-                        <HelperTextItem variant="error">{errors.id}</HelperTextItem>
+                        <HelperTextItem variant="error">{idError}</HelperTextItem>
                       </HelperText>
                     )}
                   </Td>
