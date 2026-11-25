@@ -9,6 +9,7 @@ import {
 import { Button } from '@patternfly/react-core/dist/esm/components/Button';
 import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
+import { Checkbox } from '@patternfly/react-core/dist/esm/components/Checkbox';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { HelperText, HelperTextItem } from '@patternfly/react-core/dist/esm/components/HelperText';
 import { default as ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
@@ -19,15 +20,25 @@ import ThemeAwareFormGroupWrapper from '~/shared/components/ThemeAwareFormGroupW
 import { extractErrorMessage } from '~/shared/api/apiUtils';
 import { ApiErrorEnvelope } from '~/generated/data-contracts';
 
+export interface DeleteOptions {
+  deleteHomeVolume: boolean;
+}
+
 interface DeleteModalProps {
   isOpen: boolean;
   resourceName: string;
   namespace?: string;
   onClose: () => void;
-  onDelete: (resourceName: string) => Promise<void>;
+  onDelete: (resourceName: string, options?: DeleteOptions) => Promise<void>;
   title: string;
   errorTitle?: string;
   message?: React.ReactNode;
+  /**
+   * Home PersistentVolumeClaim mounted by this workspace.
+   * When set, the dialog offers to delete that volume together with the workspace.
+   * The box starts unchecked, so the volume is kept unless the user opts in.
+   */
+  homeVolumeName?: string;
 }
 
 const DeleteModal: React.FC<DeleteModalProps> = ({
@@ -39,9 +50,11 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   message,
   onClose,
   onDelete,
+  homeVolumeName,
 }) => {
   const { isMUITheme } = useThemeContext();
   const [inputValue, setInputValue] = useState('');
+  const [deleteHomeVolume, setDeleteHomeVolume] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | ApiErrorEnvelope | null>(null);
   const isDeletingRef = useRef(false);
@@ -49,6 +62,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setInputValue('');
+      setDeleteHomeVolume(false);
       setError(null);
       isDeletingRef.current = false;
       setIsDeleting(false);
@@ -65,7 +79,11 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     setError(null);
 
     try {
-      await onDelete(resourceName);
+      if (homeVolumeName) {
+        await onDelete(resourceName, { deleteHomeVolume });
+      } else {
+        await onDelete(resourceName);
+      }
       onClose();
     } catch (err) {
       setError(extractErrorMessage(err));
@@ -73,7 +91,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       isDeletingRef.current = false;
       setIsDeleting(false);
     }
-  }, [inputValue, onClose, onDelete, resourceName]);
+  }, [deleteHomeVolume, homeVolumeName, inputValue, onClose, onDelete, resourceName]);
 
   const handleInputChange = (event: React.FormEvent<HTMLInputElement>, value: string) => {
     setInputValue(value);
@@ -143,6 +161,18 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               </ThemeAwareFormGroupWrapper>
             </Form>
           </StackItem>
+          {homeVolumeName && (
+            <StackItem>
+              <Checkbox
+                id="delete-home-volume"
+                label={`Also delete the home volume ${homeVolumeName}`}
+                description="Deletes this PersistentVolumeClaim and the files stored on it. Data volumes mounted beside the home directory stay."
+                isChecked={deleteHomeVolume}
+                onChange={(_event, checked) => setDeleteHomeVolume(checked)}
+                data-testid="delete-home-volume-checkbox"
+              />
+            </StackItem>
+          )}
         </Stack>
       </ModalBody>
       <ModalFooter>
