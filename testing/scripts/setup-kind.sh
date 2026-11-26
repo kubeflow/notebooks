@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TESTING_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-CLUSTER_NAME="local-e2e"
+CLUSTER_NAME="${KIND_CLUSTER_NAME:-local-e2e}"
 KIND_CONFIG="${TESTING_DIR}/kind-1-35.yaml"
 
 # Check if kind command exists

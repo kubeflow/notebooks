@@ -66,6 +66,34 @@ updates:
         patterns:
           - "mod-arch-*"
 
+  - package-ecosystem: "npm"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    directory: "/testing/e2e"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore"
+    ignore:
+      # Cypress majors also change the bundled Electron the e2e suite runs on,
+      # so they should be handled manually
+      - dependency-name: "cypress"
+        update-types:
+          - "version-update:semver-major"
+      # must match the Node major pinned in testing/e2e/package.json "engines"
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
+    groups:
+      lint-packages:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@eslint/*"
+          - "typescript-eslint"
+          - "prettier"
+
   - package-ecosystem: "github-actions"
     open-pull-requests-limit: 5
     cooldown:

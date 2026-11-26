@@ -15,6 +15,10 @@ FRONTEND_NAME ?= workspaces-frontend
 FRONTEND_IMG ?= $(REGISTRY)/$(FRONTEND_NAME):$(TAG)
 
 KIND_CLUSTER_NAME ?= local-e2e
+export KIND_CLUSTER_NAME
+# The Cypress context guard only allows this cluster unless told otherwise.
+E2E_ALLOWED_CONTEXTS ?= kind-$(KIND_CLUSTER_NAME)
+export E2E_ALLOWED_CONTEXTS
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
@@ -44,11 +48,17 @@ help: ## Display this help.
 
 ##@ Deployment
 
-.PHONY: setup-cluster
-setup-cluster: check-kubectl check-kind ## Set up a complete kind cluster with cert-manager and Istio.
+.PHONY: setup-kind
+setup-kind: check-kubectl check-kind ## Create a Kind cluster for e2e testing.
 	bash scripts/setup-kind.sh
+
+.PHONY: setup-deps
+setup-deps: check-kubectl ## Install cluster dependencies (cert-manager and Istio).
 	bash scripts/setup-cert-manager.sh
 	bash scripts/setup-istio.sh
+
+.PHONY: setup-cluster
+setup-cluster: setup-kind setup-deps ## Set up a complete kind cluster with cert-manager and Istio.
 
 .PHONY: teardown-cluster
 teardown-cluster: check-kind ## Delete the Kind cluster.
@@ -68,7 +78,7 @@ deploy-backend: check-kind check-kind-context ## Build and deploy the backend.
 
 .PHONY: deploy-frontend
 deploy-frontend: check-kind check-kind-context ## Build and deploy the frontend.
-	$(MAKE) -C ../workspaces/frontend docker-build IMG=$(FRONTEND_IMG)
+	$(MAKE) -C ../workspaces/frontend docker-build IMG=$(FRONTEND_IMG) DEPLOYMENT_MODE=standalone
 	kind load docker-image $(FRONTEND_IMG) --name $(KIND_CLUSTER_NAME)
 	$(MAKE) -C ../workspaces/frontend deploy IMG=$(FRONTEND_IMG)
 
@@ -77,15 +87,24 @@ deploy-all: deploy-controller deploy-backend deploy-frontend ## Deploy all compo
 
 ##@ E2E Tests
 
-.PHONY: sanity-check
-sanity-check: check-kind-context ## Verify all components are deployed and responding.
-	@bash scripts/sanity-check.sh
+.PHONY: cluster-readiness
+cluster-readiness: check-kind-context ## Verify all components are deployed and responding.
+	@bash scripts/cluster-readiness.sh
+
+# Optional: a single spec (or glob), relative to testing/e2e, e.g.
+#   make local-e2e SPEC=cypress/tests/workspace/user/list.cy.ts
+SPEC ?=
 
 .PHONY: local-e2e
-local-e2e: ## Run e2e tests.
-	@echo "..."
-	@echo "TODO: there are no e2e tests yet, they will be defined in Cypress..."
-	@echo "..."
+local-e2e: check-kind-context ## Run Cypress e2e tests against deployed stack (SPEC=<path> for one spec).
+	@bash scripts/run-e2e.sh run $(if $(SPEC),--spec "$(SPEC)")
+
+.PHONY: e2e-open
+e2e-open: check-kind-context ## Open the interactive Cypress runner against deployed stack.
+	@bash scripts/run-e2e.sh open
+
+.PHONY: e2e
+e2e: setup-cluster deploy-all cluster-readiness local-e2e ## Run full e2e pipeline: cluster setup, deploy, and test.
 
 ##@ Dependencies
 

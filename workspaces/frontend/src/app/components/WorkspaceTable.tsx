@@ -417,7 +417,12 @@ const WorkspaceTable = React.forwardRef<WorkspaceTableRef, WorkspaceTableProps>(
     // Toolbar actions
     const toolbarActions = canCreateWorkspaces ? (
       <ToolbarItem>
-        <Button variant="primary" ouiaId="Primary" onClick={createWorkspace}>
+        <Button
+          variant="primary"
+          ouiaId="Primary"
+          onClick={createWorkspace}
+          data-testid="create-workspace-button"
+        >
           Create workspace
         </Button>
       </ToolbarItem>
