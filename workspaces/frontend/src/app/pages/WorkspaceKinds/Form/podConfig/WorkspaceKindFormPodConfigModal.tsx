@@ -10,6 +10,7 @@ import { Form, FormGroup } from '@patternfly/react-core/dist/esm/components/Form
 import { TextInput } from '@patternfly/react-core/dist/esm/components/TextInput';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
 import { HelperText } from '@patternfly/react-core/dist/esm/components/HelperText';
+import { getDraftRedirectError } from '~/app/pages/WorkspaceKinds/Form/redirectValidation';
 import { WorkspaceKindPodConfigValue } from '~/app/types';
 import { EditableRowsTable, KeyValueRow } from '~/app/pages/WorkspaceKinds/Form/EditableRowsTable';
 import {
@@ -122,7 +123,14 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
   const hasResourceErrors = resources.some((resource) => getResourceErrors(resource).length > 0);
   const isMissingRedirectTarget =
     Boolean(redirect.to) && !candidateTargets.some((target) => target.id === redirect.to);
-  const hasRedirectError = Boolean(getRedirectMessageError(redirect)) || isMissingRedirectTarget;
+  const redirectError = getDraftRedirectError({
+    values: podConfigOptions ?? [],
+    draft: { id, redirect },
+    editIndex,
+    optionType: 'podConfig',
+  });
+  const hasRedirectError =
+    Boolean(getRedirectMessageError(redirect)) || isMissingRedirectTarget || Boolean(redirectError);
 
   const handleSubmit = useCallback(() => {
     if (hasResourceErrors || hasRedirectError) {
@@ -273,6 +281,7 @@ const WorkspaceKindFormPodConfigModalContent: React.FC<WorkspaceKindFormPodConfi
           />
           {mode === 'edit' && (
             <WorkspaceKindFormRedirect
+              validationError={redirectError}
               redirect={redirect}
               setRedirect={setRedirect}
               candidateTargets={candidateTargets}

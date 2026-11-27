@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import yaml from 'js-yaml';
 import { mockModArchResponse } from 'mod-arch-core';
 import { editWorkspaceKind } from '~/__tests__/cypress/cypress/pages/workspaceKinds/editWorkspaceKind';
 import { workspaceKinds } from '~/__tests__/cypress/cypress/pages/workspaceKinds/workspaceKinds';
@@ -12,6 +13,7 @@ import {
 } from '~/shared/mock/mockBuilder';
 import {
   FieldErrorType,
+  V1Beta1RedirectMessageLevel,
   type WorkspacekindsWorkspaceKindListItem,
   type WorkspacekindsWorkspaceKindUpdate,
 } from '~/generated/data-contracts';
@@ -1799,4 +1801,152 @@ describe('Edit workspace kind', () => {
       cy.get('@getWorkspaceKind.all').should('have.length', 0);
     });
   });
+});
+
+describe('WorkspaceKind redirect graph validation', () => {
+  for (const type of ['image', 'pod-config'] as const) {
+    const optionType = type === 'image' ? 'imageConfig' : 'podConfig';
+    const prepare = (longChain = false) => {
+      const { mockWorkspaceKind } = setupEditWorkspaceKind();
+      const update = buildMockWorkspaceKindUpdate(mockWorkspaceKind);
+      const buildOptions = <T extends { id: string; spawner: { displayName: string } }>(
+        template: T,
+      ): T[] =>
+        ['A', 'B', 'C'].map((id, index) => ({
+          ...template,
+          id,
+          spawner: { ...template.spawner, displayName: id },
+          redirect:
+            index === 0
+              ? {
+                  to: 'B',
+                  message: {
+                    level: V1Beta1RedirectMessageLevel.RedirectMessageLevelInfo,
+                    text: ' Keep formatting ',
+                  },
+                }
+              : index === 1 && longChain
+                ? { to: 'C' }
+                : undefined,
+        }));
+      if (optionType === 'imageConfig') {
+        const options = update.podTemplate.options.imageConfig;
+        options.values = buildOptions(options.values[0]);
+        options.spawner.default = 'A';
+      } else {
+        const options = update.podTemplate.options.podConfig;
+        options.values = buildOptions(options.values[0]);
+        options.spawner.default = 'A';
+      }
+      cy.interceptApi(
+        'GET /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(update),
+      ).as('getWorkspaceKind');
+      cy.interceptApi(
+        'PUT /api/:apiVersion/workspacekinds/:kind',
+        { path: { apiVersion: NOTEBOOKS_API_VERSION, kind: mockWorkspaceKind.name } },
+        mockModArchResponse(update),
+      ).as('updateRedirectKind');
+      return { update, name: mockWorkspaceKind.name };
+    };
+    const openOption = (index: number) => {
+      if (type === 'image') {
+        editWorkspaceKind.expandImageConfigSection();
+        editWorkspaceKind.clickImageTableRowKebab(index);
+        editWorkspaceKind.clickEditImage();
+      } else {
+        editWorkspaceKind.expandPodConfigSection();
+        editWorkspaceKind.clickPodConfigTableRowKebab(index);
+        editWorkspaceKind.clickEditPodConfig();
+      }
+    };
+    const saveOption = () =>
+      type === 'image'
+        ? editWorkspaceKind.submitImageModal()
+        : editWorkspaceKind.submitPodConfigModal();
+
+    for (const action of ['rename', 'delete'] as const) {
+      it(`${type}: reports a missing target after ${action} and repairs from the summary`, () => {
+        const { name } = prepare();
+        visitEditWorkspaceKind(name);
+        if (action === 'rename') {
+          openOption(1);
+          if (type === 'image') {
+            editWorkspaceKind.typeImageId('D');
+          } else {
+            editWorkspaceKind.typePodConfigId('D');
+          }
+          saveOption();
+        } else if (type === 'image') {
+          editWorkspaceKind.expandImageConfigSection();
+          editWorkspaceKind.clickImageTableRowKebab(1);
+          editWorkspaceKind.clickRemoveImage();
+          editWorkspaceKind.confirmRemoveImage();
+        } else {
+          editWorkspaceKind.expandPodConfigSection();
+          editWorkspaceKind.clickPodConfigTableRowKebab(1);
+          editWorkspaceKind.clickRemovePodConfig();
+          editWorkspaceKind.confirmRemovePodConfig();
+        }
+        editWorkspaceKind.assertRedirectSummary('A: redirect target "B" does not exist');
+        editWorkspaceKind.assertRedirectRowError({ type, index: 0, text: '"B" does not exist' });
+        editWorkspaceKind.assertSubmitButtonDisabled(true);
+        cy.get('@updateRedirectKind.all').should('have.length', 0);
+        editWorkspaceKind.editInvalidRedirect({ type: optionType, index: 0 });
+        editWorkspaceKind.chooseRedirect({ type, target: '' });
+        saveOption();
+        editWorkspaceKind.assertRedirectSummary();
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@updateRedirectKind')
+          .its(`request.body.data.podTemplate.options.${optionType}.values.0`)
+          .should('not.have.property', 'redirect');
+      });
+    }
+
+    for (const length of [2, 3]) {
+      it(`${type}: blocks a ${length}-node modal cycle and preserves valid chains`, () => {
+        const { name } = prepare(length === 3);
+        visitEditWorkspaceKind(name);
+        openOption(length - 1);
+        editWorkspaceKind.chooseRedirect({ type, target: 'A' });
+        editWorkspaceKind.assertModalCycle({
+          type,
+          path: length === 2 ? 'B → A → B' : 'C → A → B → C',
+        });
+        editWorkspaceKind.chooseRedirect({ type, target: '' });
+        saveOption();
+        editWorkspaceKind.assertRedirectSummary();
+        editWorkspaceKind.expandPropertiesSection();
+        editWorkspaceKind.typeDescription('Valid redirect chain');
+        editWorkspaceKind.clickSubmit();
+        cy.wait('@updateRedirectKind')
+          .its(`request.body.data.podTemplate.options.${optionType}.values.0.redirect.message.text`)
+          .should('equal', ' Keep formatting ');
+      });
+    }
+
+    it(`${type}: rejects YAML self redirects and repairs them through Form`, () => {
+      const { name, update } = prepare();
+      visitEditWorkspaceKind(name);
+      editWorkspaceKind.clickYamlTab();
+      update.podTemplate.options[optionType].values[0].redirect = { to: 'A' };
+      editWorkspaceKind.replaceYaml(yaml.dump(update));
+      editWorkspaceKind.assertRedirectSummary('A → A');
+      editWorkspaceKind.assertSubmitButtonDisabled(true);
+      cy.get('@updateRedirectKind.all').should('have.length', 0);
+      editWorkspaceKind.clickFormTab();
+      editWorkspaceKind.assertRedirectSummary('A → A');
+      editWorkspaceKind.editInvalidRedirect({ type: optionType, index: 0 });
+      editWorkspaceKind.assertModalCycle({ type, path: 'A → A' });
+      editWorkspaceKind.chooseRedirect({ type, target: 'C' });
+      saveOption();
+      editWorkspaceKind.assertRedirectSummary();
+      editWorkspaceKind.clickYamlTab();
+      editWorkspaceKind.clickSubmit();
+      cy.wait('@updateRedirectKind')
+        .its(`request.body.data.podTemplate.options.${optionType}.values.0.redirect.to`)
+        .should('equal', 'C');
+    });
+  }
 });

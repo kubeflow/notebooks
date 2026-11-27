@@ -380,3 +380,31 @@ describe('Create workspace kind', () => {
     });
   });
 });
+
+describe('Create WorkspaceKind redirect validation', () => {
+  beforeEach(() => {
+    setupCreateWorkspaceKindTest();
+  });
+  for (const type of ['imageConfig', 'podConfig'] as const) {
+    it(`blocks an uploaded ${type} cycle and recovers with a repaired file`, () => {
+      const kind = buildMockWorkspaceKind({ name: 'redirect-kind' });
+      const update = buildMockWorkspaceKindUpdate(kind);
+      const source = update.podTemplate.options[type].values[0];
+      source.redirect = { to: source.id };
+      const resource = {
+        apiVersion: 'kubeflow.org/v1beta1',
+        kind: 'WorkspaceKind',
+        metadata: { name: kind.name },
+        spec: update,
+      };
+      createWorkspaceKind.visit();
+      createWorkspaceKind.uploadYamlContent(yaml.dump(resource));
+      createWorkspaceKind.assertRedirectSummary(`${source.id} → ${source.id}`);
+      createWorkspaceKind.assertSubmitButtonDisabled();
+      delete source.redirect;
+      createWorkspaceKind.clearYamlContent();
+      createWorkspaceKind.uploadYamlContent(yaml.dump(resource));
+      createWorkspaceKind.assertSubmitButtonEnabled();
+    });
+  }
+});

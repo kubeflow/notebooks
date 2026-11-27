@@ -17,6 +17,8 @@ import {
 import { ExpandableSection } from '@patternfly/react-core/dist/esm/components/ExpandableSection';
 import { PlusCircleIcon } from '@patternfly/react-icons/dist/esm/icons/plus-circle-icon';
 import { CubesIcon } from '@patternfly/react-icons/dist/esm/icons/cubes-icon';
+import { useRedirectEditRequest } from '~/app/pages/WorkspaceKinds/Form/useRedirectEditRequest';
+import { RedirectValidationError } from '~/app/pages/WorkspaceKinds/Form/redirectValidation';
 import { emptyPodConfig } from '~/app/pages/WorkspaceKinds/Form/helpers';
 import {
   TolerationEntry,
@@ -30,11 +32,17 @@ import { WorkspaceKindFormTolerations } from './WorkspaceKindFormTolerations';
 interface WorkspaceKindFormPodConfigProps {
   mode?: string;
   podConfig: WorkspaceKindPodConfigData;
+  redirectErrors?: RedirectValidationError[];
+  editRequest?: number;
+  onEditRequestHandled?: () => void;
   updatePodConfig: (podConfigs: WorkspaceKindPodConfigData) => void;
 }
 
 export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProps> = ({
   mode,
+  redirectErrors,
+  editRequest,
+  onEditRequestHandled,
   podConfig,
   updatePodConfig,
 }) => {
@@ -85,6 +93,13 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
     },
     [podConfig.values],
   );
+
+  useRedirectEditRequest({
+    index: editRequest,
+    onEdit: handleEdit,
+    onHandled: onEditRequestHandled,
+    expand: setIsExpanded,
+  });
 
   const handleDelete = useCallback(() => {
     if (deleteIndex === null) {
@@ -219,6 +234,7 @@ export const WorkspaceKindFormPodConfig: React.FC<WorkspaceKindFormPodConfigProp
               constrain pods to specific node groups.
             </Content>
             <WorkspaceKindFormPaginatedTable
+              redirectErrors={redirectErrors}
               ariaLabel="Pod Configs Table"
               dataTestId="pod-configs-table"
               rows={podConfig.values ?? []}
