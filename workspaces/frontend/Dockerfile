@@ -14,6 +14,9 @@ RUN npm cache clean --force \
 # Copy source code
 COPY . .
 
+# Optional override of the .env* default (kubeflow), e.g. standalone
+ARG DEPLOYMENT_MODE
+
 # Build the application
 RUN npm run build:prod
 

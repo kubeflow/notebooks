@@ -24,7 +24,7 @@ all: help
 
 .PHONY: docker-build
 docker-build:
-	docker build --tag ${IMG} .
+	docker build --tag ${IMG} $(if $(DEPLOYMENT_MODE),--build-arg DEPLOYMENT_MODE=$(DEPLOYMENT_MODE)) .
 
 .PHONY: docker-push
 docker-push:

@@ -1,0 +1,34 @@
+{
+  "name": "kubeflow-notebooks-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end tests for Kubeflow Notebooks",
+  "scripts": {
+    "cypress:run": "cypress run --browser electron",
+    "cypress:open": "cypress open --e2e --browser electron",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . && tsx scripts/check-spec-paths.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:static": "npm run typecheck && npm run lint && npm run format:check"
+  },
+  "engines": {
+    "npm": "^11.10.0",
+    "node": "^24"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^1.0.0",
+    "@testing-library/cypress": "^10.0.3",
+    "cypress": "^14.4.1",
+    "typescript": "^5.8.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.4",
+    "eslint": "^10.15.0",
+    "eslint-plugin-cypress": "^7.2.0",
+    "prettier": "^3.10.1",
+    "tsx": "^4.23.15",
+    "typescript-eslint": "^8.74.0"
+  }
+}

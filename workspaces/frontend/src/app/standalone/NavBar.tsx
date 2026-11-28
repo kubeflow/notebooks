@@ -16,6 +16,7 @@ import {
 import {
   MenuToggle,
   MenuToggleElement,
+  MenuToggleProps,
 } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { PageToggleButton } from '@patternfly/react-core/dist/esm/components/Page';
 import {
@@ -96,6 +97,14 @@ const NavBar: React.FC<NavBarProps> = ({ username, onLogout }) => {
                       updatePreferredNamespace({ name: String(selection) });
                     }
                   }}
+                  // MenuToggleProps doesn't type `data-testid`, but MenuToggle spreads unknown
+                  // props onto the underlying <button>, so it renders correctly.
+                  toggleProps={
+                    {
+                      id: 'namespace-select-toggle',
+                      'data-testid': 'namespace-select-toggle',
+                    } as MenuToggleProps
+                  }
                 />
               </ToolbarItem>
             </ToolbarGroup>

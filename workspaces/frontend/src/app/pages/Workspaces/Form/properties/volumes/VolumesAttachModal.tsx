@@ -12,6 +12,7 @@ import { Popover } from '@patternfly/react-core/dist/esm/components/Popover';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons/dist/esm/icons/outlined-question-circle-icon';
 import { Form } from '@patternfly/react-core/dist/esm/components/Form';
 import { Switch } from '@patternfly/react-core/dist/esm/components/Switch';
+import { MenuToggleProps } from '@patternfly/react-core/dist/esm/components/MenuToggle';
 import { Stack, StackItem } from '@patternfly/react-core/dist/esm/layouts/Stack';
 import { TypeaheadSelect } from '@patternfly/react-templates';
 import { PvcsPVCListItem } from '~/generated/data-contracts';
@@ -228,6 +229,9 @@ export const VolumesAttachModal: React.FC<VolumesAttachModalProps> = ({
                   <TypeaheadSelect
                     key={selectedPvcName || PVC_SELECT_EMPTY_KEY}
                     id="pvc-select"
+                    // MenuToggleProps doesn't type `data-testid`, but MenuToggle spreads unknown
+                    // props onto the underlying element, so it renders correctly.
+                    toggleProps={{ 'data-testid': 'pvc-select-toggle' } as MenuToggleProps}
                     initialOptions={initialOptions}
                     placeholder="Select a volume"
                     isScrollable
