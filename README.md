@@ -46,3 +46,10 @@ Connect with _other users_ and the [Notebooks Working Group](https://github.com/
 ## Contributing
 
 Please see the [`CONTRIBUTING.md`](https://github.com/kubeflow/notebooks/blob/main/CONTRIBUTING.md) file for more information.
+
+## Contributors
+
+<a href="https://github.com/kubeflow/notebooks/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=kubeflow/notebooks" alt="Kubeflow Notebooks Contributors" />
+</a>
+
